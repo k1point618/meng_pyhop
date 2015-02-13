@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Pyhop, version 1.2.2
 ## A simple HTN planning system written in Python
 
@@ -24,3 +25,7 @@ Pyhop's planning algorithm is like the one in [SHOP](http://www.cs.umd.edu/proje
   - To write HTN operators and methods for Pyhop, you don't need to learn a specialized planning language. Instead, you write them as ordinary Python functions. The current state (e.g., s in the above example) is passed to them as an argument.
 
 
+=======
+# meng_pyhop
+Python Implementation of Hierarchical Ordered Planner with Modifications for Anticipatory Behaviors in Collaborative Tasks
+>>>>>>> 3a79dcca719fa52ef87348b5f638583c16009e4e
