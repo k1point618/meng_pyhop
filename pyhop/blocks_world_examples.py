@@ -128,7 +128,7 @@ print('')
 ### goal2b omits some of the conditions of goal2a,
 ### but those conditions will need to be achieved anyway.
 
-pyhop(state2,[('move_blocks', goal2a)], verbose=3)
+pyhop(state2,[('move_blocks', goal2a)], verbose=1)
 pyhop(state2,[('move_blocks', goal2b)], verbose=1)
 
 
