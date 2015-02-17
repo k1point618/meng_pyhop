@@ -70,7 +70,7 @@ def benchmark_amortized(verbose=0):
 	print ('before:', end-start)
 	print ('num_recurse calls', get_num_recurse_calls())
 	start = time.time()
-	solutions_b = pyhop(world, 'agent1'], verbose, all_solutions=True, amortize=True) # only one solution
+	solutions_b = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=True) # only one solution
 	end = time.time()
 	print ('after:', end-start)
 	print ('num_recurse calls', get_num_recurse_calls())
@@ -78,7 +78,35 @@ def benchmark_amortized(verbose=0):
 	print('solution_a size: ', len(solutions_a))
 	print('solution_b size: ', len(solutions_b))
 
+def benchmark_a_star(verbose=0):
+	world = get_random_world(6, 5)
 
-benchmark_amortized(verbose=0)
+	print_board(world)
+
+	# Get all solutions using Hierarchical Decompositions for navigating
+	# world.settings['a-star'] = False
+	# start = time.time()
+	# solutions_a = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=False) # only one solution
+	# end = time.time()
+
+	# print ('before:', end-start)
+	# print(solutions_a)
+	# print ('num_recurse calls', get_num_recurse_calls())
+	
+	# Get all solutions using A-star for navigating
+	world.settings['a-star'] = True
+	start = time.time()
+	solutions_b = pyhop(world, 'agent1', 3, all_solutions=True, amortize=False) # only one solution
+	end = time.time()
+	print ('after:', end-start)
+	print(solutions_b)
+	print ('num_recurse calls', get_num_recurse_calls())
+	
+	
+# benchmark_amortized(verbose=0)
+
+# single_agent_benchmark()
+
+benchmark_a_star()
 
 

@@ -26,7 +26,7 @@ something about the world. Possible changes are:
 - (Later) Change of capabilities
 - (later) Change of communication Cost
 """
-def generate_uncertainty(state, a_prob=0.3, verbose=False):
+def generate_uncertainty(state, a_prob=1, verbose=False):
 	
 	toggle_state = (random.random() < a_prob)
 
@@ -213,6 +213,8 @@ def get_random_world(BOARD_X=10, BOARD_Y=10):
 	world.goals['agent1'] = [('get_sample_data', 'agent1')]
 	world.goals['agent2'] = [('get_sample_data', 'agent2')]
 
+	# For other miscellaneous settings
+	world.settings = {}
 	return world
 
 ######## End for Generating world

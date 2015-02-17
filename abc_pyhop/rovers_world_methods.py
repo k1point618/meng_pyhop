@@ -4,6 +4,7 @@ Author: Kgu@mit.edu
 """
 import random
 import pyhop
+import navigation
 from rovers_world_operators import *
 
 def empty_store_m(state, store, rover, all_decomp=False):
@@ -20,6 +21,12 @@ pyhop.declare_methods('empty_store',empty_store_m)
 
 
 def navigate_m(state, agent, sink, all_decomp=False):
+	if state.settings['a-star']:
+		if all_decomp:
+			return [navigation.a_star(state, agent, sink)]
+		else:
+			return navigation.a_star(state, agent, sink)
+	
 	possible_decomp = []
 	if state.is_agent[agent]:
 		source = state.at[agent]
