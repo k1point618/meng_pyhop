@@ -111,7 +111,7 @@ def print_board(state): #TODO: Make gui
 """
 Main funciton for generating random world
 """
-def get_random_world(BOARD_X=10, BOARD_Y=10):
+def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 
 	##############################
 	# Below, we generate the world with pre-defined randomness.
@@ -196,7 +196,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10):
 
 	# Objectives and Cameras ?? TODO for later
 
-	# World's Locaiton definition
+	# World's Location definition
 	world.loc = {}
 	world.loc_available = {}
 	idx = 1
@@ -206,12 +206,12 @@ def get_random_world(BOARD_X=10, BOARD_Y=10):
 			world.loc_available[idx] = True
 			idx += 1
 
-	
-	# Allocate goals to each agent
+		# Allocate goals to each agent
 	# TODO: For now, we manually allocate the goals
 	world.goals = {}
-	world.goals['agent1'] = [('get_sample_data', 'agent1')]
-	world.goals['agent2'] = [('get_sample_data', 'agent2')]
+	for agent_id in range(num_agent):
+		agent_name = "agent" + str(agent_id+1)
+		world.goals[agent_name] = [('get_sample_data', agent_name)]
 
 	# For other miscellaneous settings
 	world.settings = {}

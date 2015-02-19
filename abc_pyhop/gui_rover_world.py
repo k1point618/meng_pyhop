@@ -9,15 +9,15 @@ class rover_world_gui(Tkinter.Tk):
 
         self.real_world = simulation.real_world
 
-        self.CUR_COL = real_world.prop['num_col']
-        self.CUR_ROW = real_world.prop['num_row']
+        self.CUR_COL = simulation.real_world.prop['num_col']
+        self.CUR_ROW = simulation.real_world.prop['num_row']
 
         self.solutions = None
         self.rovers = []
         self.agent_worlds = {}
         self.agent_solutions = {}
 
-        self.initialize(real_world)
+        self.initialize(simulation.real_world)
 
     def add_rover(self, rover_name, rover_world, solution): # Takes in 1 solution
         self.rovers.append(rover_name)
@@ -46,8 +46,9 @@ class rover_world_gui(Tkinter.Tk):
         self.resizable(True,False)
 
     def NextStep(self):
-        new_world = self.simulation.step()
-        self.boardFrame.update_board(new_world)
+        for agent in self.simulation.real_world.goals.keys():
+            new_world = self.simulation.step(agent=agent)
+            self.boardFrame.update_board(new_world)
 
     def OnButtonClick(self):
         print "You clicked the button !"

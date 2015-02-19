@@ -23,42 +23,52 @@ from gui_rover_world import *
 
 class Simulation():
 
-    def __init__(self, uncertainty=False, verbose=0, show_run=True, a_star=True, gui=True):
+    def __init__(self, uncertainty=False, verbose=0, show_run=True, a_star=True, gui=True, num_agent=1):
         # Simulation parameters: 
+        self.PARAMS = {}
+        self.PARAMS['uncertainty'] = uncertainty
+        self.PARAMS['verbose'] = verbose
+        self.PARAMS['a-star'] = a_star
+        self.PARAMS['show_run'] = show_run
+        self.PARAMS['gui'] = gui
+        self.PARAMS['num_agent'] = num_agent
+
+
+        # Generate a random world
+        world = get_random_world(num_agent=num_agent) # with default width and height (10 x 10)
+        world.settings['a-star'] = self.PARAMS['a-star']
         
-        self.step_counter = 0
-        world = get_random_world()
-        world.settings['a-star'] = a_star
-        
-        print('start state')
-        print_state(world)
-        print_board(world)
+        if self.PARAMS['verbose']:
+            print('start state')
+            print_state(world)
+            print_board(world)
+
+        # Real world has possible uncertainties.
+        self.real_world = copy.deepcopy(world)
+        self.solutions = {}
+        self.agent_worlds = {}
+        self.cur_steps = {}
 
         # Samples 1 solution for this problem
-        a1_solutions = pyhop(world, 'agent1', 0, all_solutions=False, amortize=False)
-        
-        # Real world has possible uncertainties.
-        real_world = copy.deepcopy(world)
-        agent_init_world = copy.deepcopy(world)
-        
-        self.real_world = world
-        self.agent_init_world = agent_init_world
-        self.agent_solution = a1_solutions[0] # TODO: Just 1 solution for now
-        self.actions, self.states = a1_solutions[0]
+        for agent in world.goals.keys():
+            solutions = pyhop(world, agent, 2, all_solutions=False, amortize=False)
+            self.solutions[agent] = solutions[0] # TODO: Just 1 solution for now
+            self.cur_steps[agent] = 0 # Keeps track of where in the solution we are
+            self.agent_worlds[agent] = copy.deepcopy(world)
 
         # Initialize Gui
         if gui:
             app = rover_world_gui(None, self)
             app.title('Rovers World GUI')
-            app.add_rover('agent1', agent_init_world, a1_solutions[0]) #Just 1 solution for now
-            app.add_rover('agent2', copy.deepcopy(agent_init_world), a1_solutions[0])
+            for agent in world.goals.keys():
+                app.add_rover(agent, self.agent_worlds[agent], self.solutions[agent])
             app.mainloop()
             self.gui = app
 
-        elif show_run:
-            for (i, solution) in enumerate(a1_solutions):
-                print('*** Showing plan #{} of {}'.format(i+1, len(a1_solutions)))
-                Simulation.show_single_agent(agent_init_world, real_world, solution, 'agent1')
+        # elif show_run:
+        #     for (i, solution) in enumerate(a1_solutions):
+        #         print('*** Showing plan #{} of {}'.format(i+1, len(a1_solutions)))
+        #         Simulation.show_single_agent(agent_init_world, real_world, solution, 'agent1')
 
    
     """ temporary hack for testing """
@@ -177,14 +187,18 @@ class Simulation():
 
     def step(self, agent='agent1'):
         # 0: Info
+        solution = self.solutions[agent] # Maps to 1 solution
+        (actions, states) = solution
+        cur_step = self.cur_steps[agent]
+
         print("*** Next Step ***")
         print('length of remaining plan: {}; \nlength of remaining states: {}'
-            .format(len(self.actions), len(self.states)))
-        print('\ttimestep: {}; \n\tactions: {};'.format(self.step_counter, self.actions))
+            .format(len(actions[cur_step:]), len(states[cur_step:])))
+        print('\ttimestep: {}; \n\tactions: {};'.format(cur_step, actions[cur_step:]))
 
 
-        cur_action = self.actions.pop(0)
-        next_state = self.states.pop(0)
+        cur_action = actions[cur_step]
+        next_state = states[cur_step]     
 
         # 1: Generate possible Uncertainty to the real-world
         # generate_uncertainty(real_world, a_prob=1, verbose=True)
@@ -225,8 +239,9 @@ class Simulation():
 
             # raw_input("Press Enter to continue...")
 
-        self.step_counter += 1
+
+        self.cur_steps[agent] += 1
         return self.real_world
 
-simulation = Simulation()
+simulation = Simulation(num_agent=2)
 
