@@ -47,8 +47,18 @@ class rover_world_gui(Tkinter.Tk):
 
     def NextStep(self):
         for agent in self.simulation.real_world.goals.keys():
-            new_world = self.simulation.step(agent=agent)
+            (new_world, new_solution) = self.simulation.step(agent=agent)
+
+            # Update Board
             self.boardFrame.update_board(new_world)
+            
+            # If had to re-plan, then refresh actions list.
+            if new_solution:
+                self.actionFrame.set_actions(agent, self.simulation.solutions[agent])
+
+            # Update Actions
+            cur_step = self.simulation.cur_steps[agent]
+            self.actionFrame.set_cur_action(agent, cur_step)
 
     def OnButtonClick(self):
         print "You clicked the button !"
@@ -64,33 +74,42 @@ class rover_world_gui(Tkinter.Tk):
 # For the actions Frame (right of the board)
 class AgentActionsFrame(Tkinter.Frame):
     def __init__(self, parent):
-        Tkinter.Frame.__init__(self, parent, background="blue")
+        Tkinter.Frame.__init__(self, parent, background="blue", height=100)
         # self.initialize_agent_plans('none', (['test'], ['test'])) # Emmpty one
+        self.listBoxes = {}
+
 
     def initialize_agent_plans(self, rover_name, solution):
         
-        scrollbar = Tkinter.Scrollbar(self)
-        scrollbar.pack(side=Tkinter.RIGHT, fill=Tkinter.Y)
+        # Create List Box Object
+        listBox = Tkinter.Listbox(self, height=40, exportselection=0)
+        listBox.pack(side=Tkinter.LEFT, fill="both", expand=True)
+        self.listBoxes[rover_name] = listBox
 
-        listBox = Tkinter.Listbox(self)
-        listBox.pack(side=Tkinter.LEFT, fill=Tkinter.Y)
-        
-        # Header Label for agent's name
-        # Tkinter.Label(self, text=rover_name).grid(column=self.CUR_COL, row=0)
-        listBox.insert(Tkinter.END, rover_name)
+        self.set_actions(rover_name, solution)
+
+
+    def set_actions(self, rover_name, solution):
+        lb = self.listBoxes[rover_name]
+        # clear items
+        lb.delete(0, Tkinter.END)
+        lb.insert(Tkinter.END, rover_name)
 
         # Show agent's plans
         (plan, states) = solution
         for action in plan:
             # Tkinter.Label(self, text=plan[cur_row-1]).grid(column=self.CUR_COL, row=cur_row)
-            listBox.insert(Tkinter.END, action)
+            lb.insert(Tkinter.END, action)
 
-        scrollbar.config(command=listBox.yview)
 
-        # self.next_action = Tkinter.StringVar()
-        # self.next_action.set(self.cur_actions[0])
-        # label_next_action = Tkinter.Label(self, textvariable=self.next_action)
-        # label_next_action.grid(column=CUR_COL, row=0)
+    def set_cur_action(self, rover_name, idx):
+        lb = self.listBoxes[rover_name]
+        print("cur selection: ", lb.curselection())
+        if len(lb.curselection()) != 0:
+            lb.selection_clear(lb.curselection())
+        print("*** Clearning Selections... ***")
+        print("*** Setting new selection by index: ", idx)
+        lb.selection_set(idx)
 
 
 # For the main board frame (Top left)
@@ -109,7 +128,7 @@ class BoardFrame(Tkinter.Frame):
         for i in range(num_row):
             for j in range(num_col):
                 self.board_var[(i, j)] = Tkinter.StringVar()
-                self.board_var[(i, j)].set("|\t|")
+                self.board_var[(i, j)].set("[\t]")
                 label = Tkinter.Label(self, textvariable=self.board_var[(i, j)], 
                     text="empty", fg='black', bg='gray',anchor=Tkinter.CENTER, height=4)
                 label.grid(column=j, row=i, sticky='EWSN')
@@ -117,21 +136,40 @@ class BoardFrame(Tkinter.Frame):
         # Add objects onto the board
         for (obj, loc) in world.at.items():
             cur_x, cur_y = world.loc[loc]
-            self.board_var[(cur_x, cur_y)].set(obj)
+            self.board_var[(cur_x, cur_y)].set([obj])
 
     def update_board(self, world):
 
         # Create widgets for the board
         num_col = world.prop['num_col']
         num_row = world.prop['num_row']
+
+        occupied = {}
+        for (thing, loc) in world.at.items():
+            (i, j) = world.loc[loc]
+            if((i, j) in occupied):
+                occupied[(i, j)].append(thing)
+            else:
+                occupied[(i, j)] = [thing]
+
+        idx = 1
         for i in range(num_row):
             for j in range(num_col):
-                self.board_var[(i, j)].set("|\t|")
+                if (i, j) in occupied:
+                    self.board_var[(i, j)].set(occupied[(i, j)])
+                else:
+                    if (world.loc_available[idx]):
+                        self.board_var[(i, j)].set("[\t]")
+                    else:
+                        self.board_var[(i, j)].set("[X]\t")
+                idx += 1
                 
-        # Add objects onto the board
-        for (obj, loc) in world.at.items():
-            cur_x, cur_y = world.loc[loc]
-            self.board_var[(cur_x, cur_y)].set(obj)
+        # # Add objects onto the board
+        # for (obj, loc) in world.at.items():
+        #     cur_x, cur_y = world.loc[loc]
+        #     self.board_var[(cur_x, cur_y)].set(obj)
+
+
 
 if __name__ == "__main__":
     app = rover_world_gui(None)

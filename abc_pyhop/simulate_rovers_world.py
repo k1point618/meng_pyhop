@@ -23,7 +23,13 @@ from gui_rover_world import *
 
 class Simulation():
 
-    def __init__(self, uncertainty=False, verbose=0, show_run=True, a_star=True, gui=True, num_agent=1):
+    def __init__(self, uncertainty=0, 
+                verbose=True, 
+                show_run=True, 
+                a_star=True, 
+                gui=True, 
+                re_plan=True,
+                num_agent=1):
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
@@ -32,7 +38,7 @@ class Simulation():
         self.PARAMS['show_run'] = show_run
         self.PARAMS['gui'] = gui
         self.PARAMS['num_agent'] = num_agent
-
+        self.PARAMS['re_plan'] = re_plan
 
         # Generate a random world
         world = get_random_world(num_agent=num_agent) # with default width and height (10 x 10)
@@ -191,6 +197,10 @@ class Simulation():
         (actions, states) = solution
         cur_step = self.cur_steps[agent]
 
+        if cur_step == len(actions):
+            print("Done")
+            return (self.real_world, True)
+
         print("*** Next Step ***")
         print('length of remaining plan: {}; \nlength of remaining states: {}'
             .format(len(actions[cur_step:]), len(states[cur_step:])))
@@ -201,28 +211,34 @@ class Simulation():
         next_state = states[cur_step]     
 
         # 1: Generate possible Uncertainty to the real-world
-        # generate_uncertainty(real_world, a_prob=1, verbose=True)
+        if self.PARAMS['uncertainty']:
+            generate_uncertainty(self.real_world, a_prob=self.PARAMS['uncertainty'], verbose=True)
 
         # 2: This agent get observation about surrounding world and decides to replan
-        # replan = get_observation(agent, next_state, cur_action, real_world)
-        replan=False
+        if self.PARAMS['re_plan']:
+            replan = get_observation(agent, None, cur_action, self.real_world)
+        else: replan = False
+
         # 3: Agent MIGHT need to re-plan.
         if replan:
-            raw_input("Need to re-plan...")
             print('replanning')
 
             print_board(self.real_world)
 
-            solutions = pyhop(self.real_world, 'agent1', verbose=0, all_solutions=False, amortize=False)
+            solutions = pyhop(self.real_world, agent, verbose=3, all_solutions=False, amortize=False)
             solution = solutions[0]
             
-            # print('new solution', solution)
+            self.solutions[agent] = solution
+            self.cur_steps[agent] = 0
+
+            print('new plan', solution[0])
 
             if solution != False: 
                 (actions, states) = solution
+                return (self.real_world, True)
 
             else:
-                print('no solution found for agent:{}, goal:{}'.format(agent, self.real_world.goals[agent]))
+                print('*** no solution found for agent:{}, goal:{}'.format(agent, self.real_world.goals[agent]))
                 return
 
         else:
@@ -241,7 +257,7 @@ class Simulation():
 
 
         self.cur_steps[agent] += 1
-        return self.real_world
+        return (self.real_world, False)
 
-simulation = Simulation(num_agent=2)
+simulation = Simulation(num_agent=2, re_plan=True, uncertainty=1)
 

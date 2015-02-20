@@ -46,7 +46,8 @@ def generate_uncertainty(state, a_prob=1, verbose=False):
 
 		if verbose: print('changed location {} availability to {}'.format(rand_loc, state.loc_available[rand_loc]))
 
-	return state
+	# Changes the state, no need to return. 
+	# return state
 
 """
 Returns a new state that is the result of after taking the action)
@@ -73,7 +74,6 @@ def get_observation(agent, agent_bs, next_action, real_world):
 	if act(real_world, next_action) == False:
 		print('must replan!!!!')
 		return True
-
 
 
 """

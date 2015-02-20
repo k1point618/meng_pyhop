@@ -36,14 +36,16 @@ def navigate_op(state, a, source, sink):
 
 def sample(state, x, s, p, obj):
 	if state.is_agent[x] and (x in state.stores) and (state.at[x] == p) \
-		and (state.at[obj] == p) and (obj in state.is_rock) and state.equipped_for_rock_analysis[x]:
+		and (obj in state.at.keys()) and (state.at[obj] == p) \
+		and (obj in state.is_rock) and state.equipped_for_rock_analysis[x]:
 		state.empty[s] = False
 		state.store_has[s] = obj
 		state.at.pop(obj, p)
 		state.has_rock_sample[x] = True
 		return state
 	elif state.is_agent[x] and (x in state.stores) and (state.at[x] == p) \
-		and (state.at[obj] == p) and (obj in state.is_soil) and state.equipped_for_soil_analysis[x]:
+		and  (obj in state.at.keys()) and (state.at[obj] == p) \
+		and (obj in state.is_soil) and state.equipped_for_soil_analysis[x]:
 		state.empty[s] = False
 		state.store_has[s] = obj
 		state.at.pop(obj, p)
@@ -64,6 +66,7 @@ def set_up_rock_experiment(state, agent, lab):
 		return state
 	else: return False 
 
+
 def analyze_soil_sample(state, agent, s, lab):
 	p = state.at[lab]
 	if state.is_agent[agent] and (agent in state.stores) and (s == state.stores[agent]) and (lab in state.is_lab) and (p == state.at[lab]) and (state.at[agent] == p) and (not state.empty[s]) and (state.lab_ready[lab]):
@@ -71,8 +74,8 @@ def analyze_soil_sample(state, agent, s, lab):
 		sample_obj = state.store_has[s]
 		state.store_has[s] = None
 		state.lab_ready[lab].remove("SOIL")
-		state.has_soil_analysis = {agent:True}
-		state.soil_analysis = {agent:sample_obj}
+		state.has_soil_analysis[agent] = True
+		state.soil_analysis[agent] = sample_obj
 		return state
 	else: return False
 
@@ -84,8 +87,8 @@ def analyze_rock_sample(state, agent, s, lab):
 		sample_obj = state.store_has[s]
 		state.store_has[s] = None
 		state.lab_ready[lab].remove("ROCK")
-		state.has_rock_analysis ={agent:True}
-		state.rock_anlysis = {agent:sample_obj}
+		state.has_rock_analysis[agent] = True
+		state.rock_analysis[agent] = sample_obj
 		return state
 	else: return False
 
@@ -99,6 +102,8 @@ def drop(state, agent, store):
 		state.empty[store] = True
 		return state
 	else: return False
+
+
 def calibrate(state, r, i, t, w):
 	pass
 
