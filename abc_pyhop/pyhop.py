@@ -332,6 +332,7 @@ def seek_plan_2(state,tasks,plan,depth,verbose=0):
 
 """
 Below author: kgu@mit.edu
+If all_plans = False, then return the first plan found deterministically. 
 """
 # Returns a list of possible [(Plan, End-state)] pairs
 def seek_plan_all(state,tasks,plan,depth,verbose=0, all_plans=False):

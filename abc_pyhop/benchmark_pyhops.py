@@ -15,98 +15,146 @@ from random_rovers_world import *
 
 def single_agent_benchmark():
 
-	num_repeat = 7
-	board_X = range(4, 6)
-	board_Y = range(3, 5)
-	world_gen_times = {}
-	board_size_times = {}
-	num_solutions_times = {}
-	num_recurse_calls = {}
+    num_repeat = 7
+    board_X = range(4, 6)
+    board_Y = range(3, 5)
+    world_gen_times = {}
+    board_size_times = {}
+    num_solutions_times = {}
+    num_recurse_calls = {}
 
-	for x in board_X:
-		for y in board_Y:
-			board_size = x*y
-			print ('board size: ', x, y)
-			world_gen_sum = 0
-			board_size_sum = 0
+    for x in board_X:
+        for y in board_Y:
+            board_size = x*y
+            print ('board size: ', x, y)
+            world_gen_sum = 0
+            board_size_sum = 0
 
 
-			for i in range(num_repeat):
-				start = time.time()
-				world = get_random_world(x, y)
-				end = time.time()
-				world_gen_sum += (end-start)
+            for i in range(num_repeat):
+                start = time.time()
+                world = get_random_world(x, y)
+                end = time.time()
+                world_gen_sum += (end-start)
 
-				print_board(world)
+                print_board(world)
 
-				start = time.time()
-				solutions = pyhop(world, 'agent1', verbose=0, all_solutions=True)
-				end = time.time()
-				board_size_sum += (end-start)
-				num_recurse_calls[len(solutions)] = get_num_recurse_calls()
-				num_solutions_times[len(solutions)] = end-start
-				print('find {} solutions for board of size {}'.format(len(solutions), board_size))
-				print('num_recurse_calls', num_recurse_calls)
-				print('num_solutions_times', num_solutions_times)			
-	
-	# plot time with respect to the number of solutions found.
-	od_num_solutions_times = collections.OrderedDict(sorted(num_solutions_times.items()))
-	print('Ordered od_num_solutions_time', od_num_solutions_times)
-	od_num_recurse_calls = collections.OrderedDict(sorted(num_recurse_calls.items()))
-	print('Ordered od_num_recurse_calls', od_num_recurse_calls)
-	
-	plt.plot(od_num_solutions_times.keys(), od_num_solutions_times.values())
-	plt.plot(od_num_recurse_calls.keys(), od_num_recurse_calls.values())
-	plt.show()
+                start = time.time()
+                solutions = pyhop(world, 'agent1', verbose=0, all_solutions=True)
+                end = time.time()
+                board_size_sum += (end-start)
+                num_recurse_calls[len(solutions)] = get_num_recurse_calls()
+                num_solutions_times[len(solutions)] = end-start
+                print('find {} solutions for board of size {}'.format(len(solutions), board_size))
+                print('num_recurse_calls', num_recurse_calls)
+                print('num_solutions_times', num_solutions_times)           
+    
+    # plot time with respect to the number of solutions found.
+    od_num_solutions_times = collections.OrderedDict(sorted(num_solutions_times.items()))
+    print('Ordered od_num_solutions_time', od_num_solutions_times)
+    od_num_recurse_calls = collections.OrderedDict(sorted(num_recurse_calls.items()))
+    print('Ordered od_num_recurse_calls', od_num_recurse_calls)
+    
+    plt.plot(od_num_solutions_times.keys(), od_num_solutions_times.values())
+    plt.plot(od_num_recurse_calls.keys(), od_num_recurse_calls.values())
+    plt.show()
 
 def benchmark_amortized(verbose=0):
-	world = get_random_world(6, 5)
+    world = get_random_world(6, 5)
 
-	print_board(world)
+    print_board(world)
 
-	start = time.time()
-	solutions_a = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=False) # only one solution
-	end = time.time()
-	print ('before:', end-start)
-	print ('num_recurse calls', get_num_recurse_calls())
-	start = time.time()
-	solutions_b = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=True) # only one solution
-	end = time.time()
-	print ('after:', end-start)
-	print ('num_recurse calls', get_num_recurse_calls())
-	
-	print('solution_a size: ', len(solutions_a))
-	print('solution_b size: ', len(solutions_b))
+    start = time.time()
+    solutions_a = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=False) # only one solution
+    end = time.time()
+    print ('before:', end-start)
+    print ('num_recurse calls', get_num_recurse_calls())
+    start = time.time()
+    solutions_b = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=True) # only one solution
+    end = time.time()
+    print ('after:', end-start)
+    print ('num_recurse calls', get_num_recurse_calls())
+    
+    print('solution_a size: ', len(solutions_a))
+    print('solution_b size: ', len(solutions_b))
 
+def benchmark_compare_a_star(verbose=0):
+    world = get_random_world(6, 5)
+
+    print_board(world)
+
+    # Get all solutions using Hierarchical Decompositions for navigating (Baseline3)
+    world.settings['a-star'] = False
+    start = time.time()
+    solutions_a = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=False) # only one solution
+    end = time.time()
+
+    print ('before:', end-start)
+    print('num solutions found:', len(solutions_a))
+    print ('num_recurse calls', get_num_recurse_calls())
+    
+    # Get all solutions using A-star for navigating
+    world.settings['a-star'] = True
+    start = time.time()
+    solutions_b = pyhop(world, 'agent1', 0, all_solutions=True, amortize=False) # only one solution
+    end = time.time()
+    print ('after:', end-start)
+    print('num solutions found:', len(solutions_b))
+    print ('num_recurse calls', get_num_recurse_calls())
+    
+
+# Benchmark for how long navigaton takes for random navigation problems
 def benchmark_a_star(verbose=0):
-	world = get_random_world(6, 5)
+    
+    num_worlds = 1
+    num_problems = 1
+    num_repeat = 3
+    problem_bank = {}
 
-	print_board(world)
+    for i in range(num_worlds):
+        world = get_random_world(10, 10) # Defaut to 10 x 10
+        print_board(world)
+        if verbose: 
+            print_board(world)
+            print_state(world)
+        # Get all solutions using A-star for navigating
+        world.settings['a-star'] = True
+        world.settings['sample'] = True
 
-	# Get all solutions using Hierarchical Decompositions for navigating
-	# world.settings['a-star'] = False
-	# start = time.time()
-	# solutions_a = pyhop(world, 'agent1', verbose, all_solutions=True, amortize=False) # only one solution
-	# end = time.time()
+        for j in range(num_problems):
+            # Make a navigation problem
+            random_loc = random.choice(world.loc_available.keys())
+            world.goals['agent1'] = [('navigate', 'agent1', random_loc)]
+            world.settings['verbose'] = 0
 
-	# print ('before:', end-start)
-	# print(solutions_a)
-	# print ('num_recurse calls', get_num_recurse_calls())
-	
-	# Get all solutions using A-star for navigating
-	world.settings['a-star'] = True
-	start = time.time()
-	solutions_b = pyhop(world, 'agent1', 3, all_solutions=True, amortize=False) # only one solution
-	end = time.time()
-	print ('after:', end-start)
-	print(solutions_b)
-	print ('num_recurse calls', get_num_recurse_calls())
-	
-	
+            for k in range(num_repeat):
+                start = time.time()
+                solutions_b = pyhop(world, 'agent1', verbose) # only one solution
+                end = time.time()
+                
+                print ('time:', end-start)
+                print ('problem: ', world.goals)
+                (plans, states) = solutions_b[0]
+                print ('plans', plans)
+                print ('solution length', len(plans))
+                print ('num_recurse calls', get_num_recurse_calls())
+                problem_bank[world.goals['agent1'][0]] = end-start
+
+                if (end-start) > 1:
+                    print_board(world)
+                    print ('solution', solutions_b)
+                    print ('*** Re-run problem with verbose=3')
+                    world.settings['verbose'] = 2
+                    pyhop(world, 'agent1', 3, all_solutions=True, amortize=False) # only one solution
+                    raw_input("Above problem took too long... {} seconds".format(end-start))
+
+
 # benchmark_amortized(verbose=0)
 
 # single_agent_benchmark()
 
-benchmark_a_star()
+# benchmark_compare_a_star()
+
+benchmark_a_star(verbose=0)
 
 
