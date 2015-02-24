@@ -33,7 +33,7 @@ class Simulation():
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
-        self.PARAMS['verbose'] = verbose
+        self.PARAMS['verbose'] = verbose # Simulaton verbosity
         self.PARAMS['a-star'] = a_star
         self.PARAMS['show_run'] = show_run
         self.PARAMS['gui'] = gui
@@ -43,7 +43,9 @@ class Simulation():
         # Generate a random world
         world = get_random_world(num_agent=num_agent) # with default width and height (10 x 10)
         world.settings['a-star'] = self.PARAMS['a-star']
-        
+        world.settings['verbose'] = 0 # Pyhop planning verbosity
+        world.settings['sample'] = False # If sample=false, then each agent's plan is deterministic
+
         if self.PARAMS['verbose']:
             print('start state')
             print_state(world)
@@ -57,8 +59,10 @@ class Simulation():
 
         # Samples 1 solution for this problem
         for agent in world.goals.keys():
-            solutions = pyhop(world, agent, 2, all_solutions=False, amortize=False)
-            self.solutions[agent] = solutions[0] # TODO: Just 1 solution for now
+            solutions = pyhop(world, agent, world.settings['verbose'], all_solutions=(not world.settings['sample']), amortize=False)
+            if self.PARAMS['verbose']:
+                print ('num solutions: ', len(solutions))
+            self.solutions[agent] = random.choice(solutions) # TODO: Just 1 solution for now
             self.cur_steps[agent] = 0 # Keeps track of where in the solution we are
             self.agent_worlds[agent] = copy.deepcopy(world)
 

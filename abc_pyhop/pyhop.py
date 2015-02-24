@@ -397,6 +397,7 @@ def seek_plan_all(state,tasks,plan,depth,verbose=0, all_plans=False):
 """
 Below is a rescursive seek-plan that finds all plans and keeps track of subproblems 
 that have been already solved.
+
 author: kgu@mit.edu
 """
 PLAN_LIBRARY = {} # Maps (Task, state) to an array of Plans
