@@ -29,7 +29,9 @@ class Simulation():
                 a_star=True, 
                 gui=True, 
                 re_plan=True,
-                num_agent=1):
+                num_agent=1,
+                use_tree=False):
+        
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
@@ -39,6 +41,7 @@ class Simulation():
         self.PARAMS['gui'] = gui
         self.PARAMS['num_agent'] = num_agent
         self.PARAMS['re_plan'] = re_plan
+        self.PARAMS['use_tree'] = use_tree
 
         # Generate a random world
         world = get_random_world(num_agent=num_agent) # with default width and height (10 x 10)
@@ -54,16 +57,30 @@ class Simulation():
         # Real world has possible uncertainties.
         self.real_world = copy.deepcopy(world)
         self.solutions = {}
+        self.planTrees = {}
         self.agent_worlds = {}
         self.cur_steps = {}
         self.global_steps = {}
 
         # Samples 1 solution for this problem
         for agent in world.goals.keys():
-            solutions = pyhop(world, agent, world.settings['verbose'], all_solutions=(not world.settings['sample']), amortize=False)
+            results = pyhop(world, agent, world.settings['verbose'], 
+                            all_solutions=(not world.settings['sample']), 
+                            amortize=False, 
+                            plantree=use_tree)
             if self.PARAMS['verbose']:
-                print ('num solutions: ', len(solutions))
-            self.solutions[agent] = random.choice(solutions) # TODO: Just 1 solution for now
+                print ('num solutions: ', len(results))
+
+            result = random.choice(results)
+
+            if use_tree:
+                solution = (result.get_actions(), result.get_states())
+                self.planTrees[agent] = result
+            else:
+                solution = result
+                self.planTrees[agent] = None
+
+            self.solutions[agent] = solution # TODO: Just 1 solution for now
             self.cur_steps[agent] = 0 # Keeps track of where in the solution we are
             self.global_steps[agent] = 0
             self.agent_worlds[agent] = copy.deepcopy(world)
@@ -73,7 +90,7 @@ class Simulation():
             app = rover_world_gui(None, self)
             app.title('Rovers World GUI')
             for agent in world.goals.keys():
-                app.add_rover(agent, self.agent_worlds[agent], self.solutions[agent])
+                app.add_rover(agent, self.agent_worlds[agent], self.solutions[agent], self.planTrees[agent])
             app.mainloop()
             self.gui = app
 
@@ -241,8 +258,15 @@ class Simulation():
             print('replanning')
             print_board(self.real_world)
 
-            solutions = pyhop(self.real_world, agent, verbose=3, all_solutions=False, amortize=False)
-            solution = solutions[0]
+            use_tree = self.PARAMS['use_tree']
+            results = pyhop(self.real_world, agent, verbose=3, all_solutions=False, amortize=False, plantree=use_tree)
+            result = random.choice(results)
+
+            if use_tree:
+                solution = (result.get_actions(), result.get_states())
+                self.planTrees[agent] = result
+            else:
+                solution = result
             
             self.solutions[agent] = solution
             self.cur_steps[agent] = 0
@@ -277,5 +301,5 @@ class Simulation():
         self.global_steps[agent] += 1
         return (self.real_world, step_info)
 
-simulation = Simulation(num_agent=2, re_plan=True, uncertainty=1)
+simulation = Simulation(num_agent=2, re_plan=True, uncertainty=1, use_tree=True)
 

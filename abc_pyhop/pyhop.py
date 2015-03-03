@@ -224,7 +224,7 @@ def reset_num_recurse_calls():
     global NUM_RECURSE_CALLS
     NUM_RECURSE_CALLS = 0
 
-def pyhop(state,agent,verbose=0, all_solutions=False, amortize=False):
+def pyhop(state,agent,verbose=0, all_solutions=False, amortize=False, plantree=False):
     """
     Try to find a plan that accomplishes the goal of a given @agent
     If successful, return the plan. Otherwise return False.
@@ -237,19 +237,17 @@ def pyhop(state,agent,verbose=0, all_solutions=False, amortize=False):
     
     if amortize:
         results = seek_plan_all_r(state,tasks,[],0,verbose, all_plans=all_solutions)
-    else:
-        # results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions)
-        planTree = seek_plantree(state,tasks[0],[],0,verbose, all_plans=all_solutions)
-        print("**** Final PlanTree: **** \n{}".format(planTree))
-
-    # if all_solutions:
-    #     for (i, result) in enumerate(results):
-    #         if verbose>2: print('{}th result: {}'.format(i, result))
-    #     if verbose>0: print('find {} plans.'.format(len(results)))
-    # else:
-    #     if verbose>0: print('** result =',results[0],'\n')
-    # return results
-
+        return
+    if plantree:
+        planTrees = seek_plantrees(state,tasks,None,0,verbose, all_plans=all_solutions)
+        print("**** Final PlanTrees: **** \n{}".format(planTrees))
+        print("found {} plans:".format(len(planTrees)))
+        return planTrees
+    
+    results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions)
+    print(len(results))
+    print(results)
+    return results
 
 def seek_plan(state,tasks,plan,depth,verbose=0):
     """
@@ -494,25 +492,45 @@ def seek_plan_all_r(state,tasks,plan,depth,verbose=0, all_plans=False):
 Below is version of seek plan that is identical to seek_plan_all, but returns a plan-tree
 as opposed to a linear solution
 
+Returns a list of plantrees where the rootes given as input
+
 """
-def seek_plantrees(state, tasks, parent, depth, verbose=0, all_plans=False):
+def seek_plantrees(state, tasks, root, depth, verbose=0, all_plans=False):
     
+    # TODO: if root is not defined, then make root from single-task
+    # If input has multiple tasks, then throw exception
+
+    if root == None:
+        root = PlanTree('root', PlanTree.METHOD)
+
+    if verbose: print("depth {}; seek_plantree for task {}\n\trootnode is {}".format(depth, tasks, root))
+
     planTrees = []
     if len(tasks) > 1:
-        first_plantrees = seek_plantrees(copy.deepcopy(state), [tasks[0]], parent, depth+1, verbose, all_plans)
-        for first_plan in first_plantrees:
-            # what to do with 'already-satisfied nodes?'
-            new_state = first_plan.get_after_state()
-            rest_plans = seek_plantrees(copy.deepcopy(new_state), tasks[1:], parent, depth+1, verbose, all_plans)
-            for rest_plan in rest_plans:
-                parentNode = PlanTree(parent.name, parent.node_type, PlanTree.AND)
-                parentNode.add_child(first_plan)
-                for c in rest_plan.children:
-                    parentNode.add_child(rest_plan)
-                planTrees.append(parentNode)
-        return planTrees
-    if verbose: print("depth {}; seek_plantree for task {}".format(depth, task))
+        # Solve first task
+        firstNode = PlanTree(tasks[0], None)
+        first_roots = seek_plantrees(copy.deepcopy(state), [tasks[0]], root, depth+1, verbose, all_plans)
+        
+        if first_roots[0] == None:
+            return [None]
 
+        if verbose: print("\tfound {} plan(s) for first task {}".format(len(first_roots), tasks[0]))
+
+        for new_root in first_roots:
+            new_state = new_root.get_after_state()
+            rest_plans = seek_plantrees(copy.deepcopy(new_state), tasks[1:], new_root, depth+1, verbose, all_plans)
+            if rest_plans[0] != None:
+                planTrees += rest_plans
+            else: return [None]
+        return planTrees
+
+    if len(tasks) == 0:
+        to_return = copy.deepcopy(root)
+        return [to_return]
+
+    # There is 1 task to plan for
+    task = tasks[0]
+    
     # If the task is a primitive action
     if task[0] in operators:
         if verbose: print("\t task {} is an operator".format(task[0]))
@@ -522,21 +540,22 @@ def seek_plantrees(state, tasks, parent, depth, verbose=0, all_plans=False):
 
         if newstate:            
             # Creating a node in planning Tree
+            to_return = copy.deepcopy(root)
+
             leafNode = PlanTree(task, PlanTree.OPERATOR)
             leafNode.set_before_state(copy.deepcopy(state))
             leafNode.set_after_state(copy.deepcopy(newstate))
-            leafNode.set_parent(parent)
-            return [leafNode]
+            # leafNode.set_parent(to_return)
+            to_return.add_child(leafNode)
+            to_return.set_after_state(copy.deepcopy(newstate))
+
+            return [to_return]
         else: 
             print("current operator {} is failing".format(task))
             return [None]
 
     elif task[0] in methods:
         if verbose: print("\t task {} is a method".format(task[0]))
-
-        methodNode = PlanTree(task, PlanTree.METHOD, PlanTree.OR)
-        methodNode.set_before_state(state)
-
         relevant = methods[task[0]]
         for method in relevant: # All related methods
             decompositions = method(state,*task[1:], all_decomp=True) # Returns the set of possible decompositions
@@ -545,37 +564,26 @@ def seek_plantrees(state, tasks, parent, depth, verbose=0, all_plans=False):
                 # Cannot use this relevant method definition
                 continue
 
-                
             for subtasks in decompositions:
                 if verbose: print("\tdecomposition:{}".format(subtasks))
+                methodNode = PlanTree(task, PlanTree.METHOD)
+                methodNode.set_before_state(state)
+                methodNode.set_after_state(state)
 
-                decompNode = PlanTree(str(subtasks), PlanTree.METHOD, PlanTree.AND)
-                decompNode.set_parent(methodNode)
-                decompNode.set_before_state(state)
-                decompNode.set_after_state(state)
-                possible_decomps = seek_plantrees(state, subtasks, decompNode, depth+1, verbose, all_plans)
+                possible_plans = seek_plantrees(copy.deepcopy(state), subtasks, copy.deepcopy(methodNode), depth+1, verbose, all_plans)
+                if verbose: 
+                    print("depth {}; method task found {} new plans for task {}\
+                    \n\twith decomposition {}".format(depth, len(possible_plans), task, subtasks))
+                if possible_plans[0] != None:
+                    for node in possible_plans: # Each node is a way of completeing the subtasks
+                        to_return = copy.deepcopy(root)
+                        to_return.add_child(node)
+                        to_return.set_after_state(node.get_after_state())
+                        planTrees.append(to_return)
 
-                if possible_decomps[0] != None:
-                    methodNode.add_child(decompNode)
-                planTrees += possible_decomps
-            #     success = True
-            #     for subtask in subtasks:
-            #         print ("subtask:", subtask)
-            #         print ("decomp node: ", decompNode)
-            #         subtaskNode = seek_plantree(decompNode.get_after_state(), subtask, decompNode, depth+1, verbose, all_plans)
-            #         if subtaskNode == None:
-            #             success = False
-            #             break
-            #         else:
-            #             decompNode.add_child(subtaskNode)
-            #             decompNode.set_after_state(subtaskNode.get_after_state())
-
-            #     if success:
-            #         # If the current decomposition is possible, then add cur decomposition to parent
-            #             methodNode.add_child(decompNode)
-            #             methodNode.
-
-        if verbose: print("depth {}; returning methodNode {}\t".format(depth, methodNode))
-        return methodNode
+        if verbose: print("\nreturning plans for {}".format(task))
+        if len(planTrees) == 0:
+            return [None]
+        return planTrees
 
 

@@ -16,15 +16,16 @@ class rover_world_gui(Tkinter.Tk):
         self.rovers = []
         self.agent_worlds = {}
         self.agent_solutions = {}
-
+        self.agent_planTrees = {}
         self.initialize(simulation.real_world)
 
-    def add_rover(self, rover_name, rover_world, solution): # Takes in 1 solution
+    def add_rover(self, rover_name, rover_world, solution, planTree): # Takes in 1 solution
         self.rovers.append(rover_name)
         self.agent_worlds[rover_name] = rover_world
         self.agent_solutions[rover_name] = solution
+        self.agent_planTrees[rover_name] = planTree
 
-        self.actionFrame.initialize_agent_plans(rover_name, solution)
+        self.actionFrame.initialize_agent_plans(rover_name, solution, planTree)
 
 
     def initialize(self, world):
@@ -87,24 +88,41 @@ class AgentActionsFrame(Tkinter.Frame):
     def __init__(self, parent):
         Tkinter.Frame.__init__(self, parent, background="blue")
         # self.initialize_agent_plans('none', (['test'], ['test'])) # Emmpty one
-        self.listBoxes = {}
+        # self.listBoxes = {}
+        self.agent_columns = {}
 
-
-    def initialize_agent_plans(self, rover_name, solution):
+    def initialize_agent_plans(self, rover_name, solution, planTree=None):
         
-        # Create List Box Object
-        listBox = Tkinter.Listbox(self, height=20, exportselection=0)
-        listBox.pack(side=Tkinter.LEFT, fill="both", expand=True)
-        self.listBoxes[rover_name] = listBox
-
-        self.set_actions(rover_name, solution)
-
+        # Create a column fro each new agent
+        agent_column = AgentColumnFrame(self, rover_name, solution, planTree, height=40, width=30)
+        agent_column.pack(side=Tkinter.LEFT)
+        self.agent_columns[rover_name] = agent_column
 
     def set_actions(self, rover_name, solution):
-        lb = self.listBoxes[rover_name]
+        self.agent_columns[rover_name].set_actions(solution)
+
+    def set_cur_action(self, rover_name, idx):
+        self.agent_columns[rover_name].set_cur_action(idx)
+
+class AgentColumnFrame(Tkinter.Frame):
+    def __init__(self, parent, name, solution, planTree, height, width):
+        Tkinter.Frame.__init__(self, parent, background='yellow', height=height, width=width)
+        self.name = name
+
+        # Create List Box Object
+        self.listBox = Tkinter.Listbox(self, height=20, width=30, exportselection=0)
+        self.listBox.pack(side=Tkinter.TOP, expand=True)
+        self.set_actions(solution)
+
+        # Create the Plan Tree box
+        self.planTreeBox = Tkinter.Label(self, text=str(planTree), height=20, width=30)
+        self.planTreeBox.pack(side=Tkinter.TOP, expand=True)
+
+    def set_actions(self, solution):
+        lb = self.listBox
         # clear items
         lb.delete(0, Tkinter.END)
-        lb.insert(Tkinter.END, rover_name)
+        lb.insert(Tkinter.END, self.name)
 
         # Show agent's plans
         (plan, states) = solution
@@ -112,9 +130,8 @@ class AgentActionsFrame(Tkinter.Frame):
             # Tkinter.Label(self, text=plan[cur_row-1]).grid(column=self.CUR_COL, row=cur_row)
             lb.insert(Tkinter.END, action)
 
-
-    def set_cur_action(self, rover_name, idx):
-        lb = self.listBoxes[rover_name]
+    def set_cur_action(self, idx):
+        lb = self.listBox
         print("cur selection: ", lb.curselection())
         if len(lb.curselection()) != 0:
             lb.selection_clear(lb.curselection())
@@ -160,7 +177,7 @@ class BoardFrame(Tkinter.Frame):
             self.board_var[(cur_x, cur_y)].set([obj])
 
         # Add info at the bottom # TODO: Make this scrollable
-        self.info_list = Tkinter.Listbox(self, height=4, width=50, exportselection=0)
+        self.info_list = Tkinter.Listbox(self, height=10, width=50, exportselection=0)
         self.info_list.grid(column=0, row=num_row, columnspan=num_col)
 
         # label=Tkinter.Label(self, textvariable=self.info, justify=Tkinter.LEFT)

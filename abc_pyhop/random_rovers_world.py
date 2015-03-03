@@ -226,12 +226,12 @@ AGENTS = ['A1', 'A2']
 LANDER = "G"
 LAB = "L"
 NUM_ROCKS = 3
-NUM_SOILS = 2
+NUM_SOILS = 3
 NUM_OBJECTIVES = 0
 
 
 if __name__ == "__main__":
-	world = get_random_world()
+	world = get_random_world(5, 5)
 	print('')
 	print('*** World Generated ***')
 	print_state(world)
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 	world.settings['a-star'] = True
 	world.settings['verbose'] = False
 	world.settings['sample'] = True
-	pyhop(world, 'A1', 3, all_solutions=True, amortize=False) # only one solution
+	pyhop(world, 'A1', 0, all_solutions=True, amortize=False, plantree=True) # only one solution
 
 
 

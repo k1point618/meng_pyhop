@@ -9,27 +9,37 @@ representation.
 """
 class PlanTree():
 	
-	AND = 'AND'
-	OR = 'OR'
 	METHOD = 'METHOD'
 	OPERATOR = 'OPERATOR'
 
-	def __init__(self, name, node_type, and_or=None):
-		self.name = str(name)
+	def __init__(self, name, node_type):
+		self.name = name
 		self.children = []
 		self.parent = None
 		self.before_state = None
 		self.after_state = None
 		self.node_type = node_type # Method or Operator
-		
-		if node_type == PlanTree.OPERATOR:
-			self.and_or = 'None'
-		else:
-			assert (and_or != None)
-			self.and_or = and_or # AND or OR node
+	
+	def get_states(self):
+		if self.node_type == PlanTree.OPERATOR:
+			return [self.after_state]
+		to_return = []
+		for c in self.children:
+			to_return+=c.get_states()
+		return to_return
+
+	def get_actions(self):
+		if self.node_type == PlanTree.OPERATOR:
+			return [self.name]
+		to_return = []
+		for c in self.children:
+			to_return += c.get_actions()
+		return to_return
 
 	def set_before_state(self, state):
 		self.before_state = state
+		if self.after_state == None:
+			self.after_state = state
 		
 	def set_after_state(self, state):
 		self.after_state = state
@@ -42,12 +52,13 @@ class PlanTree():
 
 	def add_child(self, child_node):
 		self.children.append(child_node)
+		self.after_state = child_node.after_state
 
 	def num_children(self):
 		return len(self.children)
 
 	def get_string(self, prefix=""):
-		toReturn = prefix + self.name + ":" + self.node_type + ":" + self.and_or + "\n"
+		toReturn = prefix + str(self.name) + ":" + self.node_type  + "\n"
 		for child in self.children:
 			toReturn += prefix + child.get_string(prefix + " ")
 		return toReturn
