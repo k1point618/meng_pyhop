@@ -180,7 +180,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 	# Rocks and Soils
 	world.is_soil = {}
 	for i in range(NUM_SOILS):
-		soil = "soil" + str(i+1)
+		soil = "S" + str(i+1)
 		world.is_soil[soil] = True
 		loc = random.choice(available_spaces)
 		available_spaces.remove(loc)
@@ -188,7 +188,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 
 	world.is_rock = {}
 	for i in range(NUM_ROCKS):
-		rock = "rock" + str(i+1)
+		rock = "R" + str(i+1)
 		world.is_rock[rock] = True
 		loc = random.choice(available_spaces)
 		available_spaces.remove(loc)
@@ -210,7 +210,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 	# TODO: For now, we manually allocate the goals
 	world.goals = {}
 	for agent_id in range(num_agent):
-		agent_name = "agent" + str(agent_id+1)
+		agent_name = "A" + str(agent_id+1)
 		world.goals[agent_name] = [('get_sample_data', agent_name)]
 
 	# For other miscellaneous settings
@@ -222,9 +222,9 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 
 # Here, we set the parameters necesary for generating a world. 
 CAPABILITIES = ["equipped_for_imaging", "equipped_for_rock_analysis", "equipped_for_soil_analysis"]
-AGENTS = ['agent1', 'agent2']
-LANDER = "GENERAL"
-LAB = "XLAB"
+AGENTS = ['A1', 'A2']
+LANDER = "G"
+LAB = "L"
 NUM_ROCKS = 3
 NUM_SOILS = 2
 NUM_OBJECTIVES = 0
@@ -238,6 +238,10 @@ if __name__ == "__main__":
 	print('')
 	print('Board: ')
 	print_board(world)
+	world.settings['a-star'] = True
+	world.settings['verbose'] = False
+	world.settings['sample'] = True
+	pyhop(world, 'A1', 3, all_solutions=True, amortize=False) # only one solution
 
 
 

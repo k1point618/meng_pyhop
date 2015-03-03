@@ -97,6 +97,7 @@ Pyhop provides the following classes and functions:
 
 from __future__ import print_function
 import copy,sys, pprint
+from plantree import *
 
 ############################################################
 # States and goals
@@ -237,15 +238,17 @@ def pyhop(state,agent,verbose=0, all_solutions=False, amortize=False):
     if amortize:
         results = seek_plan_all_r(state,tasks,[],0,verbose, all_plans=all_solutions)
     else:
-        results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions)
+        # results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions)
+        planTree = seek_plantree(state,tasks[0],[],0,verbose, all_plans=all_solutions)
+        print("**** Final PlanTree: **** \n{}".format(planTree))
 
-    if all_solutions:
-        for (i, result) in enumerate(results):
-            if verbose>2: print('{}th result: {}'.format(i, result))
-        if verbose>0: print('find {} plans.'.format(len(results)))
-    else:
-        if verbose>0: print('** result =',results[0],'\n')
-    return results
+    # if all_solutions:
+    #     for (i, result) in enumerate(results):
+    #         if verbose>2: print('{}th result: {}'.format(i, result))
+    #     if verbose>0: print('find {} plans.'.format(len(results)))
+    # else:
+    #     if verbose>0: print('** result =',results[0],'\n')
+    # return results
 
 
 def seek_plan(state,tasks,plan,depth,verbose=0):
@@ -485,3 +488,94 @@ def seek_plan_all_r(state,tasks,plan,depth,verbose=0, all_plans=False):
             print('added task {} to plan library'.format(task1))
         return plans
         
+
+
+"""
+Below is version of seek plan that is identical to seek_plan_all, but returns a plan-tree
+as opposed to a linear solution
+
+"""
+def seek_plantrees(state, tasks, parent, depth, verbose=0, all_plans=False):
+    
+    planTrees = []
+    if len(tasks) > 1:
+        first_plantrees = seek_plantrees(copy.deepcopy(state), [tasks[0]], parent, depth+1, verbose, all_plans)
+        for first_plan in first_plantrees:
+            # what to do with 'already-satisfied nodes?'
+            new_state = first_plan.get_after_state()
+            rest_plans = seek_plantrees(copy.deepcopy(new_state), tasks[1:], parent, depth+1, verbose, all_plans)
+            for rest_plan in rest_plans:
+                parentNode = PlanTree(parent.name, parent.node_type, PlanTree.AND)
+                parentNode.add_child(first_plan)
+                for c in rest_plan.children:
+                    parentNode.add_child(rest_plan)
+                planTrees.append(parentNode)
+        return planTrees
+    if verbose: print("depth {}; seek_plantree for task {}".format(depth, task))
+
+    # If the task is a primitive action
+    if task[0] in operators:
+        if verbose: print("\t task {} is an operator".format(task[0]))
+
+        operator = operators[task[0]]
+        newstate = operator(copy.deepcopy(state),*task[1:])
+
+        if newstate:            
+            # Creating a node in planning Tree
+            leafNode = PlanTree(task, PlanTree.OPERATOR)
+            leafNode.set_before_state(copy.deepcopy(state))
+            leafNode.set_after_state(copy.deepcopy(newstate))
+            leafNode.set_parent(parent)
+            return [leafNode]
+        else: 
+            print("current operator {} is failing".format(task))
+            return [None]
+
+    elif task[0] in methods:
+        if verbose: print("\t task {} is a method".format(task[0]))
+
+        methodNode = PlanTree(task, PlanTree.METHOD, PlanTree.OR)
+        methodNode.set_before_state(state)
+
+        relevant = methods[task[0]]
+        for method in relevant: # All related methods
+            decompositions = method(state,*task[1:], all_decomp=True) # Returns the set of possible decompositions
+
+            if decompositions[0] == False:
+                # Cannot use this relevant method definition
+                continue
+
+                
+            for subtasks in decompositions:
+                if verbose: print("\tdecomposition:{}".format(subtasks))
+
+                decompNode = PlanTree(str(subtasks), PlanTree.METHOD, PlanTree.AND)
+                decompNode.set_parent(methodNode)
+                decompNode.set_before_state(state)
+                decompNode.set_after_state(state)
+                possible_decomps = seek_plantrees(state, subtasks, decompNode, depth+1, verbose, all_plans)
+
+                if possible_decomps[0] != None:
+                    methodNode.add_child(decompNode)
+                planTrees += possible_decomps
+            #     success = True
+            #     for subtask in subtasks:
+            #         print ("subtask:", subtask)
+            #         print ("decomp node: ", decompNode)
+            #         subtaskNode = seek_plantree(decompNode.get_after_state(), subtask, decompNode, depth+1, verbose, all_plans)
+            #         if subtaskNode == None:
+            #             success = False
+            #             break
+            #         else:
+            #             decompNode.add_child(subtaskNode)
+            #             decompNode.set_after_state(subtaskNode.get_after_state())
+
+            #     if success:
+            #         # If the current decomposition is possible, then add cur decomposition to parent
+            #             methodNode.add_child(decompNode)
+            #             methodNode.
+
+        if verbose: print("depth {}; returning methodNode {}\t".format(depth, methodNode))
+        return methodNode
+
+

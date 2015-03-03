@@ -28,17 +28,16 @@ class rover_world_gui(Tkinter.Tk):
 
 
     def initialize(self, world):
+        # Add next-button to board
+        self.nextButton = Tkinter.Button(self,text=u"Next", command=self.NextStep)
+        self.nextButton.pack(side=Tkinter.LEFT)
+
         self.boardFrame = BoardFrame(self, world)
         self.boardFrame.pack(side=Tkinter.LEFT)
 
         self.actionFrame = AgentActionsFrame(self)
         self.actionFrame.pack(side=Tkinter.LEFT)
 
-        # Add next-button to board
-        self.nextButton = Tkinter.Button(self,text=u"Next", command=self.NextStep)
-        self.nextButton.pack(side=Tkinter.BOTTOM)
-
-        
         # For Re-sizing
         for i in range(self.CUR_COL):
             self.grid_columnconfigure(i,weight=1)
@@ -46,23 +45,35 @@ class rover_world_gui(Tkinter.Tk):
         self.resizable(True,False)
 
     def NextStep(self):
+
+        # For each agent, calls step() on simulaiton and then update the world.
         for agent in self.simulation.real_world.goals.keys():
-            (new_world, new_solution) = self.simulation.step(agent=agent)
+            (new_world, step_info) = self.simulation.step(agent=agent)
 
-            # Update Board
-            self.boardFrame.update_board(new_world)
-            
-            # If had to re-plan, then refresh actions list.
-            if new_solution:
-                self.actionFrame.set_actions(agent, self.simulation.solutions[agent])
+            if step_info['done']:
+                self.boardFrame.append_info("{}: agent({}) is done."
+                    .format(self.simulation.global_steps[agent], agent))
+            else:
+                # Update Board
+                self.boardFrame.update_board(new_world)
+                self.boardFrame.append_info("{}: agent({}) performed action({})"
+                    .format(self.simulation.global_steps[agent], agent, step_info['cur_action']))
 
-            # Update Actions
-            cur_step = self.simulation.cur_steps[agent]
-            self.actionFrame.set_cur_action(agent, cur_step)
+                # If had to re-plan, then refresh actions list.
+                if step_info['replan']:
+                    self.actionFrame.set_actions(agent, self.simulation.solutions[agent])
+                    self.boardFrame.append_info("{}: agent({}) had to replan."
+                        .format(self.simulation.global_steps[agent], agent))
+
+                # Update Actions
+                cur_step = self.simulation.cur_steps[agent]
+                self.actionFrame.set_cur_action(agent, cur_step)
+
 
     def OnButtonClick(self):
         print "You clicked the button !"
         self.board_var[(0, 0)].set("change")
+
 
     def OnPressEnter(self,event):
         print "You pressed enter !"
@@ -74,7 +85,7 @@ class rover_world_gui(Tkinter.Tk):
 # For the actions Frame (right of the board)
 class AgentActionsFrame(Tkinter.Frame):
     def __init__(self, parent):
-        Tkinter.Frame.__init__(self, parent, background="blue", height=100)
+        Tkinter.Frame.__init__(self, parent, background="blue")
         # self.initialize_agent_plans('none', (['test'], ['test'])) # Emmpty one
         self.listBoxes = {}
 
@@ -82,7 +93,7 @@ class AgentActionsFrame(Tkinter.Frame):
     def initialize_agent_plans(self, rover_name, solution):
         
         # Create List Box Object
-        listBox = Tkinter.Listbox(self, height=40, exportselection=0)
+        listBox = Tkinter.Listbox(self, height=20, exportselection=0)
         listBox.pack(side=Tkinter.LEFT, fill="both", expand=True)
         self.listBoxes[rover_name] = listBox
 
@@ -117,8 +128,18 @@ class BoardFrame(Tkinter.Frame):
     def __init__(self, parent, world):
         Tkinter.Frame.__init__(self, parent, background="black")
         self.grid()
+        self.info = Tkinter.StringVar()
         self.initialize_board(world)
 
+    def set_info(self, text):
+        print("*** Updating info to {} ****".format(text))
+        self.info.set("INFO: " + text)
+
+    def append_info(self, text):
+        self.info_list.insert(0, text)
+
+        # prev = self.info.get()
+        # self.info.set(prev + "\n" + text)
 
     def initialize_board(self, world):
         # Create widgets for the board
@@ -128,15 +149,22 @@ class BoardFrame(Tkinter.Frame):
         for i in range(num_row):
             for j in range(num_col):
                 self.board_var[(i, j)] = Tkinter.StringVar()
-                self.board_var[(i, j)].set("[\t]")
+                self.board_var[(i, j)].set("[   ]")
                 label = Tkinter.Label(self, textvariable=self.board_var[(i, j)], 
-                    text="empty", fg='black', bg='gray',anchor=Tkinter.CENTER, height=4)
+                    text="empty", fg='black', bg='gray', height=2)
                 label.grid(column=j, row=i, sticky='EWSN')
 
         # Add objects onto the board
         for (obj, loc) in world.at.items():
             cur_x, cur_y = world.loc[loc]
             self.board_var[(cur_x, cur_y)].set([obj])
+
+        # Add info at the bottom # TODO: Make this scrollable
+        self.info_list = Tkinter.Listbox(self, height=4, width=50, exportselection=0)
+        self.info_list.grid(column=0, row=num_row, columnspan=num_col)
+
+        # label=Tkinter.Label(self, textvariable=self.info, justify=Tkinter.LEFT)
+        # label.grid(column=0, row=num_row, columnspan=num_col)
 
     def update_board(self, world):
 
@@ -159,9 +187,9 @@ class BoardFrame(Tkinter.Frame):
                     self.board_var[(i, j)].set(occupied[(i, j)])
                 else:
                     if (world.loc_available[idx]):
-                        self.board_var[(i, j)].set("[\t]")
+                        self.board_var[(i, j)].set("[   ]")
                     else:
-                        self.board_var[(i, j)].set("[X]\t")
+                        self.board_var[(i, j)].set("[ X ]")
                 idx += 1
                 
         # # Add objects onto the board
