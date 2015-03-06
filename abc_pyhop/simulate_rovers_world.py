@@ -20,6 +20,7 @@ import rovers_world_methods
 from random_rovers_world import *
 from gui_rover_world import *
 import problem_bank
+from models import *
 
 class Simulation():
 
@@ -29,7 +30,7 @@ class Simulation():
                 gui=True, 
                 re_plan=True,
                 num_agent=1,
-                use_tree=False, problem=None):
+                use_tree=False, problem=None, agent=None):
         
         # Simulation parameters: 
         self.PARAMS = {}
@@ -52,7 +53,8 @@ class Simulation():
             print_state(world)
             print_board(world)
 
-        
+        self.agents = {} # Agents and their mental Models
+
         self.real_world = copy.deepcopy(world) # Real world has possible uncertainties.
         self.solutions = {}
         self.planTrees = {}
@@ -63,36 +65,44 @@ class Simulation():
         self.histories = {} # Keeps a history of steps actually taken by each agent
 
         # Samples 1 solution for this problem
-        for agent in world.goals.keys():
-            results = pyhop(world, agent, plantree=use_tree)
+        for agent_name in world.goals.keys():
+
+            # Create Agent
+            agent = AgentMind(agent_name, world)
+            self.agents[agent_name] = agent
+
+            # Get Plan
+            results = pyhop(world, agent_name, plantree=use_tree)
             if self.PARAMS['verbose']: print ('num solutions: ', len(results))
+            agent.set_solution(random.choice(results))
 
-            if results[0] == False:
-                solution = None
-                self.planTrees[agent] = None
-            else:    
-                result = random.choice(results)
+            # if results[0] == False:
+            #     solution = None
+            #     self.planTrees[agent_name] = None
+            # else:    
+            #     result = random.choice(results)
 
-                if use_tree:
-                    solution = (result.get_actions(), result.get_states())
-                    self.planTrees[agent] = result
-                else:
-                    solution = result
-                    self.planTrees[agent] = None
+            #     if use_tree:
+            #         solution = (result.get_actions(), result.get_states())
+            #         self.planTrees[agent_name] = result
+            #     else:
+            #         solution = result
+            #         self.planTrees[agent_name] = None
 
-            self.solutions[agent] = solution # TODO: Just 1 solution for now
-            self.cur_steps[agent] = 0 # Keeps track of where in the solution we are
-            self.global_steps[agent] = 0
-            self.agent_worlds[agent] = copy.deepcopy(world)
-            self.done[agent] = False
-            self.histories[agent] = []
+            # self.solutions[agent_name] = solution # TODO: Just 1 solution for now
+            # self.cur_steps[agent_name] = 0 # Keeps track of where in the solution we are
+            # self.global_steps[agent_name] = 0
+            # self.agent_worlds[agent_name] = copy.deepcopy(world)
+            # self.done[agent_name] = False
+            # self.histories[agent_name] = []
 
         # Initialize Gui
         if gui:
             app = rover_world_gui(None, self)
             app.title('Rovers World GUI')
-            for agent in world.goals.keys():
-                app.add_rover(agent, self.agent_worlds[agent], self.solutions[agent], self.planTrees[agent])
+            for (agent_name, agent) in self.agents.items():
+                print("agent: {}".format(agent))
+                app.add_agent(agent)
             app.mainloop()
             self.gui = app
 
@@ -220,13 +230,13 @@ class Simulation():
             step += 1
             print("========= step {} ========".format(step))
             for agent in self.real_world.goals.keys():
-                result = self.step(agent=agent)
+                result = self.step(agent_name=agent)
                 if result == None:
                     print("No solution found for agent {}".format(agent))
                 else:
                     (cur_world, step_info) = result
 
-            if all(self.done[agent] for agent in self.real_world.goals.keys()):
+            if all(agent.is_done() for agent in self.agents.values()):
                 return
 
             print_board(cur_world)
@@ -241,33 +251,34 @@ class Simulation():
     - whehter the agent has no more steps to take
     - the cost of the step for the given agent
     """
-    def step(self, agent):
+    def step(self, agent_name):
         # 0: Info
         replan = False
         step_info = {}
         step_info['replan'] = False
         step_info['done'] = False
         
-        solution = self.solutions[agent] # Maps to 1 solution
+        agent = self.agents[agent_name]
+        solution = agent.get_solution()
+
         if not solution or solution == None: 
             replan = True
         else:
             (actions, states) = solution
-            cur_step = self.cur_steps[agent]
+            cur_step = agent.get_cur_step()
 
             # If agent is Done.
             if cur_step == len(actions):
                 print("Done")
                 step_info['done'] = True
                 self.done[agent] = True
-                self.histories[agent].append(('done', 0))
+                agent.add_history(('done', 0))
                 return (self.real_world, step_info)
 
             print("*** Next Step ***")
             print('length of remaining plan: {}; \nlength of remaining states: {}'
                 .format(len(actions[cur_step:]), len(states[cur_step:])))
             print('\ttimestep: {}; \n\tactions: {};'.format(cur_step, actions[cur_step:]))
-
 
             cur_action = actions[cur_step]
             next_state = states[cur_step]     
@@ -285,7 +296,7 @@ class Simulation():
         # 2: This agent get observation about surrounding world and decides to replan if not already
         if not replan:
             if self.PARAMS['re_plan']:
-                replan = get_observation(agent, None, cur_action, self.real_world)
+                replan = get_observation(agent_name, None, cur_action, self.real_world)
 
         # 3: Agent MIGHT need to re-plan.
         if replan:
@@ -295,28 +306,20 @@ class Simulation():
             print_board(self.real_world)
 
             # When re-plan need to reset "visited" from the Real-world
-            self.real_world.visited[agent] = set()
-            results = pyhop(copy.deepcopy(self.real_world), agent, verbose=3, plantree=self.PARAMS['use_tree'])
+            self.real_world.visited[agent_name] = set()
+            results = pyhop(copy.deepcopy(self.real_world), agent_name, verbose=3, plantree=self.PARAMS['use_tree'])
             result = random.choice(results)
 
             if result == None or result == False:
-                print('*** no solution found for agent:{}, goal:{}'.format(agent, self.real_world.goals[agent]))
-                self.histories[agent].append(('None', sys.maxint))
+                print('*** no solution found for agent:{}, goal:{}'.format(agent_name, self.real_world.goals[agent_name]))
+                # self.histories[agent].append(('None', sys.maxint))
+                agent.add_history(('None', sys.maxint))
                 return
 
-            if self.PARAMS['use_tree']:
-                solution = (result.get_actions(), result.get_states())
-                self.planTrees[agent] = result
-            else:
-                solution = result
-            
-            self.solutions[agent] = solution
-            self.cur_steps[agent] = 0
-
-            print('new plan', solution[0])
-            (actions, states) = solution
-            self.global_steps[agent] += 1
-            self.histories[agent].append(('replan', 1)) # Cost of Re-plan
+            agent.set_solution(result)
+            agent.cur_step = 0
+            agent.global_step += 1
+            agent.add_history(('replan', 1))
             return (self.real_world, step_info)
 
         else:
@@ -324,7 +327,7 @@ class Simulation():
             # next_state = act(cur_world, cur_action) # This is the same as states[i]
             print('cur_action: ', cur_action)
             self.real_world = act(self.real_world, cur_action)
-            self.histories[agent].append((cur_action, 1))
+            agent.add_history((cur_action, 1))
 
             # end: Info
             print('next state')
@@ -332,23 +335,24 @@ class Simulation():
             print('real world')
             print_board(self.real_world)
 
-        self.cur_steps[agent] += 1
-        self.global_steps[agent] += 1
+
+        agent.cur_step += 1
+        agent.global_step += 1
         return (self.real_world, step_info)
 
     def cost_p_agent(self):
 
         to_return = []
-        for agent in self.real_world.goals.keys():
-            to_return.append(sum(action[1] for action in self.histories[agent]))
+        for (agent_name, agent) in self.agents.items():
+            to_return.append(sum(action[1] for action in agent.get_histories()))
         return to_return
 
-simulation = Simulation(num_agent=2, gui=False, re_plan=True, uncertainty=0.4, use_tree=True)
+# simulation = Simulation(num_agent=2, gui=False, re_plan=True, uncertainty=0.4, use_tree=True)
 # simulation.run()
 
-# simulation = Simulation(num_agent=1, gui=False, re_plan=True, uncertainty=0, problem=problem_bank.maze_2())
+# simulation = Simulation(num_agent=1, re_plan=True, uncertainty=0, problem=problem_bank.maze_2())
 
-# simulation = Simulation(num_agent=1, gui=False, re_plan=True, uncertainty=0, problem=problem_bank.decompose_replan())
+simulation = Simulation(num_agent=1, gui=True, re_plan=True, uncertainty=0, problem=problem_bank.decompose_replan())
 
 simulation.run(delay=100)
 print('simulaiton total cost {}'.format(sum(simulation.cost_p_agent())))

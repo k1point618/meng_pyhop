@@ -14,18 +14,18 @@ class rover_world_gui(Tkinter.Tk):
 
         self.solutions = None
         self.rovers = []
-        self.agent_worlds = {}
+        # self.agent_worlds = {}
         self.agent_solutions = {}
         self.agent_planTrees = {}
         self.initialize(simulation.real_world)
 
-    def add_rover(self, rover_name, rover_world, solution, planTree): # Takes in 1 solution
-        self.rovers.append(rover_name)
-        self.agent_worlds[rover_name] = rover_world
-        self.agent_solutions[rover_name] = solution
-        self.agent_planTrees[rover_name] = planTree
+    def add_agent(self, agent): # Takes in 1 solution
+        self.rovers.append(agent.get_name())
+        # self.agent_worlds[rover_name] = rover_world
+        self.agent_solutions[agent.get_name()] = agent.get_solution()
+        self.agent_planTrees[agent.get_name()] = agent.get_planTree()
 
-        self.actionFrame.initialize_agent_plans(rover_name, solution, planTree)
+        self.actionFrame.initialize_agent_plans(agent.get_name(), agent.get_solution(), agent.get_planTree())
 
 
     def initialize(self, world):
@@ -48,8 +48,8 @@ class rover_world_gui(Tkinter.Tk):
     def NextStep(self):
 
         # For each agent, calls step() on simulaiton and then update the world.
-        for agent in self.simulation.real_world.goals.keys():
-            result = self.simulation.step(agent=agent)
+        for (agent_name, agent) in self.simulation.agents.items():
+            result = self.simulation.step(agent_name=agent_name)
 
             if result == None:
                 self.actionFrame.set_actions(agent, None)
@@ -58,22 +58,22 @@ class rover_world_gui(Tkinter.Tk):
             (new_world, step_info) = result
             if step_info['done']:
                 self.boardFrame.append_info("{}: agent({}) is done."
-                    .format(self.simulation.global_steps[agent], agent))
+                    .format(agent.get_global_step(), agent.get_name()))
             else:
                 # Update Board
                 self.boardFrame.update_board(new_world)
                 self.boardFrame.append_info("{}: agent({}) performed action({})"
-                    .format(self.simulation.global_steps[agent], agent, step_info['cur_action']))
+                    .format(agent.get_global_step(), agent.get_name(), step_info['cur_action']))
 
                 # If had to re-plan, then refresh actions list.
                 if step_info['replan']:
-                    self.actionFrame.set_actions(agent, self.simulation.solutions[agent])
+                    self.actionFrame.set_actions(agent_name, agent.get_solution())
                     self.boardFrame.append_info("{}: agent({}) had to replan."
-                        .format(self.simulation.global_steps[agent], agent))
+                        .format(agent.get_global_step(), agent.get_name()))
 
                 # Update Actions
-                cur_step = self.simulation.cur_steps[agent]
-                self.actionFrame.set_cur_action(agent, cur_step)
+                cur_step = agent.get_cur_step()
+                self.actionFrame.set_cur_action(agent_name, cur_step)
 
 
     def OnButtonClick(self):
