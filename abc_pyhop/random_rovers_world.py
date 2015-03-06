@@ -31,7 +31,6 @@ def generate_uncertainty(state, a_prob=1, verbose=False):
 	toggle_state = (random.random() < a_prob)
 
 	if toggle_state:
-
 		# First find available spaces
 		available_spaces =range(1,(state.prop['num_row']*state.prop['num_col']+1))
 		occupied = set()
@@ -111,7 +110,8 @@ def print_board(state): #TODO: Make gui
 """
 Main funciton for generating random world
 """
-def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
+def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, 
+					a_star=True):
 
 	##############################
 	# Below, we generate the world with pre-defined randomness.
@@ -123,7 +123,9 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 	world.at = {}
 	world.store_has = {}
 	world.has_soil_sample = {}
+	world.soil_sample = {}
 	world.has_rock_sample = {}
+	world.rock_sample = {}
 	world.has_soil_analysis = {}
 	world.soil_analysis = {}
 	world.has_rock_analysis = {}
@@ -140,12 +142,16 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 	world.equipped_for_imaging = {}
 	world.equipped_for_rock_analysis = {}
 	world.equipped_for_soil_analysis = {}
-	for agent in AGENTS:
+	for agent_id in range(num_agent):
+
+		agent = "A" + str(agent_id+1)
+
 		world.is_agent[agent] = True
 		loc = random.choice(available_spaces)
 		world.at[agent] = loc
 		available_spaces.remove(loc)
-		world.visited[agent] = loc
+		world.visited[agent] = set()
+		world.visited[agent].add(loc)
 
 		# Agent's capabilities
 		world.equipped_for_imaging[agent] = True
@@ -161,6 +167,8 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 
 		world.has_rock_analysis[agent] = False
 		world.has_soil_analysis[agent] = False
+		world.has_soil_sample[agent] = False
+		world.has_rock_sample[agent] = False
 		# Agent's Camera? TODO
 
 	# Lander
@@ -178,18 +186,18 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 	world.lab_ready = {LAB:[]}
 
 	# Rocks and Soils
-	world.is_soil = {}
+	world.soils = set()
 	for i in range(NUM_SOILS):
 		soil = "S" + str(i+1)
-		world.is_soil[soil] = True
+		world.soils.add(soil)
 		loc = random.choice(available_spaces)
 		available_spaces.remove(loc)
 		world.at[soil] = loc
 
-	world.is_rock = {}
+	world.rocks = set()
 	for i in range(NUM_ROCKS):
 		rock = "R" + str(i+1)
-		world.is_rock[rock] = True
+		world.rocks.add(rock)
 		loc = random.choice(available_spaces)
 		available_spaces.remove(loc)
 		world.at[rock] = loc
@@ -215,6 +223,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1):
 
 	# For other miscellaneous settings
 	world.settings = {}
+	world.settings['a-star'] = a_star
 	return world
 
 ######## End for Generating world
@@ -225,8 +234,8 @@ CAPABILITIES = ["equipped_for_imaging", "equipped_for_rock_analysis", "equipped_
 AGENTS = ['A1', 'A2']
 LANDER = "G"
 LAB = "L"
-NUM_ROCKS = 3
-NUM_SOILS = 3
+NUM_ROCKS = 2
+NUM_SOILS = 2
 NUM_OBJECTIVES = 0
 
 
@@ -241,7 +250,7 @@ if __name__ == "__main__":
 	world.settings['a-star'] = True
 	world.settings['verbose'] = False
 	world.settings['sample'] = True
-	pyhop(world, 'A1', 0, all_solutions=True, amortize=False, plantree=True) # only one solution
+	pyhop(world, 'A1', 3, all_solutions=False, plantree=True, rand=False) # only one solution
 
 
 

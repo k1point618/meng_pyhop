@@ -37,19 +37,21 @@ def navigate_op(state, a, source, sink):
 def sample(state, x, s, p, obj):
 	if state.is_agent[x] and (x in state.stores) and (state.at[x] == p) \
 		and (obj in state.at.keys()) and (state.at[obj] == p) \
-		and (obj in state.is_rock) and state.equipped_for_rock_analysis[x]:
+		and (obj in state.rocks) and state.equipped_for_rock_analysis[x]:
 		state.empty[s] = False
 		state.store_has[s] = obj
 		state.at.pop(obj, p)
 		state.has_rock_sample[x] = True
+		state.rock_sample[x] = obj
 		return state
 	elif state.is_agent[x] and (x in state.stores) and (state.at[x] == p) \
 		and  (obj in state.at.keys()) and (state.at[obj] == p) \
-		and (obj in state.is_soil) and state.equipped_for_soil_analysis[x]:
+		and (obj in state.soils) and state.equipped_for_soil_analysis[x]:
 		state.empty[s] = False
 		state.store_has[s] = obj
 		state.at.pop(obj, p)
 		state.has_soil_sample[x] = True		
+		state.soil_sample[x] = obj
 		return state
 	else: return False
 
@@ -114,14 +116,13 @@ def take_image(r, p, o, i, m):
 def communicate_data(state, agent, lander):
 	return state
 
-def visit(state, waypoint):
-	state.visited[waypoint] = True
+def visit(state, agent, waypoint):
+	state.visited[agent].add(waypoint)
 	return state
 
-def unvisit(state, waypoint):
-	state.visited[waypoint] = False
+def unvisit(state, agent, waypoint):
+	state.visited[agent].remove(waypoint)
 	return state
-
 
 
 """

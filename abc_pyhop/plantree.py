@@ -7,7 +7,7 @@ the chosen decomposition and their corresponding sampling-probabilities.
 It maintians strictily more information than the old (solution = (actions, states))
 representation.
 """
-class PlanTree():
+class PlanNode():
 	
 	METHOD = 'METHOD'
 	OPERATOR = 'OPERATOR'
@@ -19,9 +19,10 @@ class PlanTree():
 		self.before_state = None
 		self.after_state = None
 		self.node_type = node_type # Method or Operator
+		self.cost = None
 	
 	def get_states(self):
-		if self.node_type == PlanTree.OPERATOR:
+		if self.node_type == PlanNode.OPERATOR:
 			return [self.after_state]
 		to_return = []
 		for c in self.children:
@@ -29,11 +30,20 @@ class PlanTree():
 		return to_return
 
 	def get_actions(self):
-		if self.node_type == PlanTree.OPERATOR:
+		if self.node_type == PlanNode.OPERATOR:
 			return [self.name]
 		to_return = []
 		for c in self.children:
 			to_return += c.get_actions()
+		return to_return
+
+	# Return the leaves of current node 
+	def get_action_nodes(self):
+		if self.node_type == PlanNode.OPERATOR:
+			return [self]
+		to_return = []
+		for c in self.children:
+			to_return += c.get_action_nodes()
 		return to_return
 
 	def set_before_state(self, state):
@@ -63,5 +73,20 @@ class PlanTree():
 			toReturn += prefix + child.get_string(prefix + " ")
 		return toReturn
 
+	"""
+	Given a node, return a list of explainations for what the node is trying to achieve
+	"""
+	@staticmethod
+	def explain(node):
+		if self.parent == None:
+			return []
+		return [self.parent] + PlanNode.explain(self.parent)
+
+	def expland(node):
+		return self.children
+
 	def __repr__(self):
 		return self.get_string()
+
+
+

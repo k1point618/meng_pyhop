@@ -49,8 +49,13 @@ class rover_world_gui(Tkinter.Tk):
 
         # For each agent, calls step() on simulaiton and then update the world.
         for agent in self.simulation.real_world.goals.keys():
-            (new_world, step_info) = self.simulation.step(agent=agent)
+            result = self.simulation.step(agent=agent)
 
+            if result == None:
+                self.actionFrame.set_actions(agent, None)
+                return
+
+            (new_world, step_info) = result
             if step_info['done']:
                 self.boardFrame.append_info("{}: agent({}) is done."
                     .format(self.simulation.global_steps[agent], agent))
@@ -124,6 +129,9 @@ class AgentColumnFrame(Tkinter.Frame):
         lb.delete(0, Tkinter.END)
         lb.insert(Tkinter.END, self.name)
 
+        if solution == None:
+            lb.insert(Tkinter.END, "No Solution Found")
+            return
         # Show agent's plans
         (plan, states) = solution
         for action in plan:
@@ -171,10 +179,11 @@ class BoardFrame(Tkinter.Frame):
                     text="empty", fg='black', bg='gray', height=2)
                 label.grid(column=j, row=i, sticky='EWSN')
 
-        # Add objects onto the board
-        for (obj, loc) in world.at.items():
-            cur_x, cur_y = world.loc[loc]
-            self.board_var[(cur_x, cur_y)].set([obj])
+        self.update_board(world)
+        # # Add objects onto the board
+        # for (obj, loc) in world.at.items():
+        #     cur_x, cur_y = world.loc[loc]
+        #     self.board_var[(cur_x, cur_y)].set([obj])
 
         # Add info at the bottom # TODO: Make this scrollable
         self.info_list = Tkinter.Listbox(self, height=10, width=50, exportselection=0)

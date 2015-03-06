@@ -19,36 +19,34 @@ import rovers_world_operators
 import rovers_world_methods
 from random_rovers_world import *
 from gui_rover_world import *
-
+import problem_bank
 
 class Simulation():
 
     def __init__(self, uncertainty=0, 
-                verbose=True, 
-                show_run=True, 
+                verbose=False, 
                 a_star=True, 
                 gui=True, 
                 re_plan=True,
                 num_agent=1,
-                use_tree=False):
+                use_tree=False, problem=None):
         
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
         self.PARAMS['verbose'] = verbose # Simulaton verbosity
-        self.PARAMS['a-star'] = a_star
-        self.PARAMS['show_run'] = show_run
         self.PARAMS['gui'] = gui
         self.PARAMS['num_agent'] = num_agent
         self.PARAMS['re_plan'] = re_plan
         self.PARAMS['use_tree'] = use_tree
 
-        # Generate a random world
-        world = get_random_world(num_agent=num_agent) # with default width and height (10 x 10)
-        world.settings['a-star'] = self.PARAMS['a-star']
-        world.settings['verbose'] = 0 # Pyhop planning verbosity
-        world.settings['sample'] = False # If sample=false, then each agent's plan is deterministic
-
+        # Generate a random world if none is provided
+        if problem == None:
+            world = get_random_world(num_agent=num_agent, a_star=a_star) # with default width and height (10 x 10)
+        else:
+            world = problem
+    
+    
         if self.PARAMS['verbose']:
             print('start state')
             print_state(world)
@@ -64,21 +62,21 @@ class Simulation():
 
         # Samples 1 solution for this problem
         for agent in world.goals.keys():
-            results = pyhop(world, agent, world.settings['verbose'], 
-                            all_solutions=(not world.settings['sample']), 
-                            amortize=False, 
-                            plantree=use_tree)
-            if self.PARAMS['verbose']:
-                print ('num solutions: ', len(results))
+            results = pyhop(world, agent, plantree=use_tree)
+            if self.PARAMS['verbose']: print ('num solutions: ', len(results))
 
-            result = random.choice(results)
-
-            if use_tree:
-                solution = (result.get_actions(), result.get_states())
-                self.planTrees[agent] = result
-            else:
-                solution = result
+            if results[0] == False:
+                solution = None
                 self.planTrees[agent] = None
+            else:    
+                result = random.choice(results)
+
+                if use_tree:
+                    solution = (result.get_actions(), result.get_states())
+                    self.planTrees[agent] = result
+                else:
+                    solution = result
+                    self.planTrees[agent] = None
 
             self.solutions[agent] = solution # TODO: Just 1 solution for now
             self.cur_steps[agent] = 0 # Keeps track of where in the solution we are
@@ -94,11 +92,6 @@ class Simulation():
             app.mainloop()
             self.gui = app
 
-        # elif show_run:
-        #     for (i, solution) in enumerate(a1_solutions):
-        #         print('*** Showing plan #{} of {}'.format(i+1, len(a1_solutions)))
-        #         Simulation.show_single_agent(agent_init_world, real_world, solution, 'agent1')
-
    
     """ temporary hack for testing """
     def remove_traps(world):
@@ -106,7 +99,7 @@ class Simulation():
             world.loc_available[key] = True
         return world
 
-    @staticmethod
+    @staticmethod # Outdated
     def show_single_agent_recurse(cur_world, real_world, solution, agent, uncertainty=False):
         (plan, states) = solution
 
@@ -135,7 +128,7 @@ class Simulation():
                 print('remove_traps...')
                 print_board(real_world)
 
-                solutions = pyhop(real_world, 'agent1', verbose=3, all_solutions=False, amortize=False)
+                solutions = pyhop(real_world, 'agent1', verbose=3, all_solutions=False)
                 solution = solutions[0]
                 print('new solution', solution)
 
@@ -157,7 +150,7 @@ class Simulation():
 
             raw_input("Press Enter to continue...")
 
-    @staticmethod
+    @staticmethod # Outdated
     def show_single_agent(cur_world, real_world, solution, agent, uncertainty=False):
         (actions, states) = solution
 
@@ -187,7 +180,7 @@ class Simulation():
 
                 print_board(real_world)
 
-                solutions = pyhop(real_world, 'agent1', verbose=0, all_solutions=False, amortize=False)
+                solutions = pyhop(real_world, 'agent1', verbose=0, all_solutions=False)
                 solution = solutions[0]
                 
                 # print('new solution', solution)
@@ -222,6 +215,9 @@ class Simulation():
 
         # 0: Info
         solution = self.solutions[agent] # Maps to 1 solution
+        if not solution: 
+            replan = True
+
         (actions, states) = solution
         cur_step = self.cur_steps[agent]
 
@@ -242,9 +238,13 @@ class Simulation():
         step_info['cur_action'] = cur_action
 
         # 1: Generate possible Uncertainty to the real-world
-        if self.PARAMS['uncertainty']:
+        if hasattr(self.real_world, 'uncertainties'):
+            # If a world comes with it's own uncertainty-funciton, then apply that
+            self.real_world.uncertainties(self.real_world, cur_step)
+        elif self.PARAMS['uncertainty']:
             new_uncertainties = generate_uncertainty(self.real_world, a_prob=self.PARAMS['uncertainty'], verbose=True)
             step_info['new_uncertainty'] = new_uncertainties
+            print("new_uncertainties", new_uncertainties)
 
         # 2: This agent get observation about surrounding world and decides to replan
         if self.PARAMS['re_plan']:
@@ -258,11 +258,13 @@ class Simulation():
             print('replanning')
             print_board(self.real_world)
 
-            use_tree = self.PARAMS['use_tree']
-            results = pyhop(self.real_world, agent, verbose=3, all_solutions=False, amortize=False, plantree=use_tree)
+            # When re-plan need to reset "visited" from the Real-world TEMP
+            self.real_world.visited[agent] = set()
+
+            results = pyhop(copy.deepcopy(self.real_world), agent, verbose=3, plantree=self.PARAMS['use_tree'])
             result = random.choice(results)
 
-            if use_tree:
+            if self.PARAMS['use_tree']:
                 solution = (result.get_actions(), result.get_states())
                 self.planTrees[agent] = result
             else:
@@ -271,9 +273,8 @@ class Simulation():
             self.solutions[agent] = solution
             self.cur_steps[agent] = 0
 
-            print('new plan', solution[0])
-
             if solution != False: 
+                print('new plan', solution[0])
                 (actions, states) = solution
                 self.global_steps[agent] += 1
                 return (self.real_world, step_info)
@@ -294,12 +295,16 @@ class Simulation():
             print('real world')
             print_board(self.real_world)
 
-            # raw_input("Press Enter to continue...")
-
-
         self.cur_steps[agent] += 1
         self.global_steps[agent] += 1
         return (self.real_world, step_info)
 
-simulation = Simulation(num_agent=2, re_plan=True, uncertainty=1, use_tree=True)
+Simulation(num_agent=2, re_plan=True, uncertainty=3, use_tree=True)
+
+# Simulation(num_agent=1, re_plan=True, uncertainty=0, problem=problem_bank.maze_3())
+
+# Simulation(num_agent=1, re_plan=True, uncertainty=0, problem=problem_bank.decompose_replan())
+
+
+
 

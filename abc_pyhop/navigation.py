@@ -10,9 +10,11 @@ import pprint, pyhop, random, math, heapq, time
 import random_rovers_world
 
 def a_star(state, agent, sink):
-	VERBOSE = state.settings['verbose']
-	SAMPLE = state.settings['sample'] # If Sample is False, the navigation path is deterministic
-
+	# VERBOSE = state.settings['verbose']
+	VERBOSE=False
+	# SAMPLE = state.settings['sample'] # If Sample is False, the navigation path is deterministic
+	SAMPLE = True
+	
 	source = state.at[agent] # Navigates to sink from wherever the agent currently is.
 	if VERBOSE > 1: 
 		print('*** A* from {} to {} ***'.format(source, sink))
@@ -129,6 +131,7 @@ def heuristic(state, source, sink):
 
 	return abs((source_x - sink_x)) + abs((source_y - sink_y))
 	# return math.sqrt((source_x - sink_x)**2 + (source_y - sink_y)**2)
+
 
 def reconstruct_path(came_from, current):
 	to_return = [current]

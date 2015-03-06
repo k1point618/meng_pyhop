@@ -21,7 +21,8 @@ state1.is_agent = {"agent1":True}
 state1.prop = {"num_col":Y, "num_row":X}
 
 state1.at = {"agent1":8}
-state1.visited = {"agent1":8}
+state1.visited = {"agent1":set()}
+state1.visited["agent1"].add(8)
 state1.equipped_for_imaging = {"agent1":True}
 state1.equipped_for_rock_analysis = {"agent1":True}
 state1.equipped_for_soil_analysis = {"agent1":True}
