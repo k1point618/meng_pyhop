@@ -237,6 +237,7 @@ def pyhop(state,agent,verbose=0, all_solutions=False, plantree=False, rand=False
     reset_num_recurse_calls()
     reset_plan_library()
     
+    # At the beginning of planning, reset "visited" from the planning world.
     if plantree:
         planTrees = seek_plantrees(state,tasks,None,0,verbose, all_plans=all_solutions, rand=rand)
         print("**** Final PlanNodes: **** \n{}".format(planTrees))

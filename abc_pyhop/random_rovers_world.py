@@ -79,6 +79,10 @@ def get_observation(agent, agent_bs, next_action, real_world):
 Below is a helper function that takes in the state and prints it in a board
 """
 def print_board(state): #TODO: Make gui
+	if state == None:
+		print("State is None")
+		return
+		
 	x = state.prop["num_row"]
 	y = state.prop["num_col"]
 

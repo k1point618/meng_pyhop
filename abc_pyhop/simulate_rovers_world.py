@@ -52,13 +52,15 @@ class Simulation():
             print_state(world)
             print_board(world)
 
-        # Real world has possible uncertainties.
-        self.real_world = copy.deepcopy(world)
+        
+        self.real_world = copy.deepcopy(world) # Real world has possible uncertainties.
         self.solutions = {}
         self.planTrees = {}
         self.agent_worlds = {}
         self.cur_steps = {}
         self.global_steps = {}
+        self.done = {}
+        self.histories = {} # Keeps a history of steps actually taken by each agent
 
         # Samples 1 solution for this problem
         for agent in world.goals.keys():
@@ -82,6 +84,8 @@ class Simulation():
             self.cur_steps[agent] = 0 # Keeps track of where in the solution we are
             self.global_steps[agent] = 0
             self.agent_worlds[agent] = copy.deepcopy(world)
+            self.done[agent] = False
+            self.histories[agent] = []
 
         # Initialize Gui
         if gui:
@@ -91,6 +95,7 @@ class Simulation():
                 app.add_rover(agent, self.agent_worlds[agent], self.solutions[agent], self.planTrees[agent])
             app.mainloop()
             self.gui = app
+
 
    
     """ temporary hack for testing """
@@ -207,35 +212,66 @@ class Simulation():
 
             step_counter += 0
 
+    def run(self, delay=100):
+        # current_world = self.real_world
+        step = 0
+        cur_world = None
+        while True:
+            step += 1
+            print("========= step {} ========".format(step))
+            for agent in self.real_world.goals.keys():
+                result = self.step(agent=agent)
+                if result == None:
+                    print("No solution found for agent {}".format(agent))
+                else:
+                    (cur_world, step_info) = result
+
+            if all(self.done[agent] for agent in self.real_world.goals.keys()):
+                return
+
+            print_board(cur_world)
+            # raw_input("......")
+
+    """
+    Takes 1 step for a given agent. It gets the next step from self.solutions and self.cur_steps
+    Then it generates uncertainties in the world. 
+    Checks whether the agent's next step is possible. If not, replans. And returns the step as action:replan
+    Returns a new world and a set of info regarding on the step, such as
+    - whether it involved replanning
+    - whehter the agent has no more steps to take
+    - the cost of the step for the given agent
+    """
     def step(self, agent):
-        # To be displayed on GUI regarding the details of Step
+        # 0: Info
+        replan = False
         step_info = {}
         step_info['replan'] = False
         step_info['done'] = False
-
-        # 0: Info
+        
         solution = self.solutions[agent] # Maps to 1 solution
-        if not solution: 
+        if not solution or solution == None: 
             replan = True
+        else:
+            (actions, states) = solution
+            cur_step = self.cur_steps[agent]
 
-        (actions, states) = solution
-        cur_step = self.cur_steps[agent]
+            # If agent is Done.
+            if cur_step == len(actions):
+                print("Done")
+                step_info['done'] = True
+                self.done[agent] = True
+                self.histories[agent].append(('done', 0))
+                return (self.real_world, step_info)
 
-        # If agent is Done.
-        if cur_step == len(actions):
-            print("Done")
-            step_info['done'] = True
-            return (self.real_world, step_info)
-
-        print("*** Next Step ***")
-        print('length of remaining plan: {}; \nlength of remaining states: {}'
-            .format(len(actions[cur_step:]), len(states[cur_step:])))
-        print('\ttimestep: {}; \n\tactions: {};'.format(cur_step, actions[cur_step:]))
+            print("*** Next Step ***")
+            print('length of remaining plan: {}; \nlength of remaining states: {}'
+                .format(len(actions[cur_step:]), len(states[cur_step:])))
+            print('\ttimestep: {}; \n\tactions: {};'.format(cur_step, actions[cur_step:]))
 
 
-        cur_action = actions[cur_step]
-        next_state = states[cur_step]     
-        step_info['cur_action'] = cur_action
+            cur_action = actions[cur_step]
+            next_state = states[cur_step]     
+            step_info['cur_action'] = cur_action
 
         # 1: Generate possible Uncertainty to the real-world
         if hasattr(self.real_world, 'uncertainties'):
@@ -246,10 +282,10 @@ class Simulation():
             step_info['new_uncertainty'] = new_uncertainties
             print("new_uncertainties", new_uncertainties)
 
-        # 2: This agent get observation about surrounding world and decides to replan
-        if self.PARAMS['re_plan']:
-            replan = get_observation(agent, None, cur_action, self.real_world)
-        else: replan = False
+        # 2: This agent get observation about surrounding world and decides to replan if not already
+        if not replan:
+            if self.PARAMS['re_plan']:
+                replan = get_observation(agent, None, cur_action, self.real_world)
 
         # 3: Agent MIGHT need to re-plan.
         if replan:
@@ -258,11 +294,15 @@ class Simulation():
             print('replanning')
             print_board(self.real_world)
 
-            # When re-plan need to reset "visited" from the Real-world TEMP
+            # When re-plan need to reset "visited" from the Real-world
             self.real_world.visited[agent] = set()
-
             results = pyhop(copy.deepcopy(self.real_world), agent, verbose=3, plantree=self.PARAMS['use_tree'])
             result = random.choice(results)
+
+            if result == None or result == False:
+                print('*** no solution found for agent:{}, goal:{}'.format(agent, self.real_world.goals[agent]))
+                self.histories[agent].append(('None', sys.maxint))
+                return
 
             if self.PARAMS['use_tree']:
                 solution = (result.get_actions(), result.get_states())
@@ -273,21 +313,18 @@ class Simulation():
             self.solutions[agent] = solution
             self.cur_steps[agent] = 0
 
-            if solution != False: 
-                print('new plan', solution[0])
-                (actions, states) = solution
-                self.global_steps[agent] += 1
-                return (self.real_world, step_info)
-
-            else:
-                print('*** no solution found for agent:{}, goal:{}'.format(agent, self.real_world.goals[agent]))
-                return
+            print('new plan', solution[0])
+            (actions, states) = solution
+            self.global_steps[agent] += 1
+            self.histories[agent].append(('replan', 1)) # Cost of Re-plan
+            return (self.real_world, step_info)
 
         else:
             # 4: (if not replan) Agent takes action
             # next_state = act(cur_world, cur_action) # This is the same as states[i]
             print('cur_action: ', cur_action)
             self.real_world = act(self.real_world, cur_action)
+            self.histories[agent].append((cur_action, 1))
 
             # end: Info
             print('next state')
@@ -299,11 +336,24 @@ class Simulation():
         self.global_steps[agent] += 1
         return (self.real_world, step_info)
 
-Simulation(num_agent=2, re_plan=True, uncertainty=3, use_tree=True)
+    def cost_p_agent(self):
 
-# Simulation(num_agent=1, re_plan=True, uncertainty=0, problem=problem_bank.maze_3())
+        to_return = []
+        for agent in self.real_world.goals.keys():
+            to_return.append(sum(action[1] for action in self.histories[agent]))
+        return to_return
 
-# Simulation(num_agent=1, re_plan=True, uncertainty=0, problem=problem_bank.decompose_replan())
+simulation = Simulation(num_agent=2, gui=False, re_plan=True, uncertainty=0.4, use_tree=True)
+# simulation.run()
+
+# simulation = Simulation(num_agent=1, gui=False, re_plan=True, uncertainty=0, problem=problem_bank.maze_2())
+
+# simulation = Simulation(num_agent=1, gui=False, re_plan=True, uncertainty=0, problem=problem_bank.decompose_replan())
+
+simulation.run(delay=100)
+print('simulaiton total cost {}'.format(sum(simulation.cost_p_agent())))
+print('simulation cost breakdown: ', simulation.cost_p_agent())
+
 
 
 
