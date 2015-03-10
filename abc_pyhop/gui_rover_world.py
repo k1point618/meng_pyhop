@@ -30,7 +30,7 @@ class rover_world_gui(Tkinter.Tk):
 
     def initialize(self, world):
         # Add next-button to board
-        self.nextButton = Tkinter.Button(self,text=u"Next", command=self.NextStep)
+        self.nextButton = Tkinter.Button(self,text=u"Next", command=self.NextStepAll)
         self.nextButton.pack(side=Tkinter.LEFT)
 
         self.boardFrame = BoardFrame(self, world)
@@ -52,11 +52,11 @@ class rover_world_gui(Tkinter.Tk):
             result = self.simulation.step(agent_name=agent_name)
 
             if result == None:
-                self.actionFrame.set_actions(agent, None)
+                self.actionFrame.set_actions(agent_name, None)
                 return
 
             (new_world, step_info) = result
-            if step_info['done']:
+            if agent.is_done():
                 self.boardFrame.append_info("{}: agent({}) is done."
                     .format(agent.get_global_step(), agent.get_name()))
             else:
@@ -75,6 +75,24 @@ class rover_world_gui(Tkinter.Tk):
                 cur_step = agent.get_cur_step()
                 self.actionFrame.set_cur_action(agent_name, cur_step)
 
+    def NextStepAll(self):
+        results = self.simulation.step_all()
+        
+        if results == True: # All done
+            print('All done')
+            return 
+
+        (new_world, actions) = results
+        
+        # Update Board
+        self.boardFrame.update_board(new_world)
+
+        for (agent_name, action) in actions.items():
+            self.boardFrame.append_info("{}: agent({}) performed action({})"
+                    .format(self.simulation.time, agent_name, action))
+            # update actions column
+            self.actionFrame.set_actions(agent_name, self.simulation.agents[agent_name].get_solution())
+            self.actionFrame.set_cur_action(agent_name, self.simulation.agents[agent_name].cur_step)
 
     def OnButtonClick(self):
         print "You clicked the button !"

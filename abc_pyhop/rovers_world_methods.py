@@ -82,15 +82,21 @@ pyhop.declare_methods('navigate2',navigate2_m)
 
 def get_sample_data_m(state, agent, rand=False):
 	# Consider two cases here, rock OR soil
+	rock_score = -1 * (int(state.has_rock_sample[agent]) + int(state.has_rock_analysis[agent]))
+	soil_score = -1 * (int(state.has_soil_sample[agent]) + int(state.has_soil_analysis[agent]))
+
 	possible_decomp = []
 	if state.is_agent[agent] and state.equipped_for_rock_analysis[agent]:
-		possible_decomp.append([('get_rock_data', agent)])
+		decomp = [('get_rock_data', agent)]
+		heapq.heappush(possible_decomp, (rock_score, decomp))
 	if state.is_agent[agent] and state.equipped_for_soil_analysis[agent]:
-		possible_decomp.append([('get_soil_data', agent)])
+		decomp = [('get_soil_data', agent)]
+		heapq.heappush(possible_decomp, (soil_score, decomp))
 
 	if len(possible_decomp) == 0: return [False]
 
-	return possible_decomp
+	num_result = len(possible_decomp)
+	return [heapq.heappop(possible_decomp)[1] for i in range(num_result)]
 
 pyhop.declare_methods('get_sample_data',get_sample_data_m)
 
@@ -106,7 +112,7 @@ def get_soil_data_m(state, agent, rand=False):
 			heapq.heappush(possible_decomp, (heuristic, decomp))
 			
 	if state.has_soil_sample[agent]:
-		to_return += [[('get_a_soil_data', agent, state.soil_sample[agent])]]
+		to_return += [[('get_a_soil_data', agent, state.soil_sample[agent])]] # First
 
 	num_result = len(possible_decomp)
 	to_return += [heapq.heappop(possible_decomp)[1] for i in range(num_result)]

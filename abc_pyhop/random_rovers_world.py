@@ -60,6 +60,7 @@ def act(state, action):
 	return operator(copy.deepcopy(state), *action[1:])
 
 """
+NOTE: Obsolete
 Given an agent and its position in the real-world, check the set of observable locaitons for
 differences in world state
 agent_bs : agent's belief state

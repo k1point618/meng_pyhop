@@ -164,6 +164,31 @@ def navigate_replan():
 	world.uncertainties = replan_1_rand
 	return world
 
+# Replan for navigation
+def navigate_replan_team():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	world = rrw.get_random_world(5, 5, num_agent=2)
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 15)]
+	world.goals['A2'] = [('navigate', 'A2', 9)]
+
+	# Set Lander Location
+	world.at[rrw.LANDER] = 15
+	
+	# Set Rover Location
+	world.at['A1'] = 11
+	world.visited['A1'] = set()
+	world.visited['A1'].add(11)
+	world.at['A2'] = 9
+	world.visited['A2'] = set()
+	world.visited['A1'].add(9)
+
+	# Add uncertainties
+	world.uncertainties = replan_1_rand
+	return world
+
 # Replan for get_a_soil_data: 
 def decompose_replan():
 	rrw.NUM_ROCKS=0
@@ -197,8 +222,8 @@ def decompose_replan():
 # Uncertainties Library
 def replan_1_rand(world, idx):
 	print("*** *** Calling replan_1_rand *** ")
-	if idx == 1:
-		world.loc_available[13] = False
+	if idx == 0:
+		world.loc_available[14] = False
 
 def replan_decompose_1(world, idx):
 	print("*** Calling re-lan_decompose_1 for uncertainties ***")
