@@ -86,27 +86,36 @@ class AgentMind(object):
 	# Returns the set of observations that is relevatnt to the agent
 	# depending on the location of the agent
 	# Reminder: Also update agent's mental_world
-	# Note: Only looking at location-availability differences
+	# Note: Only looking at location-availability differences and .at[] differences
 	def make_observations(self, real_world):
-		print("AgentNoComm is making observations. Agent World: ")
-		print_board(self.mental_world)
-		print("real world:")
-		print_board(real_world)
-		print("Agent State:")
-		print_state(self.mental_world)
-		print("Real State:")
-		print_state(real_world)
 
 		loc_diff = [] # NOTE TODO: For now it is only location diff
+		# at_diff = [] # Note TODO: For now also include object locaitons
+
 		my_l = self.mental_world.at[self.name]
-		my_x, my_y = self.mental_world.loc[my_l]
-		for (l, (x, y)) in self.mental_world.loc.items():
-			if (abs(my_x - x)^2 + abs(my_y - y)^2) <= 2 \
-				and self.mental_world.loc_available[l] != real_world.loc_available[l]:
+		for l in self.mental_world.loc.keys():
+			if AgentMind.visible(my_l, l, real_world, range=2) and self.mental_world.loc_available[l] != real_world.loc_available[l]:
 				self.mental_world.loc_available[l] = real_world.loc_available[l]
 				loc_diff.append((l, real_world.loc_available[l]))
-		return loc_diff # TODO
+		
+		for (obj, loc) in real_world.at.items():
+			if loc != None and AgentMind.visible(my_l, loc, real_world, range=2) and self.mental_world.at[obj] != real_world.at[obj]:
+				self.mental_world.at[obj] = real_world.at[obj]
+		for (obj, loc) in self.mental_world.at.items():
+			if loc != None and AgentMind.visible(my_l, loc, self.mental_world, range=2) and self.mental_world.at[obj] != real_world.at[obj]:
+				self.mental_world.at[obj] = real_world.at[obj]
 
+				# at_diff.append((obj, loc))
+		print("agent {} is observing the world. Added new diffs".format(self.name))
+		print_board(self.mental_world)
+		
+		return loc_diff#, #at_diff # TODO
+
+	@staticmethod
+	def visible(A, B, world, range=2):
+		a_x, a_y = world.loc[A]
+		b_x, b_y = world.loc[B]
+		return((abs(a_x - b_x)**2 + abs(a_y - b_y)**2) <= range)
 	
 	# Process communication by updating agent's mental_world
 	# Return the set of differences
@@ -137,7 +146,8 @@ class AgentFullComm(AgentMind):
 		print("Agent {} communicates ... {}".format(self.name, diffs))
 		msg = {}
 		for agent_name in self.mental_world.goals.keys():
-			msg[agent_name] = diffs
+			if agent_name != self.name:
+				msg[agent_name] = diffs
 		return msg # Communicate All
 
 

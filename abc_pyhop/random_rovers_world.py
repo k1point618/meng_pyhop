@@ -35,7 +35,8 @@ def generate_uncertainty(state, a_prob=1, verbose=False):
 		available_spaces =range(1,(state.prop['num_row']*state.prop['num_col']+1))
 		occupied = set()
 		for (obj, loc) in state.at.items(): 
-			occupied.add(loc)
+			if loc != None:
+				occupied.add(loc)
 		for loc in occupied: 
 			available_spaces.remove(loc)
 
@@ -89,11 +90,12 @@ def print_board(state): #TODO: Make gui
 
 	occupied = {}
 	for (thing, loc) in state.at.items():
-		(i, j) = state.loc[loc]
-		if((i, j) in occupied):
-			occupied[(i, j)].append(thing)
-		else:
-			occupied[(i, j)] = [thing]
+		if loc != None:
+			(i, j) = state.loc[loc]
+			if((i, j) in occupied):
+				occupied[(i, j)].append(thing)
+			else:
+				occupied[(i, j)] = [thing]
 
 	to_print = ""
 	idx = 1
@@ -123,6 +125,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
 
 	# General and Miscellaneous World info
 	world = State("InitialWorld")
+	world.name = "RandomWorld"
 	world.prop = {"num_col":BOARD_Y, "num_row":BOARD_X}
 	available_spaces = range(1,(BOARD_X*BOARD_Y+1))
 	world.at = {}

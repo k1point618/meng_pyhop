@@ -25,7 +25,7 @@ class rover_world_gui(Tkinter.Tk):
         self.agent_solutions[agent.get_name()] = agent.get_solution()
         self.agent_planTrees[agent.get_name()] = agent.get_planTree()
 
-        self.actionFrame.initialize_agent_plans(agent.get_name(), agent.get_solution(), agent.get_planTree())
+        self.actionFrame.initialize_agent_plans(agent, agent.get_planTree())
 
 
     def initialize(self, world):
@@ -87,12 +87,14 @@ class rover_world_gui(Tkinter.Tk):
         # Update Board
         self.boardFrame.update_board(new_world)
 
-        for (agent_name, action) in actions.items():
-            self.boardFrame.append_info("{}: agent({}) performed action({})"
-                    .format(self.simulation.time, agent_name, action))
+        for (agent_name, actions) in actions.items():
+            for a in actions:
+                self.boardFrame.append_info("{}: agent({}) performed action({})"
+                        .format(self.simulation.time, agent_name, a))
             # update actions column
             self.actionFrame.set_actions(agent_name, self.simulation.agents[agent_name].get_solution())
             self.actionFrame.set_cur_action(agent_name, self.simulation.agents[agent_name].cur_step)
+            self.actionFrame.set_cur_status(agent_name, self.simulation.agents[agent_name])
 
     def OnButtonClick(self):
         print "You clicked the button !"
@@ -114,12 +116,12 @@ class AgentActionsFrame(Tkinter.Frame):
         # self.listBoxes = {}
         self.agent_columns = {}
 
-    def initialize_agent_plans(self, rover_name, solution, planTree=None):
+    def initialize_agent_plans(self, agent, planTree=None):
         
         # Create a column fro each new agent
-        agent_column = AgentColumnFrame(self, rover_name, solution, planTree, height=40, width=30)
+        agent_column = AgentColumnFrame(self, agent, planTree, height=40, width=30)
         agent_column.pack(side=Tkinter.LEFT)
-        self.agent_columns[rover_name] = agent_column
+        self.agent_columns[agent.name] = agent_column
 
     def set_actions(self, rover_name, solution):
         self.agent_columns[rover_name].set_actions(solution)
@@ -127,19 +129,29 @@ class AgentActionsFrame(Tkinter.Frame):
     def set_cur_action(self, rover_name, idx):
         self.agent_columns[rover_name].set_cur_action(idx)
 
+    def set_cur_status(self, rover_name, agent):
+        self.agent_columns[rover_name].set_cur_status(agent)
+
+
 class AgentColumnFrame(Tkinter.Frame):
-    def __init__(self, parent, name, solution, planTree, height, width):
+    def __init__(self, parent, agent, planTree, height, width):
         Tkinter.Frame.__init__(self, parent, background='yellow', height=height, width=width)
-        self.name = name
+        self.name = agent.name
 
         # Create List Box Object
         self.listBox = Tkinter.Listbox(self, height=20, width=30, exportselection=0)
         self.listBox.pack(side=Tkinter.TOP, expand=True)
-        self.set_actions(solution)
+        self.set_actions(agent.get_solution())
 
         # Create the Plan Tree box
-        self.planTreeBox = Tkinter.Label(self, text=str(planTree), height=20, width=30)
+        self.planTreeBox = Tkinter.Label(self, text=str(planTree), height=10, width=30)
         self.planTreeBox.pack(side=Tkinter.TOP, expand=True)
+
+        # Show costs
+        self.cur_status = Tkinter.StringVar()
+        self.cur_status.set("Cost: {}".format(sum(action[1] for action in agent.get_histories())))
+        self.costLabel = Tkinter.Label(self, textvariable=self.cur_status, width=30, height=2)
+        self.costLabel.pack(side=Tkinter.TOP, expand=True)
 
     def set_actions(self, solution):
         lb = self.listBox
@@ -164,6 +176,11 @@ class AgentColumnFrame(Tkinter.Frame):
         print("*** Clearning Selections... ***")
         print("*** Setting new selection by index: ", idx)
         lb.selection_set(idx)
+
+    def set_cur_status(self, agent):
+        # Get Current Cost
+        cost = sum(action[1] for action in agent.get_histories())
+        self.cur_status.set("Cost: {}".format(cost))
 
 
 # For the main board frame (Top left)

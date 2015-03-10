@@ -40,7 +40,7 @@ def sample(state, x, s, p, obj):
 		and (obj in state.rocks) and state.equipped_for_rock_analysis[x]:
 		state.empty[s] = False
 		state.store_has[s] = obj
-		state.at.pop(obj, p)
+		state.at[obj] = None
 		state.has_rock_sample[x] = True
 		state.rock_sample[x] = obj
 		return state
@@ -49,7 +49,7 @@ def sample(state, x, s, p, obj):
 		and (obj in state.soils) and state.equipped_for_soil_analysis[x]:
 		state.empty[s] = False
 		state.store_has[s] = obj
-		state.at.pop(obj, p)
+		state.at[obj] = None
 		state.has_soil_sample[x] = True		
 		state.soil_sample[x] = obj
 		return state
@@ -74,7 +74,6 @@ def analyze_soil_sample(state, agent, s, lab):
 	if state.is_agent[agent] and (agent in state.stores) and (s == state.stores[agent]) and (lab in state.is_lab) and (p == state.at[lab]) and (state.at[agent] == p) and (not state.empty[s]) and (state.lab_ready[lab]):
 		state.empty[s] == True
 		sample_obj = state.store_has[s]
-		state.store_has[s] = None
 		state.lab_ready[lab].remove("SOIL")
 		state.has_soil_analysis[agent] = True
 		state.soil_analysis[agent] = sample_obj
@@ -87,7 +86,6 @@ def analyze_rock_sample(state, agent, s, lab):
 	if state.is_agent[agent] and (agent in state.stores) and (s == state.stores[agent]) and (lab in state.is_lab) and (p == state.at[lab]) and (state.at[agent] == p) and (not state.empty[s]) and (state.lab_ready[lab]):
 		state.empty[s] == True
 		sample_obj = state.store_has[s]
-		state.store_has[s] = None
 		state.lab_ready[lab].remove("ROCK")
 		state.has_rock_analysis[agent] = True
 		state.rock_analysis[agent] = sample_obj
@@ -96,11 +94,17 @@ def analyze_rock_sample(state, agent, s, lab):
 
 
 def drop(state, agent, store):
-	if state.is_agent[agent] and (agent in state.stores) and (store == state.stores[agent] and (not state.empty[store])):
+	if state.is_agent[agent] \
+		and (agent in state.stores) \
+		and (store == state.stores[agent] \
+		and (not state.empty[store])):
+
 		cur_loc = state.at[agent]
 		obj = state.store_has[store]
+		if(obj == None): pyhop.print_state(state)
+		assert(obj != None)
 		state.at[obj] = cur_loc
-		state.store_has[store] = None
+		state.store_has.pop(store)
 		state.empty[store] = True
 		return state
 	else: return False

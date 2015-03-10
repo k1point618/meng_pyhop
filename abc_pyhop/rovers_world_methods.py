@@ -105,11 +105,12 @@ def get_soil_data_m(state, agent, rand=False):
 	possible_decomp = []
 	to_return = []
 	for (key, val) in state.at.items():
-		if (key in state.soils):
-			# Using heapq
-			decomp = [('get_a_soil_data', agent, key)]
-			heuristic = navigation.heuristic(state, state.at[agent], state.at[key])
-			heapq.heappush(possible_decomp, (heuristic, decomp))
+		if val != None:
+			if (key in state.soils):
+				# Using heapq
+				decomp = [('get_a_soil_data', agent, key)]
+				heuristic = navigation.heuristic(state, state.at[agent], state.at[key])
+				heapq.heappush(possible_decomp, (heuristic, decomp))
 			
 	if state.has_soil_sample[agent]:
 		to_return += [[('get_a_soil_data', agent, state.soil_sample[agent])]] # First
@@ -169,11 +170,12 @@ def get_rock_data_m(state, agent, rand=False):
 	to_return =[]
 
 	for (key, val) in state.at.items():
-		if (key in state.rocks):
-			# Using heapq
-			decomp = [('get_a_rock_data', agent, key)]
-			heuristic = navigation.heuristic(state, state.at[agent], state.at[key])
-			heapq.heappush(possible_decomp, (heuristic, decomp))
+		if val != None:
+			if (key in state.rocks):
+				# Using heapq
+				decomp = [('get_a_rock_data', agent, key)]
+				heuristic = navigation.heuristic(state, state.at[agent], state.at[key])
+				heapq.heappush(possible_decomp, (heuristic, decomp))
 
 	if state.has_rock_sample[agent]:
 		to_return = [[('get_a_rock_data', agent, state.rock_sample[agent])]]

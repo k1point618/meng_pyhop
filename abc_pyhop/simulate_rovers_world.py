@@ -24,28 +24,28 @@ from models import *
 
 class Simulation():
 
-    def __init__(self, uncertainty=0, 
+    def __init__(self, problem, AgentType,
+                uncertainty=0, 
                 verbose=False, 
                 a_star=True, 
                 gui=True, 
                 re_plan=True,
-                num_agent=1,
-                use_tree=False, problem=None, agent=None):
+                use_tree=False):
         
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
         self.PARAMS['verbose'] = verbose # Simulaton verbosity
         self.PARAMS['gui'] = gui
-        self.PARAMS['num_agent'] = num_agent
         self.PARAMS['re_plan'] = re_plan
         self.PARAMS['use_tree'] = use_tree
 
         # Generate a random world if none is provided
-        if problem == None:
-            world = get_random_world(num_agent=num_agent, a_star=a_star) # with default width and height (10 x 10)
-        else:
-            world = problem
+        # if problem == None:
+        #     world = get_random_world(num_agent=num_agent, a_star=a_star) # with default width and height (10 x 10)
+        # else:
+
+        world = problem
     
     
         if self.PARAMS['verbose']:
@@ -70,7 +70,7 @@ class Simulation():
         for agent_name in world.goals.keys():
 
             # Create Agent
-            agent = AgentNoComm(agent_name, copy.deepcopy(world))
+            agent = AgentType(agent_name, copy.deepcopy(world))
             # agent = AgentFullComm(agent_name, copy.deepcopy(world))
             self.agents[agent_name] = agent
             self.communications[agent_name] = []
@@ -206,30 +206,17 @@ class Simulation():
 
             step_counter += 0
 
-    def run(self, delay=100):
-        # current_world = self.real_world
+    def run(self):
         step = 0
         cur_world = None
         while True:
             step += 1
             print("========= step {} ========".format(step))
             self.step_all()
-
-            # for (agent_name, agent) in self.agents.items():
-            #     if agent.is_done():
-            #         continue
-
-            #     result = self.step(agent_name=agent_name)
-            #     if result == None:
-            #         print("No solution found for agent {}".format(agent_name))
-            #     else:
-            #         (cur_world, step_info) = result
-
             if all(agent.is_done() for agent in self.agents.values()):
                 return
-
             print_board(cur_world)
-            # raw_input("......")
+
 
     """
     New implementation of step that takes into account communication and generates
@@ -257,7 +244,13 @@ class Simulation():
         elif self.PARAMS['uncertainty']:
             generate_uncertainty(self.real_world, a_prob=self.PARAMS['uncertainty'], verbose=True)
 
-        actions_took = {}
+        actions_took = {} # Maps agent names to the set of actions
+
+        print('real world')
+        print(self.real_world.at)
+        print('rock analysis: ', self.real_world.rock_analysis)
+        print('soil analysis: ', self.real_world.soil_analysis)
+        print_board(self.real_world)
 
         for (agent_name, agent) in self.agents.items():
             # info and base-case
@@ -266,10 +259,10 @@ class Simulation():
                 (actions, states) = agent.get_solution()
                 cur_action = actions[agent.get_cur_step()]
                 next_state = states[agent.get_cur_step()]     
+                print("agent {} current action is {}".format(agent_name, cur_action))
 
-            # ??
-            # step_info[(agent_name, 'cur_action')] = cur_action
-
+            # initailize
+            actions_took[agent_name] = []
             
             # Diffs contains the new observations
             diffs = agent.incoming_comm(self.communications) # Process Communication by updating agent's mental_world
@@ -282,6 +275,11 @@ class Simulation():
             # Messages is a dictionary that maps agent-names to messages
             messages = agent.communicate(diffs)
             self.append_communications(messages)
+            # Add communication to actions taken
+            for (rcv, m) in messages.items(): 
+                if len(m) > 0:
+                    actions_took[agent_name].append(('comm {} to {}'.format(m, rcv), len(m)))
+                    agent.add_history(('comm {} to {}'.format(m, rcv), len(m)))
 
             if agent.is_done(): continue
 
@@ -297,7 +295,7 @@ class Simulation():
                     print('*** no solution found for agent:{}, goal:{}'.format(agent_name, self.real_world.goals[agent_name]))
                     agent.add_history(('None', sys.maxint))
                     agent.done = True
-                    actions_took[agent_name] = ('failed')
+                    actions_took[agent_name].append(('failed', sys.maxint))
 
 
                 agent.set_solution(result)
@@ -305,7 +303,7 @@ class Simulation():
                 agent.global_step += 1
                 agent.add_history(('replan', 1))
 
-                actions_took[agent_name] = ('replan')
+                actions_took[agent_name].append(('replan', 1))
 
             else:
                 # 4: (if not replan) Agent takes action
@@ -323,14 +321,8 @@ class Simulation():
                 if agent.cur_step >= len(agent.actions):
                     agent.done = True
                     agent.success = True
-
-                # end: Info
-                print('next state')
-                print_board(next_state)
-                print('real world')
-                print_board(self.real_world)
-
-                actions_took[agent_name] = cur_action
+                
+                actions_took[agent_name].append((cur_action, 1))
 
 
         self.flush_communications()
@@ -446,19 +438,13 @@ class Simulation():
         for (agent_name, agent) in self.agents.items():
             to_return.append(sum(action[1] for action in agent.get_histories()))
         return to_return
-# 
-# simulation = Simulation(num_agent=2, gui=True, re_plan=True, uncertainty=1, use_tree=True)
 
-# simulation = Simulation(num_agent=1, gui=False, re_plan=True, uncertainty=0, problem=problem_bank.maze_5())
 
-simulation = Simulation(num_agent=1, gui=True, re_plan=True, uncertainty=0, problem=problem_bank.navigate_replan_team())
 
-simulation.run(delay=100)
-print('simulaiton total cost {}'.format(sum(simulation.cost_p_agent())))
-print('simulation cost breakdown: ', simulation.cost_p_agent())
-for (agent_name, agent) in simulation.agents.items():
-    print(agent_name, agent.get_histories())
 
+# simulation = Simulation(problem_bank.maze_5(), AgentNoComm, gui=False, re_plan=True, uncertainty=0)
+
+    
 
 
 
