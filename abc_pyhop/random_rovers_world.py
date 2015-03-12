@@ -18,6 +18,39 @@ import time
 import rovers_world_operators
 import rovers_world_methods
 
+
+"""
+Below is the new uncertainty generating method for running experiment that 
+simulates agents with different mental models. The method returns a function of the form
+func(world, idx), where world is the current state (of the real-world) and the idx is 
+the global time-step of the simulation.
+"""
+def get_uncertainty_fun(state, num_step, a_prob=1):
+
+	sequence = []
+	for idx in range(num_step):
+		toggle = (random.random() < a_prob)
+		if toggle:
+			available_spaces = state.loc.keys()
+			occupied = set()
+			for (obj, loc) in state.at.items(): 
+				if loc != None:
+					occupied.add(loc)
+			for loc in occupied: 
+				available_spaces.remove(loc)
+
+			sequence.append(random.choice(available_spaces))
+		else: sequence.append(None)
+
+	def to_return(in_state, in_idx):
+		if in_idx >= len(sequence):
+			return
+		rand_loc = sequence[in_idx]
+		if rand_loc != None:
+			in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc]
+
+	return to_return
+
 """
 This method takes in an existing state and with some probability, changes 
 something about the world. Possible changes are: 
@@ -47,7 +80,6 @@ def generate_uncertainty(state, a_prob=1, verbose=False):
 		if verbose: print('changed location {} availability to {}'.format(rand_loc, state.loc_available[rand_loc]))
 
 	# Changes the state, no need to return. 
-	# return state
 
 """
 Returns a new state that is the result of after taking the action)

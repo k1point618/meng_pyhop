@@ -40,11 +40,6 @@ class Simulation():
         self.PARAMS['re_plan'] = re_plan
         self.PARAMS['use_tree'] = use_tree
 
-        # Generate a random world if none is provided
-        # if problem == None:
-        #     world = get_random_world(num_agent=num_agent, a_star=a_star) # with default width and height (10 x 10)
-        # else:
-
         world = problem
     
     
@@ -239,6 +234,7 @@ class Simulation():
             return True # All done
 
         if hasattr(self.real_world, 'uncertainties'):
+            print("Using predefined uncertainties.")
             # If a world comes with it's own uncertainty-funciton, then apply that
             self.real_world.uncertainties(self.real_world, self.time)
         elif self.PARAMS['uncertainty']:
@@ -439,15 +435,6 @@ class Simulation():
             to_return.append(sum(action[1] for action in agent.get_histories()))
         return to_return
 
-
-"""
-Navigation: maze_1, ... maze_5
-navigate_replan_team    - Different Agent Models will behave differently.
-navigate_replan
-decompose_replan        - Test Method definition such that agent doesn't start over.
-random                  - Need to set uncertainty parameter
-"""
-simulation = Simulation(problem_bank.random(), AgentNoComm, gui=True, re_plan=True, uncertainty=0.3)
 
     
 

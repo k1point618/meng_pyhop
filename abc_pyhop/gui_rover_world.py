@@ -208,11 +208,12 @@ class BoardFrame(Tkinter.Frame):
         self.board_var = {}
         for i in range(num_row):
             for j in range(num_col):
+                f = Tkinter.Frame(self, borderwidth=1, relief=Tkinter.SOLID)
                 self.board_var[(i, j)] = Tkinter.StringVar()
                 self.board_var[(i, j)].set("[   ]")
-                label = Tkinter.Label(self, textvariable=self.board_var[(i, j)], 
-                    text="empty", fg='black', bg='gray', height=2)
-                label.grid(column=j, row=i, sticky='EWSN')
+                label = Tkinter.Label(f, textvariable=self.board_var[(i, j)], 
+                    fg='black', bg='white', height=2, width=5, text=Tkinter.SOLID).pack(side=Tkinter.LEFT)
+                f.grid(column=j, row=i, sticky='EWSN')
 
         self.update_board(world)
         # # Add objects onto the board
@@ -221,7 +222,7 @@ class BoardFrame(Tkinter.Frame):
         #     self.board_var[(cur_x, cur_y)].set([obj])
 
         # Add info at the bottom # TODO: Make this scrollable
-        self.info_list = Tkinter.Listbox(self, height=10, width=50, exportselection=0)
+        self.info_list = Tkinter.Listbox(self, height=10, width=60, exportselection=0)
         self.info_list.grid(column=0, row=num_row, columnspan=num_col)
 
         # label=Tkinter.Label(self, textvariable=self.info, justify=Tkinter.LEFT)
@@ -238,9 +239,9 @@ class BoardFrame(Tkinter.Frame):
             if loc != None:
                 (i, j) = world.loc[loc]
                 if((i, j) in occupied):
-                    occupied[(i, j)].append(thing)
+                    occupied[(i, j)] += "&" + str(thing)
                 else:
-                    occupied[(i, j)] = [thing]
+                    occupied[(i, j)] = str(thing)
 
         idx = 1
         for i in range(num_row):
@@ -249,9 +250,9 @@ class BoardFrame(Tkinter.Frame):
                     self.board_var[(i, j)].set(occupied[(i, j)])
                 else:
                     if (world.loc_available[idx]):
-                        self.board_var[(i, j)].set("[   ]")
+                        self.board_var[(i, j)].set("")
                     else:
-                        self.board_var[(i, j)].set("[ X ]")
+                        self.board_var[(i, j)].set("X")
                 idx += 1
                 
         # # Add objects onto the board
