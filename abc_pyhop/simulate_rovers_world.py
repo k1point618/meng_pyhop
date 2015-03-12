@@ -440,9 +440,14 @@ class Simulation():
         return to_return
 
 
-
-
-# simulation = Simulation(problem_bank.maze_5(), AgentNoComm, gui=False, re_plan=True, uncertainty=0)
+"""
+Navigation: maze_1, ... maze_5
+navigate_replan_team    - Different Agent Models will behave differently.
+navigate_replan
+decompose_replan        - Test Method definition such that agent doesn't start over.
+random                  - Need to set uncertainty parameter
+"""
+simulation = Simulation(problem_bank.random(), AgentNoComm, gui=True, re_plan=True, uncertainty=0.3)
 
     
 

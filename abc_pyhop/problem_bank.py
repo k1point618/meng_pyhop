@@ -4,6 +4,9 @@ import random
 import time
 import random_rovers_world as rrw
 
+def random():
+	return rrw.get_random_world(num_agent=2, a_star=True)
+
 def maze_1():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0

@@ -235,11 +235,12 @@ class BoardFrame(Tkinter.Frame):
 
         occupied = {}
         for (thing, loc) in world.at.items():
-            (i, j) = world.loc[loc]
-            if((i, j) in occupied):
-                occupied[(i, j)].append(thing)
-            else:
-                occupied[(i, j)] = [thing]
+            if loc != None:
+                (i, j) = world.loc[loc]
+                if((i, j) in occupied):
+                    occupied[(i, j)].append(thing)
+                else:
+                    occupied[(i, j)] = [thing]
 
         idx = 1
         for i in range(num_row):
