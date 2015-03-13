@@ -4,8 +4,8 @@ import random
 import time
 import random_rovers_world as rrw
 
-def random():
-	return rrw.get_random_world(num_agent=2, a_star=True)
+def random(num_agent=2):
+	return rrw.get_random_world(num_agent=num_agent, a_star=True)
 
 def maze_1():
 	rrw.NUM_ROCKS=0
@@ -192,6 +192,36 @@ def navigate_replan_team():
 	world.uncertainties = replan_1_rand
 	return world
 
+
+# Replan for navigation for comapring different agent mental models 
+def navigate_replan_team_2():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	world = rrw.get_random_world(6, 6, num_agent=2)
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 31)]
+	world.goals['A2'] = [('navigate', 'A2', 36)]
+
+	# Set Soil Location
+	world.at['S1'] = 31
+	world.at['S2'] = 36
+
+	# Set Rover Locations
+	world.at['A1'] = 1
+	world.visited['A1'] = set()
+	world.visited['A1'].add(1)
+	world.at['A2'] = 21
+	world.visited['A2'] = set()
+	world.visited['A1'].add(21)
+
+	traps = [7, 8, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 26, 28, 29]
+	for t in traps:
+		world.loc_available[t] = False
+
+	world.uncertainties = replan_2_rand
+	return world
+
 # Replan for get_a_soil_data: 
 def decompose_replan():
 	rrw.NUM_ROCKS=0
@@ -228,6 +258,10 @@ def replan_1_rand(world, idx):
 	if idx == 0:
 		world.loc_available[14] = False
 
+def replan_2_rand(world, idx):
+	if idx == 0:
+		world.loc_available[27] = False
+		
 def replan_decompose_1(world, idx):
 	print("*** Calling re-lan_decompose_1 for uncertainties ***")
 	if world.has_soil_analysis['A1']:

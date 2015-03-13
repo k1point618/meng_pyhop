@@ -224,7 +224,7 @@ def reset_num_recurse_calls():
     global NUM_RECURSE_CALLS
     NUM_RECURSE_CALLS = 0
 
-def pyhop(state,agent,verbose=0, all_solutions=False, plantree=False, rand=False):
+def pyhop(state,agent,verbose=0, all_solutions=False, plantree=True, rand=False):
     """
     Try to find a plan that accomplishes the goal of a given @agent
     If successful, return the plan. Otherwise return False.
@@ -233,18 +233,27 @@ def pyhop(state,agent,verbose=0, all_solutions=False, plantree=False, rand=False
     if verbose>0: print('** pyhop, verbose={}: **\n   state = {}\n    agent={}\n   tasks = {}'
         .format(verbose, state.__name__, agent, tasks))
     
-    # For benchmarking
+    # For benchmarking # Obsolete for now. 3/13
     reset_num_recurse_calls()
     reset_plan_library()
     
     # At the beginning of planning, reset "visited" from the planning world.
     if plantree:
-        planTrees = seek_plantrees(state,tasks,None,0,verbose, all_plans=all_solutions, rand=rand)
-        print("**** Final PlanNodes: **** \n{}".format(planTrees))
-        print("found {} plans:".format(len(planTrees)))
-        return planTrees
+        planTrees = seek_plantrees(state, tasks, None, 0, verbose, rand=rand)
+        # print("**** Final PlanNodes: **** ")
+        # print("\tall_plans:{}\n\trand:{}".format(all_solutions, rand))
+        # print("found {} plans:".format(len(planTrees)))
+        # for tree in planTrees:
+        #     print("\tcost:{}".format(tree.cost))
+        min_cost = min([tree.cost for tree in planTrees])
+        to_return = [tree for tree in planTrees if tree.cost == min_cost]
+        print("returning {} plantree(s) with min cost {}".format(len(to_return), min_cost), to_return)
+        print("Inspecting plantree: \n", to_return)
+
+        return to_return
     else:
         results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions, rand=rand)
+        print("**** Final Results: **** \n{}".format(results))
         print(len(results))
         print(results)
         return results
@@ -494,7 +503,7 @@ as opposed to a linear solution
 Returns a list of plantrees where the rootes given as input
 
 """
-def seek_plantrees(state, tasks, root, depth, verbose=0, all_plans=False, rand=False):
+def seek_plantrees(state, tasks, root, depth, verbose=0, rand=False):
     
     if root == None:
         root = PlanNode('root', PlanNode.METHOD)
@@ -503,12 +512,12 @@ def seek_plantrees(state, tasks, root, depth, verbose=0, all_plans=False, rand=F
     
     if len(tasks) > 1:
         firstNode = PlanNode(tasks[0], None)
-        first_roots = seek_plantrees(copy.deepcopy(state), [tasks[0]], root, depth+1, verbose, all_plans)        
+        first_roots = seek_plantrees(copy.deepcopy(state), [tasks[0]], root, depth+1, verbose)        
         if first_roots[0] == None:
             return [None]
         if verbose: print("\tfound {} plan(s) for first task {}".format(len(first_roots), tasks[0]))
         for new_root in first_roots:
-            rest_plans = seek_plantrees(copy.deepcopy(new_root.get_after_state()), tasks[1:], new_root, depth+1, verbose, all_plans)
+            rest_plans = seek_plantrees(copy.deepcopy(new_root.get_after_state()), tasks[1:], new_root, depth+1, verbose)
             if rest_plans[0] != None:
                 planTrees += rest_plans
             else: return [None]
@@ -531,6 +540,7 @@ def seek_plantrees(state, tasks, root, depth, verbose=0, all_plans=False, rand=F
             leafNode.set_before_state(copy.deepcopy(state))
             leafNode.set_after_state(copy.deepcopy(newstate))
             leafNode.set_parent(to_return)
+            leafNode.cost = 1
             to_return.add_child(leafNode)
             to_return.set_after_state(copy.deepcopy(newstate))
             return [to_return]
@@ -549,13 +559,15 @@ def seek_plantrees(state, tasks, root, depth, verbose=0, all_plans=False, rand=F
                 methodNode.set_before_state(state)
                 methodNode.set_after_state(state)
 
-                possible_plans = seek_plantrees(copy.deepcopy(state), subtasks, copy.deepcopy(methodNode), depth+1, verbose, all_plans)
+                possible_plans = seek_plantrees(copy.deepcopy(state), subtasks, copy.deepcopy(methodNode), depth+1, verbose)
                 if verbose: 
                     print("depth {}; method task found {} new plans for task {}\
                     \n\twith decomposition {}".format(depth, len(possible_plans), task, subtasks))
                 if possible_plans[0] != None:
                     for node in possible_plans: # Each node is a way of completeing the subtasks
                         to_return = copy.deepcopy(root)
+                        assert(node.parent == None)
+                        node.set_parent(to_return)
                         to_return.add_child(node)
                         to_return.set_after_state(node.get_after_state())
                         planTrees.append(to_return)

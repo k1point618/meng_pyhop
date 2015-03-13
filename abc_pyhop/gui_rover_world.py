@@ -137,14 +137,16 @@ class AgentColumnFrame(Tkinter.Frame):
     def __init__(self, parent, agent, planTree, height, width):
         Tkinter.Frame.__init__(self, parent, background='yellow', height=height, width=width)
         self.name = agent.name
+        self.agent = agent
 
         # Create List Box Object
         self.listBox = Tkinter.Listbox(self, height=20, width=30, exportselection=0)
         self.listBox.pack(side=Tkinter.TOP, expand=True)
         self.set_actions(agent.get_solution())
 
-        # Create the Plan Tree box
-        self.planTreeBox = Tkinter.Label(self, text=str(planTree), height=10, width=30)
+        # Create the Plan Tree box, which "explains" an agent's curernt aciton
+        self.explanation = Tkinter.StringVar()
+        self.planTreeBox = Tkinter.Label(self, textvariable=self.explanation, height=10, width=30)
         self.planTreeBox.pack(side=Tkinter.TOP, expand=True)
 
         # Show costs
@@ -158,6 +160,7 @@ class AgentColumnFrame(Tkinter.Frame):
         # clear items
         lb.delete(0, Tkinter.END)
         lb.insert(Tkinter.END, self.name)
+        lb.selection_set(0)
 
         if solution == None:
             lb.insert(Tkinter.END, "No Solution Found")
@@ -176,6 +179,19 @@ class AgentColumnFrame(Tkinter.Frame):
         print("*** Clearning Selections... ***")
         print("*** Setting new selection by index: ", idx)
         lb.selection_set(idx)
+
+        # Update explanation box
+        if idx == 0:
+            self.explanation.set("")
+        else:
+            # Explain the current action node
+            action_node = self.agent.get_planTree().get_action_nodes()[idx-1]
+            exp = action_node.name
+            cur_node = action_node
+            while cur_node.parent != None:
+                cur_node = cur_node.parent
+                exp = str(cur_node.name) + "\n" + str(exp)
+            self.explanation.set(exp)
 
     def set_cur_status(self, agent):
         # Get Current Cost
@@ -198,9 +214,6 @@ class BoardFrame(Tkinter.Frame):
     def append_info(self, text):
         self.info_list.insert(0, text)
 
-        # prev = self.info.get()
-        # self.info.set(prev + "\n" + text)
-
     def initialize_board(self, world):
         # Create widgets for the board
         num_col = world.prop['num_col']
@@ -214,19 +227,11 @@ class BoardFrame(Tkinter.Frame):
                 label = Tkinter.Label(f, textvariable=self.board_var[(i, j)], 
                     fg='black', bg='white', height=2, width=5, text=Tkinter.SOLID).pack(side=Tkinter.LEFT)
                 f.grid(column=j, row=i, sticky='EWSN')
-
         self.update_board(world)
-        # # Add objects onto the board
-        # for (obj, loc) in world.at.items():
-        #     cur_x, cur_y = world.loc[loc]
-        #     self.board_var[(cur_x, cur_y)].set([obj])
 
         # Add info at the bottom # TODO: Make this scrollable
         self.info_list = Tkinter.Listbox(self, height=10, width=60, exportselection=0)
         self.info_list.grid(column=0, row=num_row, columnspan=num_col)
-
-        # label=Tkinter.Label(self, textvariable=self.info, justify=Tkinter.LEFT)
-        # label.grid(column=0, row=num_row, columnspan=num_col)
 
     def update_board(self, world):
 

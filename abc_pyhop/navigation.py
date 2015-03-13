@@ -10,9 +10,7 @@ import pprint, pyhop, random, math, heapq, time
 import random_rovers_world
 
 def a_star(state, agent, sink):
-	# VERBOSE = state.settings['verbose']
-	VERBOSE=False
-	# SAMPLE = state.settings['sample'] # If Sample is False, the navigation path is deterministic
+	VERBOSE = False
 	SAMPLE = True
 	
 	source = state.at[agent] # Navigates to sink from wherever the agent currently is.
@@ -72,11 +70,6 @@ def a_star(state, agent, sink):
 		
 
 		if current == sink:
-			if VERBOSE: 
-				end = time.time()
-				print('path found')
-				print('time spent in a_star: ', end-start)
-				print('num_iteration: ', NUM_ITER)
 			return to_actions(reconstruct_path(came_from, sink), agent)
 
 		closed_set.add(current)
@@ -151,7 +144,8 @@ if __name__ == '__main__':
 	print("Random world: ")
 	random_rovers_world.print_board(world)
 
-	pyhop.print_state(world)
+	# pyhop.print_state(world)
 	sink = random.choice(world.loc.keys())
-	path = a_star(world, 'agent1', sink)
+	print("*** Navigating from {} to {} ***".format(world.at['A1'], sink))
+	path = a_star(world, 'A1', sink)
 	print(path)

@@ -19,7 +19,7 @@ class PlanNode():
 		self.before_state = None
 		self.after_state = None
 		self.node_type = node_type # Method or Operator
-		self.cost = None
+		self.cost = 0
 	
 	def get_states(self):
 		if self.node_type == PlanNode.OPERATOR:
@@ -63,12 +63,17 @@ class PlanNode():
 	def add_child(self, child_node):
 		self.children.append(child_node)
 		self.after_state = child_node.after_state
+		self.cost += child_node.cost
 
 	def num_children(self):
 		return len(self.children)
 
 	def get_string(self, prefix=""):
-		toReturn = prefix + str(self.name) + ":" + self.node_type  + "\n"
+		if self.parent == None:
+			parent="NONE"
+		else: parent=self.parent.name
+
+		toReturn = prefix + str(self.name) + ":" + self.node_type  + "\tPARENT:" + str(parent) + "\n"
 		for child in self.children:
 			toReturn += prefix + child.get_string(prefix + " ")
 		return toReturn
@@ -78,9 +83,9 @@ class PlanNode():
 	"""
 	@staticmethod
 	def explain(node):
-		if self.parent == None:
+		if node.parent == None:
 			return []
-		return [self.parent] + PlanNode.explain(self.parent)
+		return [node.parent] + PlanNode.explain(node.parent)
 
 	def expland(node):
 		return self.children
@@ -88,5 +93,7 @@ class PlanNode():
 	def __repr__(self):
 		return self.get_string()
 
+	# @staticmethod
+	# def print_planTree(root):
 
 

@@ -71,7 +71,7 @@ class AgentMind(object):
 
 	# Given the set of differences observed from environment and communications, 
 	# Determine whether or not to re-plan
-	def replan_q(self, diffs):
+	def replan_q(self):
 		cur_world = copy.deepcopy(self.mental_world)
 		# The agent re-plans when the pre-conditions for any of the future actions is violated
 		for step_idx in range(self.cur_step, len(self.actions)):
@@ -142,6 +142,7 @@ class AgentFullComm(AgentMind):
 
 	# Given the set of differences observed from environment and communication, 
 	# Determine what and to-whom to communicate to.
+	# In this Agent Type, we communicate every difference to all other agents
 	def communicate(self, diffs):
 		print("Agent {} communicates ... {}".format(self.name, diffs))
 		msg = {}
@@ -158,8 +159,38 @@ class AgentNoComm(AgentMind):
 
 	# Given the set of differences observed from environment and communication, 
 	# Determine what and to-whom to communicate to.
+	# In this Agent Type, we do not communicate.
 	def communicate(self, diffs):
 		print("Agent {} communicates ... None".format(self.name))
 		return {} # No comm
 
-	
+
+def ex_cost(world, agent):
+	solutions = pyhop(world, agent_name, plantree=True)
+	return solutions[0].cost
+
+
+class AgentSmartComm(AgentMind):
+	def __init__(self, name, world):
+		super(AgentSmartComm, self).__init__(name, world)
+		self.teammates = []
+		for a in world.goals.keys():
+			if a != self.name:
+				teammate = AgentMind(a, copy.deepcopy(world))
+				self.teammates.append(teammate)
+
+	# Given the set of differences observed from environment and communication
+	# Determine what and to-whome to communicate to.
+	def communicate(self, diffs):
+		# For each teammte, compare the expected cost of communicating with not-communicating
+		msg = {}
+		for teammate in self.teammates:
+			teammate.cur_step = 
+			# If we communicate
+			# If we don't communicate
+
+			
+
+
+
+

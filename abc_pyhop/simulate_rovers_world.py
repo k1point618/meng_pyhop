@@ -26,11 +26,11 @@ class Simulation():
 
     def __init__(self, problem, AgentType,
                 uncertainty=0, 
-                verbose=False, 
+                verbose=0, 
                 a_star=True, 
                 gui=True, 
                 re_plan=True,
-                use_tree=False):
+                use_tree=True):
         
         # Simulation parameters: 
         self.PARAMS = {}
@@ -41,7 +41,6 @@ class Simulation():
         self.PARAMS['use_tree'] = use_tree
 
         world = problem
-    
     
         if self.PARAMS['verbose']:
             print('start state')
@@ -71,7 +70,7 @@ class Simulation():
             self.communications[agent_name] = []
 
             # Get Plan
-            results = pyhop(world, agent_name, plantree=use_tree)
+            results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
             if self.PARAMS['verbose']: print ('num solutions: ', len(results))
             agent.set_solution(random.choice(results))
 
@@ -280,7 +279,7 @@ class Simulation():
             if agent.is_done(): continue
 
             # Given observations (diffs), determine replan
-            replan = agent.replan_q(diffs) # Given the new observations, should the agent re-plan?
+            replan = agent.replan_q()
             if replan:
                 # When re-plan need to reset "visited" from the Real-world
                 self.real_world.visited[agent_name] = set()
