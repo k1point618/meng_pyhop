@@ -197,6 +197,8 @@ def navigate_replan_team():
 def navigate_replan_team_2():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
+	rrw.LANDER='X'
+	rrw.LAB = 'X'
 	world = rrw.get_random_world(6, 6, num_agent=2)
 
 	# Set Goal
@@ -206,6 +208,10 @@ def navigate_replan_team_2():
 	# Set Soil Location
 	world.at['S1'] = 31
 	world.at['S2'] = 36
+
+	# Set Lander
+	world.at[rrw.LANDER] = 13
+	world.at[rrw.LAB] = 19
 
 	# Set Rover Locations
 	world.at['A1'] = 1
@@ -225,8 +231,8 @@ def navigate_replan_team_2():
 # Replan for get_a_soil_data: 
 def decompose_replan():
 	rrw.NUM_ROCKS=0
-	rrw.NUM_SOILS=2
-	world = rrw.get_random_world(5, 5, num_agent=1)
+	rrw.NUM_SOILS=1
+	world = rrw.get_random_world(5, 6, num_agent=1)
 
 	# Set Rover Location
 	world.at['A1'] = 1
@@ -234,14 +240,13 @@ def decompose_replan():
 	world.visited['A1'].add(1)
 
 	# Set Soil Locations
-	world.at['S1'] = 12
-	world.at['S2'] = 17
+	world.at['S1'] = 14
 
 	# Set Lander
-	world.at[rrw.LANDER] = 23
+	world.at[rrw.LANDER] = 28
 
 	# Set Lab
-	world.at[rrw.LAB] = 15
+	world.at[rrw.LAB] = 18
 
 	# Set Goal
 	world.goals['A1'] = [('get_a_soil_data', 'A1', 'S1')]
@@ -261,24 +266,23 @@ def replan_1_rand(world, idx):
 def replan_2_rand(world, idx):
 	if idx == 0:
 		world.loc_available[27] = False
-		
+
 def replan_decompose_1(world, idx):
 	print("*** Calling re-lan_decompose_1 for uncertainties ***")
 	if world.has_soil_analysis['A1']:
 		print("*** *** hadding uncertainties, case 3 ***")
-		world.loc_available[13] = True
-		world.loc_available[14] = False
-		world.loc_available[19] = False
-		world.loc_available[24] = False
+		world.loc_available[17] = False
+		world.loc_available[23] = False
+		world.loc_available[29] = False
 		return
 	if world.has_soil_sample['A1']:
 		print("*** *** hadding uncertainties, case 2 ***")
-		world.loc_available[13] = False
+		world.loc_available[16] = False
 		return
 	if idx == 1:
 		print("*** *** hadding uncertainties, case 1 ***")
-		world.loc_available[6] = False
-		world.loc_available[7] = False
+		world.loc_available[13] = False
+		world.loc_available[8] = False
 		return
 
 
