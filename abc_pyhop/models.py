@@ -97,7 +97,7 @@ class AgentMind(object):
 			if AgentMind.visible(my_l, l, real_world, range=2) and self.mental_world.loc_available[l] != real_world.loc_available[l]:
 				self.mental_world.loc_available[l] = real_world.loc_available[l]
 				loc_diff.append((l, real_world.loc_available[l]))
-		
+			
 		for (obj, loc) in real_world.at.items():
 			if loc != None and AgentMind.visible(my_l, loc, real_world, range=2) and self.mental_world.at[obj] != real_world.at[obj]:
 				self.mental_world.at[obj] = real_world.at[obj]
@@ -105,11 +105,8 @@ class AgentMind(object):
 			if loc != None and AgentMind.visible(my_l, loc, self.mental_world, range=2) and self.mental_world.at[obj] != real_world.at[obj]:
 				self.mental_world.at[obj] = real_world.at[obj]
 
-				# at_diff.append((obj, loc))
-		print("agent {} is observing the world. Added new diffs".format(self.name))
 		print_board(self.mental_world)
-		
-		return loc_diff#, #at_diff # TODO
+		return loc_diff#, #at_diff # TODO: also include other differences inthe observation.
 
 	@staticmethod
 	def visible(A, B, world, range=2):
@@ -132,12 +129,13 @@ class AgentMind(object):
 			if self.mental_world.loc_available[loc] != avail:
 				loc_diff.append((loc, avail))
 				self.mental_world.loc_available[loc] = avail
+
 		return loc_diff
 
 
 
 class AgentFullComm(AgentMind):
-	def __init__(self, name, world):
+	def __init__(self, name, world, args=[]):
 		super(AgentFullComm, self).__init__(name, world)
 
 	# Given the set of differences observed from environment and communication, 
@@ -154,7 +152,7 @@ class AgentFullComm(AgentMind):
 
 
 class AgentNoComm(AgentMind):
-	def __init__(self, name, world):
+	def __init__(self, name, world, args=[]):
 		super(AgentNoComm, self).__init__(name, world)
 
 	# Given the set of differences observed from environment and communication, 
@@ -171,26 +169,38 @@ def ex_cost(world, agent):
 
 
 class AgentSmartComm(AgentMind):
-	def __init__(self, name, world):
+	def __init__(self, name, world, args=[]):
 		super(AgentSmartComm, self).__init__(name, world)
+		solutions = args[0] # Assuming that the only input is solutions
 		self.teammates = []
 		for a in world.goals.keys():
 			if a != self.name:
 				teammate = AgentMind(a, copy.deepcopy(world))
+				teammate.set_solution(solutions[a]) # <-- The type of solution is the same as the agent's solution type (PlanTree or Linear)
 				self.teammates.append(teammate)
+				# We want to keep track of each teammate's plan and the relative cost of each plan. 
+				# (Later, we might want to add a distribution of solutions?)
 
 	# Given the set of differences observed from environment and communication
 	# Determine what and to-whome to communicate to.
 	def communicate(self, diffs):
+		pass
 		# For each teammte, compare the expected cost of communicating with not-communicating
-		msg = {}
-		for teammate in self.teammates:
-			teammate.cur_step = 
+		# msg = {}
+		# for teammate in self.teammates:
+		# 	teammate.cur_step = 
 			# If we communicate
 			# If we don't communicate
 
 			
-
+	# Process communication by updating agent's mental_world
+	# Return the set of differences
+	# In this agent type, we also perform plan recognition and update our belief of 
+	# our teammate's world.
+	def incoming_comm(self, communication):
+		diffs = super(AgentSmartComm, self).incoming_comm(communication)
+		# Update belief about Teammate's world
+		# TODO: This means that communication should also include "FROM" in addition to "TO"
 
 
 

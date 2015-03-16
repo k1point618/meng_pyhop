@@ -34,7 +34,7 @@ Random World and Random Uncertainties
 """
 PROBLEM = get_random_world(num_agent=2, a_star=True) # with default width and height (10 x 10)
 AGENT_TYPE = models.AgentNoComm
-UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=100, a_prob=0.5)
+UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=100, a_prob=0.9)
 PROBLEM.uncertainties = UNCERTAINTIES
 
 """
@@ -47,9 +47,9 @@ Run Simulaitons for a given problem
 """
 simulations = []
 MODELS = []
-# MODELS += [models.AgentNoComm]
-# MODELS += [models.AgentFullComm]
-MODELS += [models.AgentSmartComm]
+MODELS += [models.AgentNoComm]
+MODELS += [models.AgentFullComm]
+# MODELS += [models.AgentSmartComm]
 for AGENT_TYPE in MODELS:
 	simulation = Simulation(PROBLEM, AGENT_TYPE, gui=False, re_plan=True)
 	simulation.run()

@@ -60,19 +60,20 @@ class Simulation():
         self.global_steps = {}
         self.histories = {} # Keeps a history of steps actually taken by each agent
 
-        # Samples 1 solution for this problem
+        # Samples 1 solution for each agent in the problem
         for agent_name in world.goals.keys():
-
-            # Create Agent
-            agent = AgentType(agent_name, copy.deepcopy(world))
-            # agent = AgentFullComm(agent_name, copy.deepcopy(world))
-            self.agents[agent_name] = agent
             self.communications[agent_name] = []
-
             # Get Plan
             results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
-            if self.PARAMS['verbose']: print ('num solutions: ', len(results))
-            agent.set_solution(random.choice(results))
+            if self.PARAMS['verbose']: 
+                print ('num solutions: ', len(results))
+            self.solutions[agent_name] = results
+
+        # Create Agent
+        for agent_name in self.solutions.keys():
+            agent = AgentType(agent_name, copy.deepcopy(world), args=[self.solutions])
+            self.agents[agent_name] = agent
+            agent.set_solution(random.choice(self.solutions[agent_name]))
 
         # Initialize Gui
         if gui:
@@ -112,11 +113,6 @@ class Simulation():
             # 3: Agent MIGHT need to re-plan.
             if replan:
                 raw_input("Need to re-plan...")
-                # Do replanning Stuff
-                # TODO: Include the problem/goal in State/World definition
-                print('replanning')
-                # TODO: Update domain definition (preconditions) so that if task is done, 
-                # no need to re-do
                 real_world = remove_traps(copy.deepcopy(real_world))
                 print('remove_traps...')
                 print_board(real_world)
@@ -248,6 +244,7 @@ class Simulation():
         print_board(self.real_world)
 
         for (agent_name, agent) in self.agents.items():
+            print("Agent Name: {}".format(agent_name))
             # info and base-case
             if not agent.is_done():
 
@@ -259,17 +256,19 @@ class Simulation():
             # initailize
             actions_took[agent_name] = []
             
-            # Diffs contains the new observations
-            diffs = agent.incoming_comm(self.communications) # Process Communication by updating agent's mental_world
-            diffs += agent.make_observations(self.real_world) # TODO: Implement
-            self.communications = {}
-            
+            # First process the incomming communications
+            agent.incoming_comm(self.communications)
 
+            # Diffs contains the new observations
+            # diffs = agent.incoming_comm(self.communications) # Process Communication by updating agent's mental_world
+            diffs = agent.make_observations(self.real_world) 
+            
             # Given observations (diffs), determine communications
             # Returns the set of communications to make.
             # Messages is a dictionary that maps agent-names to messages
             messages = agent.communicate(diffs)
             self.append_communications(messages)
+
             # Add communication to actions taken
             for (rcv, m) in messages.items(): 
                 if len(m) > 0:
@@ -320,9 +319,10 @@ class Simulation():
                 actions_took[agent_name].append((cur_action, 1))
 
 
+        self.communications = {}
         self.flush_communications()
         self.time += 1
-        return (self.real_world, actions_took) # TODO
+        return (self.real_world, actions_took)
 
 
     def append_communications(self, messages):
