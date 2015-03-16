@@ -135,10 +135,14 @@ class AgentActionsFrame(Tkinter.Frame):
 
 class AgentColumnFrame(Tkinter.Frame):
     def __init__(self, parent, agent, planTree, height, width):
-        Tkinter.Frame.__init__(self, parent, background='yellow', height=height, width=width)
+        Tkinter.Frame.__init__(self, parent, height=height, width=width)
         self.name = agent.name
         self.agent = agent
 
+        # Create Description about Agent
+        self.about_label = Tkinter.Label(self, text="Name: {}\nGoal: {}\nType: {}"
+            .format(self.name, self.agent.goal, self.agent.TYPE), justify=Tkinter.LEFT)
+        self.about_label.pack(expand=True)
         # Create List Box Object
         self.listBox = Tkinter.Listbox(self, height=20, width=30, exportselection=0)
         self.listBox.pack(side=Tkinter.TOP, expand=True)
@@ -219,13 +223,18 @@ class BoardFrame(Tkinter.Frame):
         num_col = world.prop['num_col']
         num_row = world.prop['num_row']
         self.board_var = {}
+        self.board_frames = {}
+        self.board_labels = {}
         for i in range(num_row):
             for j in range(num_col):
                 f = Tkinter.Frame(self, borderwidth=1, relief=Tkinter.SOLID)
+                self.board_frames[(i, j)] = f
                 self.board_var[(i, j)] = Tkinter.StringVar()
                 self.board_var[(i, j)].set("[   ]")
                 label = Tkinter.Label(f, textvariable=self.board_var[(i, j)], 
-                    fg='black', bg='white', height=2, width=5, text=Tkinter.SOLID).pack(side=Tkinter.LEFT)
+                    fg='black', bg='white', height=2, width=5)
+                label.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=1)
+                self.board_labels[(i, j)] = label
                 f.grid(column=j, row=i, sticky='EWSN')
         self.update_board(world)
 
@@ -251,20 +260,16 @@ class BoardFrame(Tkinter.Frame):
         idx = 1
         for i in range(num_row):
             for j in range(num_col):
+                # Put down un-available locations
+                if (world.loc_available[idx]):
+                    self.board_var[(i, j)].set("")
+                else:
+                    self.board_var[(i, j)].set("X")
+                    self.board_labels[(i, j)].config(bg='gray')
+                
                 if (i, j) in occupied:
                     self.board_var[(i, j)].set(occupied[(i, j)])
-                else:
-                    if (world.loc_available[idx]):
-                        self.board_var[(i, j)].set("")
-                    else:
-                        self.board_var[(i, j)].set("X")
                 idx += 1
-                
-        # # Add objects onto the board
-        # for (obj, loc) in world.at.items():
-        #     cur_x, cur_y = world.loc[loc]
-        #     self.board_var[(cur_x, cur_y)].set(obj)
-
 
 
 if __name__ == "__main__":

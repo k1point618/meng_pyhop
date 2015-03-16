@@ -137,6 +137,7 @@ class AgentMind(object):
 class AgentFullComm(AgentMind):
 	def __init__(self, name, world, args=[]):
 		super(AgentFullComm, self).__init__(name, world)
+		self.TYPE = 'FullComm'
 
 	# Given the set of differences observed from environment and communication, 
 	# Determine what and to-whom to communicate to.
@@ -154,6 +155,7 @@ class AgentFullComm(AgentMind):
 class AgentNoComm(AgentMind):
 	def __init__(self, name, world, args=[]):
 		super(AgentNoComm, self).__init__(name, world)
+		self.TYPE = 'NoComm'
 
 	# Given the set of differences observed from environment and communication, 
 	# Determine what and to-whom to communicate to.
@@ -171,6 +173,7 @@ def ex_cost(world, agent):
 class AgentSmartComm(AgentMind):
 	def __init__(self, name, world, args=[]):
 		super(AgentSmartComm, self).__init__(name, world)
+		self.TYPE = 'SmartComm'
 		solutions = args[0] # Assuming that the only input is solutions
 		self.teammates = []
 		for a in world.goals.keys():
