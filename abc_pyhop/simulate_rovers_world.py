@@ -67,13 +67,13 @@ class Simulation():
             results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
             if self.PARAMS['verbose']: 
                 print ('num solutions: ', len(results))
-            self.solutions[agent_name] = results
+            self.solutions[agent_name] = random.choice(results)
 
         # Create Agent
         for agent_name in self.solutions.keys():
             agent = AgentType(agent_name, copy.deepcopy(world), args=[self.solutions])
             self.agents[agent_name] = agent
-            agent.set_solution(random.choice(self.solutions[agent_name]))
+            agent.set_solution(self.solutions[agent_name])
 
         # Initialize Gui
         if gui:
@@ -257,12 +257,15 @@ class Simulation():
             actions_took[agent_name] = []
             
             # First process the incomming communications
-            agent.incoming_comm(self.communications)
+            agent.incoming_comm(self.communications) # 1. Update agent's world model
+            # TODO: 2. update agent's model of the sender (plan recognition)
 
             # Diffs contains the new observations
-            # diffs = agent.incoming_comm(self.communications) # Process Communication by updating agent's mental_world
-            diffs = agent.make_observations(self.real_world) 
+            print("Agent {} is about to make observations".format(agent.name))
+            diffs = agent.make_observations(self.real_world)  # 1. Update agent's world model 
+            print("Agent {} made the following observations: {}".format(agent.name, diffs))
             
+            # 2. Decide to Communicate
             # Given observations (diffs), determine communications
             # Returns the set of communications to make.
             # Messages is a dictionary that maps agent-names to messages
@@ -277,6 +280,7 @@ class Simulation():
 
             if agent.is_done(): continue
 
+            # 3. Continue acting on real-world (aka: replana or not)
             # Given observations (diffs), determine replan
             replan = agent.replan_q()
             if replan:
