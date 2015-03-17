@@ -257,18 +257,33 @@ class BoardFrame(Tkinter.Frame):
                 else:
                     occupied[(i, j)] = str(thing)
 
+        for i in world.loc_available.keys():
+            if world.loc_available[i] == False:
+                occupied[world.loc[i]] = "X"
+
         idx = 1
         for i in range(num_row):
             for j in range(num_col):
-                # Put down un-available locations
+                # # Put down un-available locations
                 if (world.loc_available[idx]):
                     self.board_var[(i, j)].set("")
-                else:
-                    self.board_var[(i, j)].set("X")
-                    self.board_labels[(i, j)].config(bg='gray')
+                # else:
+                #     self.board_var[(i, j)].set("X")
                 
                 if (i, j) in occupied:
                     self.board_var[(i, j)].set(occupied[(i, j)])
+                    if 'L' in occupied[(i, j)]:
+                        self.board_labels[(i, j)].config(bg='#79A7BD')
+                    elif 'G' in occupied[(i, j)]:
+                        self.board_labels[(i, j)].config(bg='#FF704D')
+                    elif 'S' in occupied[(i, j)]:
+                        self.board_labels[(i, j)].config(bg='#B88D62')
+                    elif 'R' in occupied[(i, j)]:
+                        self.board_labels[(i, j)].config(bg='#8FB26B')
+                    elif 'X' in occupied[(i, j)]:
+                        self.board_labels[(i, j)].config(bg='gray')
+                    else: 
+                        self.board_labels[(i, j)].config(bg='white')
                 idx += 1
 
 

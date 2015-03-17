@@ -256,6 +256,51 @@ def decompose_replan():
 	print_state(world)
 	return world
 
+def dummy_world():
+	rrw.NUM_ROCKS=4
+	rrw.NUM_SOILS=4
+	world = rrw.get_random_world(10, 10, num_agent=1)
+
+	# Set Rover Locaitons
+	world.at['A1'] = 85
+	world.visited['A1'] = set()
+	world.visited['A1'].add(85)
+	world.at['A2'] = 85
+	world.visited['A2'] = set()
+	world.visited['A2'].add(85)
+
+	# Set Soil Locations
+	world.at['S1'] = 12
+	world.at['S2'] = 34
+	world.at['S3'] = 19
+	world.at['S4'] = 37
+
+	world.at['R1'] = 14
+	world.at['R2'] = 32
+	world.at['R3'] = 17
+	world.at['R4'] = 39
+	
+	# Set Lander
+	world.at[rrw.LANDER] = 62
+
+	# Set Lab
+	world.at[rrw.LAB] = 69
+
+	# Set Goal
+	world.goals['A1'] = [('get_soil_data', 'A1')]
+	world.goals['A2'] = [('get_rock_data', 'A1')]
+
+	# Set Traps
+	world.loc_available[41] = False
+	world.loc_available[42] = False
+	world.loc_available[43] = False
+	world.loc_available[44] = False
+	world.loc_available[47] = False
+	world.loc_available[48] = False
+	world.loc_available[49] = False
+	world.loc_available[50] = False
+
+	return world
 
 # Uncertainties Library
 def replan_1_rand(world, idx):

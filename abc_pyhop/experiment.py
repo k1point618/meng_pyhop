@@ -70,9 +70,9 @@ simulation = Simulation(problem_bank.navigate_replan_team_2(), AgentFullComm,
 # MODELS = []
 # # MODELS += [models.AgentNoComm]
 # # MODELS += [models.AgentFullComm]
-# MODELS += [models.AgentSmartComm]
+# # MODELS += [models.AgentSmartComm]
 # for AGENT_TYPE in MODELS:
-#     simulation = Simulation(PROBLEM, AGENT_TYPE, gui=True, re_plan=True)
+#     simulation = Simulation(PROBLEM, AGENT_TYPE, gui=True, re_plan=True, use_tree=False)
 #     # simulation.run()
 #     simulations.append((AGENT_TYPE, simulation))
 
