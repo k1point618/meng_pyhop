@@ -155,7 +155,9 @@ class AgentColumnFrame(Tkinter.Frame):
 
         # Show costs
         self.cur_status = Tkinter.StringVar()
-        self.cur_status.set("Cost: {}".format(sum(action[1] for action in agent.get_histories())))
+        self.cur_status.set("Incurred Cost: {}\nProjected Cost:{}"
+                            .format(sum(action[1] for action in agent.get_histories()), \
+                                len(agent.actions) - agent.cur_step))
         self.costLabel = Tkinter.Label(self, textvariable=self.cur_status, width=30, height=2)
         self.costLabel.pack(side=Tkinter.TOP, expand=True)
 
@@ -185,7 +187,7 @@ class AgentColumnFrame(Tkinter.Frame):
         lb.selection_set(idx)
 
         # Update explanation box
-        if idx == 0:
+        if idx == 0 or self.agent.planTree == None:
             self.explanation.set("")
         else:
             # Explain the current action node
@@ -200,7 +202,9 @@ class AgentColumnFrame(Tkinter.Frame):
     def set_cur_status(self, agent):
         # Get Current Cost
         cost = sum(action[1] for action in agent.get_histories())
-        self.cur_status.set("Cost: {}".format(cost))
+        self.cur_status.set("Incurred Cost: {}\nProjected Cost:{}"
+                            .format(sum(action[1] for action in agent.get_histories()), \
+                                len(agent.actions) - agent.cur_step))
 
 
 # For the main board frame (Top left)
@@ -267,6 +271,7 @@ class BoardFrame(Tkinter.Frame):
                 # # Put down un-available locations
                 if (world.loc_available[idx]):
                     self.board_var[(i, j)].set("")
+                    self.board_labels[(i, j)].config(bg='white')
                 # else:
                 #     self.board_var[(i, j)].set("X")
                 

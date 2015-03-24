@@ -14,7 +14,7 @@ import random
 import time
 import collections
 import matplotlib.pyplot as plt
-
+import logging
 import rovers_world_operators
 import rovers_world_methods
 from random_rovers_world import *
@@ -24,6 +24,15 @@ from models import *
 
 class Simulation():
 
+    def make_logger(self, problem, AgentType):
+        self.log = logging.getLogger('{}.{}'.format(AgentType.__name__, problem.ID))
+        self.log.setLevel(logging.DEBUG)
+        file_handler = logging.FileHandler('logs/sim_{}.log'.format(AgentType.__name__))
+        formatter = logging.Formatter('%(name)s-%(levelname)s:%(message)s')
+        file_handler.setFormatter(formatter)
+        self.log.addHandler(file_handler)
+
+
     def __init__(self, problem, AgentType,
                 uncertainty=0, 
                 verbose=0, 
@@ -32,6 +41,9 @@ class Simulation():
                 re_plan=True,
                 use_tree=True):
         
+        self.make_logger(problem, AgentType)
+        self.log.info('Simulation Logger Created')
+
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
@@ -41,16 +53,16 @@ class Simulation():
         self.PARAMS['use_tree'] = use_tree
 
         world = problem
-    
+
         if self.PARAMS['verbose']:
             print('start state')
             print_state(world)
             print_board(world)
 
-        self.agents = {} # Agents and their mental Models
-        self.time = 0
-        self.communications = {}
-        self.comm_buff = {}
+        self.agents = {}            # Agents and their mental Models
+        self.time = 0               # Global time of the simulation
+        self.communications = {}    # 
+        self.comm_buff = {}         # 
 
         self.real_world = copy.deepcopy(world) # Real world has possible uncertainties.
         self.solutions = {}
@@ -101,8 +113,8 @@ class Simulation():
         for (i, cur_action) in enumerate(plan):
 
             # 0: Info
-            print('length of plan: {}; length of states: {}'.format(len(plan), len(states)))
-            print('\ttimestep: {}; \n\tactions: {};'.format(i, plan[i:]))
+            logging.info('length of plan: {}; length of states: {}'.format(len(plan), len(states)))
+            logging.info('\ttimestep: {}; \n\tactions: {};'.format(i, plan[i:]))
 
             # 1: Generate possible Uncertainty to the real-world
             generate_uncertainty(real_world, a_prob=1, verbose=True)
@@ -198,14 +210,12 @@ class Simulation():
 
     def run(self):
         step = 0
-        cur_world = None
         while True:
             step += 1
-            print("========= step {} ========".format(step))
+            self.log.info("========= step {} ========".format(step))
             self.step_all()
             if all(agent.is_done() for agent in self.agents.values()):
                 return
-            print_board(cur_world)
 
 
     """
@@ -229,7 +239,7 @@ class Simulation():
             return True # All done
 
         if hasattr(self.real_world, 'uncertainties'):
-            print("Using predefined uncertainties.")
+            self.log.info("Using predefined uncertainties.")
             # If a world comes with it's own uncertainty-funciton, then apply that
             self.real_world.uncertainties(self.real_world, self.time)
         elif self.PARAMS['uncertainty']:
@@ -237,21 +247,19 @@ class Simulation():
 
         actions_took = {} # Maps agent names to the set of actions
 
-        print('real world')
-        print(self.real_world.at)
-        print('rock analysis: ', self.real_world.rock_analysis)
-        print('soil analysis: ', self.real_world.soil_analysis)
-        print_board(self.real_world)
+        self.log.info('REAL WORLD: ' + str(self.real_world.at))
+        self.log.info(('rock analysis: ', self.real_world.rock_analysis))
+        self.log.info(('soil analysis: ', self.real_world.soil_analysis))
+        self.log.info(print_board_str(self.real_world))
 
         for (agent_name, agent) in self.agents.items():
-            print("Agent Name: {}".format(agent_name))
+            self.log.info("\n\nAgent Name: {}\n".format(agent_name))
             # info and base-case
             if not agent.is_done():
-
                 (actions, states) = agent.get_solution()
                 cur_action = actions[agent.get_cur_step()]
                 next_state = states[agent.get_cur_step()]     
-                print("agent {} current action is {}".format(agent_name, cur_action))
+                self.log.info("agent {} current action is {}".format(agent_name, cur_action))
 
             # initailize
             actions_took[agent_name] = []
@@ -261,27 +269,39 @@ class Simulation():
             # TODO: 2. update agent's model of the sender (plan recognition)
 
             # Diffs contains the new observations
-            print("Agent {} is about to make observations".format(agent.name))
+            self.log.info("****** Make Observations ******")
+            self.log.info("Agent {} is about to make observations".format(agent.name))
             diffs = agent.make_observations(self.real_world)  # 1. Update agent's world model 
-            print("Agent {} made the following observations: {}".format(agent.name, diffs))
-            
+            self.log.info("Agent {} made the following observations: {}\n".format(agent.name, diffs))
+
             # 2. Decide to Communicate
             # Given observations (diffs), determine communications
             # Returns the set of communications to make.
             # Messages is a dictionary that maps agent-names to messages
-            messages = agent.communicate(diffs)
-            self.append_communications(messages)
+            self.log.info("****** Reason about Communicaiton ******")
+            if len(diffs) > 0:
+                out_messages = agent.communicate(diffs)
+                self.append_communications(out_messages)
 
-            # Add communication to actions taken
-            for (rcv, m) in messages.items(): 
-                if len(m) > 0:
-                    actions_took[agent_name].append(('comm {} to {}'.format(m, rcv), len(m)))
-                    agent.add_history(('comm {} to {}'.format(m, rcv), len(m)))
+                # Add communication to actions taken
+                for (tm_n, tm) in self.agents.items():
+                    self.log.info(">>> out_messages = {}".format(out_messages))
+                    self.log.info(">>> (tm_n, tm) = {}, {}".format(tm_n, tm))
+                    if tm_n == agent_name:
+                        continue
+                    if tm_n in out_messages.keys():
+                        m = out_messages[tm_n]
+                        actions_took[agent_name].append(('comm {} to {}'.format(m, tm_n), len(m)))
+                        agent.add_history(('comm {} to {}'.format(m, tm_n), len(m)))
+                    else: 
+                        actions_took[agent_name].append(('no-comm from {} to {}'.format(agent_name, tm_n), 0))
+                        agent.add_history(('no-comm from {} to {}'.format(agent_name, tm_n), 0))
+            
 
+            # 3.0: If agent is done, no need to replan or act
             if agent.is_done(): continue
 
-            # 3. Continue acting on real-world (aka: replana or not)
-            # Given observations (diffs), determine replan
+            # 3. Continue ACTING or REPLAN on real-world (aka: replana or not)
             replan = agent.replan_q()
             if replan:
                 # When re-plan need to reset "visited" from the Real-world
@@ -290,7 +310,7 @@ class Simulation():
                 result = random.choice(results)
 
                 if result == None or result == False:
-                    print('*** no solution found for agent:{}, goal:{}'.format(agent_name, self.real_world.goals[agent_name]))
+                    self.log.info('*** no solution found for agent:{}, goal:{}'.format(agent_name, self.real_world.goals[agent_name]))
                     agent.add_history(('None', sys.maxint))
                     agent.done = True
                     actions_took[agent_name].append(('failed', sys.maxint))
@@ -305,7 +325,7 @@ class Simulation():
 
             else:
                 # 4: (if not replan) Agent takes action
-                print('cur_action: ', cur_action)
+                self.log.info(('cur_action: ', cur_action))
                 self.real_world = act(self.real_world, cur_action)
                 agent.mental_world = act(agent.mental_world, cur_action)
 

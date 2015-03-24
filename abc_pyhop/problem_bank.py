@@ -226,6 +226,7 @@ def navigate_replan_team_2():
 		world.loc_available[t] = False
 
 	world.uncertainties = replan_2_rand
+	world.ID = "navigate_replan_team_2"
 	return world
 
 # Replan for get_a_soil_data: 

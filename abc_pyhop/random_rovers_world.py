@@ -112,10 +112,12 @@ def get_observation(agent, agent_bs, next_action, real_world):
 """
 Below is a helper function that takes in the state and prints it in a board
 """
-def print_board(state): #TODO: Make gui
+def print_board(state):
+	print(print_board_str(state))
+
+def print_board_str(state): # Makes the string output
 	if state == None:
-		print("State is None")
-		return
+		return 'State is None'
 		
 	x = state.prop["num_row"]
 	y = state.prop["num_col"]
@@ -144,7 +146,7 @@ def print_board(state): #TODO: Make gui
 
 			idx += 1
 		to_print += "\n"
-	print(to_print)
+	return to_print
 
 """
 Main funciton for generating random world

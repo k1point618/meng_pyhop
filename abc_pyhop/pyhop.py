@@ -247,8 +247,8 @@ def pyhop(state,agent,verbose=0, all_solutions=False, plantree=True, rand=False)
         #     print("\tcost:{}".format(tree.cost))
         min_cost = min([tree.cost for tree in planTrees])
         to_return = [tree for tree in planTrees if tree.cost == min_cost]
-        print("returning {} plantree(s) with min cost {}".format(len(to_return), min_cost), to_return)
-        print("Inspecting plantree: \n", to_return)
+        # print("returning {} plantree(s) with min cost {}".format(len(to_return), min_cost), to_return)
+        # print("Inspecting plantree: \n", to_return)
 
         return to_return
     else:
