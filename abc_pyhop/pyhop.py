@@ -240,6 +240,8 @@ def pyhop(state,agent,verbose=0, all_solutions=False, plantree=True, rand=False)
     # At the beginning of planning, reset "visited" from the planning world.
     if plantree:
         planTrees = seek_plantrees(state, tasks, None, 0, verbose, rand=rand)
+        if planTrees[0] == None:
+            return [False]
         # print("**** Final PlanNodes: **** ")
         # print("\tall_plans:{}\n\trand:{}".format(all_solutions, rand))
         # print("found {} plans:".format(len(planTrees)))

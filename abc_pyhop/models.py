@@ -9,7 +9,7 @@ END_EXPERIMENT = False
 class AgentMind(object):
 
     def make_logger(self):
-        self.log = logging.getLogger('{}.{}'.format(type(self).__name__, self.name))
+        self.log = logging.getLogger('{}.{}.{}'.format(type(self).__name__, self.name, self.mental_world.ID))
         self.log.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
         formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
@@ -97,7 +97,7 @@ class AgentMind(object):
             return True
 
     def simulate(self, cur_world, step_actions):
-        self.log.info("Simulating Agent {}'s world with actions: {}; world:\n".format(self.name, step_actions, print_board_str(cur_world)))
+        self.log.info("Simulating Agent {}'s world with actions: {}; world:\n{}".format(self.name, step_actions, print_board_str(cur_world)))
         accum_cost = 0
         num_steps = 0
         for action in step_actions:
@@ -255,27 +255,24 @@ class AgentSmartComm(AgentMind):
                 self.log.info("teammate world:\n{}".format(print_board_str(teammate.mental_world)))
                 # If we communicate
                 copyA = teammate.simple_copy()
-                self.log.info("copyA:\n{}".format(print_board_str(copyA.mental_world)))
-
                 cost_comm = self.comm_cost(copyA, diff)
-                self.log.info("copyA after comm_cost:\n{}".format(print_board_str(copyA.mental_world)))
-
+                
                 # If we don't communicate
                 copyB = teammate.simple_copy()
-                self.log.info("copyB:\n{}".format(print_board_str(copyB.mental_world)))
                 cost_no_comm = self.no_comm_cost(copyB, diff)
-                self.log.info("copyB after no_comm_cost:\n{}".format(print_board_str(copyB.mental_world)))
-
+                
                 if cost_comm <= cost_no_comm:
                     # Send message
-                    self.log.info("Agent {}: decided to COMMUNICATE".format(self.name))
-                    raw_input("...")
+                    self.log.warning("Agent {}: decided to COMMUNICATE {}".format(self.name, diff))
                     if teammate.name in msg:
                         msg[teammate.name] += diff
                     else:
                         msg[teammate.name] = [diff]
+                    raw_input("Agent {} decided to communicate {} given cost of comm: {} and no-comm: {}..."
+                        .format(self.name, diff, cost_comm, cost_no_comm))
+                    END_EXPERIMENT = True
                 else:
-                    self.log.info("Agent {}: decide to NOT COMM".format(self.name))
+                    self.log.warning("Agent {}: decide to NOT COMM {}".format(self.name, diff))
                     # Do not send
                     pass
 
@@ -286,9 +283,13 @@ class AgentSmartComm(AgentMind):
     """
     def comm_cost(self, other, diff):
         self.log.info("Evaluating the cost IF we were to communicate")
-        to_return = 1 # Cost of comm
+        to_return = 0 # Cost of comm
         other.cur_step = self.cur_step + 1
 
+        if self.cur_step + 1 >= len(other.actions):
+            self.log.info("... the other agent should be done by the time msg sent. no need for simulation")
+            return 0
+            
         # Pretend to send message and update teammate's world
         msg = {}
         msg[other.name] = [diff]
@@ -315,17 +316,19 @@ class AgentSmartComm(AgentMind):
             ...regarding on diffs: {}"
             .format(self.name, other.name, print_board_str(other.mental_world), diff))
 
-        if self.cur_step >= len(other.actions):
-            self.log.info("... the other agent should be done. no need for simulation")
+        if self.cur_step + 1 >= len(other.actions):
+            self.log.info("... the other agent should be done by the time msg sent. no need for simulation")
             return 0
 
-        other.cur_step = self.cur_step
+        other.cur_step = self.cur_step + 1
         other.mental_world = other.states[self.cur_step]
         msg = {}
         msg[other.name] = [diff]
         other.incoming_comm(msg)
 
-        (simulated, world, cost) = other.simulate(copy.deepcopy(other.mental_world), other.actions[self.cur_step:])
+        self.log.info("Other agent's mental world: \n{}".format(print_board_str(other.mental_world)))
+        
+        (simulated, world, cost) = other.simulate(copy.deepcopy(other.mental_world), other.actions[self.cur_step+1:])
         self.log.info("... result -- Simulated: {}; Cost: {}".format(simulated, cost))
 
         if simulated:
@@ -335,10 +338,8 @@ class AgentSmartComm(AgentMind):
             # If simulated is False, then the cost is up to the point of failure 
             # Must re-plan
             replan_cost = AgentSmartComm.EX_COST(world, other)
-            self.log.info("... lost-cost: {}".format(cost))
-            self.log.info("... replan cost: {}".format(replan_cost))
-            raw_input("Simulation failed in simulating no-communication ... ")
-            END_EXPERIMENT=True
+            self.log.info("... lost-cost: {} + replan-cost: {} = {}"
+                .format(cost, replan_cost, cost+replan_cost))
             return cost + replan_cost
 
     # Process communication by updating agent's mental_world
@@ -352,9 +353,9 @@ class AgentSmartComm(AgentMind):
 
     @staticmethod
     def EX_COST(world, agent):
-        print("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
+        agent.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
         solutions = pyhop(world, agent.name, plantree=True)
-        print("Solutions: {}".format([s.get_actions() for s in solutions]))
+        agent.log.info("Solutions: {}".format([s.get_actions() for s in solutions]))
         return solutions[0].cost
 
 

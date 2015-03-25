@@ -66,7 +66,7 @@ while not models.END_EXPERIMENT:
     """
     Random World and Random Uncertainties
     """
-    PROBLEM = get_random_world(num_agent=2, a_star=True) # with default width and height (10 x 10)
+    PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
     PROBLEM.ID = int(time.time())
     AGENT_TYPE = models.AgentNoComm
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=100, a_prob=1)
@@ -75,16 +75,16 @@ while not models.END_EXPERIMENT:
     """
     Choose any problem from problem bank
     """
-    PROBLEM = problem_bank.navigate_replan_team_2()
+    # PROBLEM = problem_bank.navigate_replan_team_2()
 
     """
     Run Simulaitons for a given problem
     """
     simulations = []
     MODELS = []
-    # MODELS += [models.AgentNoComm]
+    MODELS += [models.AgentNoComm]
     MODELS += [models.AgentSmartComm]
-    # MODELS += [models.AgentFullComm]
+    MODELS += [models.AgentFullComm]
     for AGENT_TYPE in MODELS:
         logger.info("Initiating simulaiton for AGENT_TYPE:{};".format(AGENT_TYPE.__name__))
         simulation = Simulation(PROBLEM, AGENT_TYPE, gui=False, re_plan=True, use_tree=True)
@@ -100,5 +100,4 @@ while not models.END_EXPERIMENT:
         for (agent_name, agent) in simulation.agents.items():
             print(agent_name, agent.get_histories())
 
-    break
 

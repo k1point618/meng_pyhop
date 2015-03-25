@@ -291,8 +291,8 @@ class Simulation():
                         continue
                     if tm_n in out_messages.keys():
                         m = out_messages[tm_n]
-                        actions_took[agent_name].append(('comm {} to {}'.format(m, tm_n), len(m)))
-                        agent.add_history(('comm {} to {}'.format(m, tm_n), len(m)))
+                        actions_took[agent_name].append(('comm {} to {}'.format(m, tm_n), 0)) # cost of comm is 0
+                        agent.add_history(('comm {} to {}'.format(m, tm_n), 0)) # cost of comm is
                     else: 
                         actions_took[agent_name].append(('no-comm from {} to {}'.format(agent_name, tm_n), 0))
                         agent.add_history(('no-comm from {} to {}'.format(agent_name, tm_n), 0))
