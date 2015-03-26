@@ -38,6 +38,7 @@ class AgentMind(object):
         self.mental_world = copy.deepcopy(world)
         self.goal = world.goals[name]
         
+        self.planner = None
         self.solution = None
         self.planTree = None
         self.actions = None
@@ -210,7 +211,8 @@ class AgentMind(object):
     def replan(self, use_tree, stuck):
 
         # If the new expected cost is lower, then update plan.
-        solutions = pyhop(self.mental_world, self.name, plantree=use_tree)
+        # solutions = pyhop(self.mental_world, self.name, plantree=use_tree)
+        solutions = self.planner.plan(self.mental_world, self.name)
         solution = random.choice(solutions)
 
         if solution == False: 
@@ -219,7 +221,7 @@ class AgentMind(object):
             return False # Meaning, did not update the solution.
 
         # Look at potential Plans
-        if use_tree:
+        if isinstance(solution, PlanNode):
             potential_plan_cost = solution.cost
         else:
             potential_plan_cost = len(solution[0])

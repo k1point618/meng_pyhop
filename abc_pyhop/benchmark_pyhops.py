@@ -102,7 +102,6 @@ def benchmark_compare_a_star(verbose=0):
     print('num solutions found:', len(solutions_b))
     print ('num_recurse calls', get_num_recurse_calls())
     
-
 # Benchmark for how long navigaton takes for random navigation problems
 def benchmark_a_star(verbose=0):
     
@@ -147,6 +146,12 @@ def benchmark_a_star(verbose=0):
                     world.settings['verbose'] = 2
                     pyhop(world, 'agent1', 3, all_solutions=True, amortize=False) # only one solution
                     raw_input("Above problem took too long... {} seconds".format(end-start))
+
+
+# We compare the runtime and solution set for simple pyhop vs pyhop that returns
+# a tree 
+def benchmark_use_tree():
+    pass
 
 
 # benchmark_amortized(verbose=0)

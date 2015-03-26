@@ -33,7 +33,7 @@ class Simulation():
         self.log.addHandler(file_handler)
 
 
-    def __init__(self, world, AgentType,
+    def __init__(self, world, AgentType, planner,
                 uncertainty=0, 
                 verbose=0, 
                 a_star=True, 
@@ -44,7 +44,7 @@ class Simulation():
         self.make_logger(world, AgentType)
         self.log.info('Simulation Logger Created')
         self.AgentType = AgentType.__name__
-
+        
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
@@ -74,14 +74,14 @@ class Simulation():
         # Samples 1 solution for each agent in the problem
         for agent_name in world.goals.keys():
             # Get Plan
-            results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
-            if self.PARAMS['verbose']: 
-                print ('num solutions: ', len(results))
+            # results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
+            results = planner.plan(world, agent_name)
             self.solutions[agent_name] = random.choice(results)
 
         # Create Agent
         for agent_name in self.solutions.keys():
             agent = AgentType(agent_name, copy.deepcopy(world), args=[self.solutions])
+            agent.planner = planner
             self.agents[agent_name] = agent
             agent.set_solution(self.solutions[agent_name])
 

@@ -213,56 +213,30 @@ def print_methods(mlist=methods):
     for task in mlist:
         print('{:<14}'.format(task) + ', '.join([f.__name__ for f in mlist[task]]))
 
+
+
 ############################################################
-# The actual planner
+# Original pyhop
+# kgu: Note that the slight modifications:
+# 1. original_solver is pyhop but with 'tasks' replaced with 'agent'
+# 2. new methods are defiend such that they return a set of possible decompositions, 
+# hence the line:
+#       method(state,*task1[1:])
+# has been replaced with 
+#       method(state,*task1[1:])[0]
 
-NUM_RECURSE_CALLS = 0 # For benchmarking purpose
-def get_num_recurse_calls():
-    global NUM_RECURSE_CALLS
-    return NUM_RECURSE_CALLS
-def reset_num_recurse_calls():
-    global NUM_RECURSE_CALLS
-    NUM_RECURSE_CALLS = 0
-
-def pyhop(state,agent,verbose=0, all_solutions=False, plantree=True, rand=False):
+def original_solver(state, agent, verbose=3):
     """
-    Try to find a plan that accomplishes the goal of a given @agent
+    Try to find a plan that accomplishes tasks in state. 
     If successful, return the plan. Otherwise return False.
     """
     tasks = state.goals[agent]
-    if verbose>0: print('** pyhop, verbose={}: **\n   state = {}\n    agent={}\n   tasks = {}'
-        .format(verbose, state.__name__, agent, tasks))
-    
-    # For benchmarking # Obsolete for now. 3/13
-    reset_num_recurse_calls()
-    reset_plan_library()
-    
-    # At the beginning of planning, reset "visited" from the planning world.
-    if plantree:
-        planTrees = seek_plantrees(state, tasks, None, 0, verbose, rand=rand)
-        if planTrees[0] == None:
-            return [False]
-        # print("**** Final PlanNodes: **** ")
-        # print("\tall_plans:{}\n\trand:{}".format(all_solutions, rand))
-        # print("found {} plans:".format(len(planTrees)))
-        # for tree in planTrees:
-        #     print("\tcost:{}".format(tree.cost))
-        min_cost = min([tree.cost for tree in planTrees])
-        to_return = [tree for tree in planTrees if tree.cost == min_cost]
-        # print("returning {} plantree(s) with min cost {}".format(len(to_return), min_cost), to_return)
-        # print("Inspecting plantree: \n", to_return)
+    if verbose>0: print('** pyhop, verbose={}: **\n   state = {}\n   tasks = {}'.format(verbose, state.__name__, tasks))
+    result = seek_plan(state,tasks,[],0,verbose)
+    if verbose>0: print('** result =',result,'\n')
+    return result
 
-        return to_return
-    else:
-        results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions, rand=rand)
-        # print("**** Final Results: **** \n{}".format(results))
-        # print(len(results))
-        # print(results)
-        return results
-
-"""
-kgu: Below is the original implementation. It returns the first plan found.
-"""
+# The original
 def seek_plan(state,tasks,plan,depth,verbose=0):
     """
     Workhorse for pyhop. state and tasks are as in pyhop.
@@ -290,7 +264,7 @@ def seek_plan(state,tasks,plan,depth,verbose=0):
         if verbose>2: print('depth {} method instance {}'.format(depth,task1))
         relevant = methods[task1[0]]
         for method in relevant:
-            subtasks = method(state,*task1[1:])
+            subtasks = method(state,*task1[1:])[0]
             # Can't just say "if subtasks:", because that's wrong if subtasks == []
             if verbose>2:
                 print('depth {} new tasks: {}'.format(depth,subtasks))
@@ -300,6 +274,45 @@ def seek_plan(state,tasks,plan,depth,verbose=0):
                     return solution
     if verbose>2: print('depth {} returns failure'.format(depth))
     return False
+
+
+
+############################################################
+# New planers
+
+def pyhop(state,agent,verbose=0, all_solutions=False, plantree=True, rand=False):
+    """
+    Try to find a plan that accomplishes the goal of a given @agent
+    If successful, return the plan. Otherwise return False.
+    """
+    tasks = state.goals[agent]
+    if verbose>0: print('** pyhop, verbose={}: **\n   state = {}\n    agent={}\n   tasks = {}'
+        .format(verbose, state.__name__, agent, tasks))
+        
+    # At the beginning of planning, reset "visited" from the planning world.
+    if plantree:
+        planTrees = seek_plantrees(state, tasks, None, 0, verbose, rand=rand)
+        if planTrees[0] == None:
+            return [False]
+        # print("**** Final PlanNodes: **** ")
+        # print("\tall_plans:{}\n\trand:{}".format(all_solutions, rand))
+        # print("found {} plans:".format(len(planTrees)))
+        # for tree in planTrees:
+        #     print("\tcost:{}".format(tree.cost))
+        min_cost = min([tree.cost for tree in planTrees])
+        to_return = [tree for tree in planTrees if tree.cost == min_cost]
+        # print("returning {} plantree(s) with min cost {}".format(len(to_return), min_cost), to_return)
+        # print("Inspecting plantree: \n", to_return)
+
+        return to_return
+    else:
+        results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions, rand=rand)
+        # print("**** Final Results: **** \n{}".format(results))
+        # print(len(results))
+        # print(results)
+        return results
+
+
 
 """
 Below author: kgu@mit.edu

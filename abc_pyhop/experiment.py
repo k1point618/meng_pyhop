@@ -10,6 +10,7 @@ from simulate_rovers_world import *
 import problem_bank, time, logging
 import models
 import random_rovers_world as rrw
+from planners import * 
 
 """ *************** Simple simulaiton for 1 agent-type, 1 problem ****************
 Navigation: maze_1, ... maze_5
@@ -75,7 +76,7 @@ while True:
     """
     # PROBLEM = problem_bank.navigate_replan_team_2()
     # PROBLEM = problem_bank.navigate_replan_team_3()
-    PROBLEM = problem_bank.navigate_replan_team_4()
+    # PROBLEM = problem_bank.navigate_replan_team_4()
     
     # Set costs
     PROBLEM.COST_OF_COMM = 1
@@ -93,7 +94,7 @@ while True:
 
     for AGENT_TYPE in MODELS:
         # logger.info("\nInitiating simulaiton for AGENT_TYPE:{};".format(AGENT_TYPE.__name__))
-        simulation = Simulation(PROBLEM, AGENT_TYPE, gui=False, re_plan=True, use_tree=False)
+        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v12(), gui=False, re_plan=True, use_tree=False)
         logger.info("running simulaiton ...".format(AGENT_TYPE))
         simulation.run()
 
