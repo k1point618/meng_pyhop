@@ -11,7 +11,7 @@ import random_rovers_world
 
 def a_star(state, agent, sink):
 	VERBOSE = False
-	SAMPLE = True
+	SAMPLE = state.rand
 	
 	source = state.at[agent] # Navigates to sink from wherever the agent currently is.
 	if VERBOSE > 1: 

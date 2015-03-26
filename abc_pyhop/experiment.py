@@ -57,32 +57,42 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 channel.setFormatter(formatter)
 logger.addHandler(channel)
 
-
-# Run forever
-num_problem = 0
-while True:
-    
-    # Setting up a Problem and its corresponding Uncertainties
-    """
-    Random World and Random Uncertainties
-    """
+"""
+Make a Random World and Random Uncertainties
+"""
+def make_random_problem():
     PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
     AGENT_TYPE = models.AgentNoComm
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=100, a_prob=1)
     PROBLEM.uncertainties = UNCERTAINTIES
-    
-    """
-    Choose any problem from problem bank
-    """
-    # PROBLEM = problem_bank.navigate_replan_team_2()
-    # PROBLEM = problem_bank.navigate_replan_team_3()
-    # PROBLEM = problem_bank.navigate_replan_team_4()
-    
+    return PROBLEM
+
+
+
+
+"""
+Choose any problem from problem bank
+"""
+# PROBLEMS.append(problem_bank.maze_0())
+# PROBLEMS.append(problem_bank.maze_1())
+# PROBLEMS.append(problem_bank.maze_2())
+# PROBLEMS.append(problem_bank.maze_4())
+# PROBLEMS.append(problem_bank.maze_5())
+# PROBLEMS.append(problem_bank.navigate_replan_team_2())
+# PROBLEMS.append(problem_bank.navigate_replan_team_3())
+# PROBLEMS.append(problem_bank.navigate_replan_team_4())
+
+PROBLEMS = [make_random_problem() for i in range(1)]
+
+
+while len(PROBLEMS) > 0:
+    PROBLEM = PROBLEMS.pop(0)
+
     # Set costs
     PROBLEM.COST_OF_COMM = 1
     PROBLEM.COST_REPLAN = 1
     PROBLEM.COST_ACTION = 1
-
+    
     """
     Run Multiple Simulaitons for a given problem
     """
@@ -93,13 +103,12 @@ while True:
     MODELS += [models.AgentFullComm]
 
     for AGENT_TYPE in MODELS:
-        # logger.info("\nInitiating simulaiton for AGENT_TYPE:{};".format(AGENT_TYPE.__name__))
-        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v12(), gui=False, re_plan=True, use_tree=False)
-        logger.info("running simulaiton ...".format(AGENT_TYPE))
+        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v14(), gui=False, re_plan=True, use_tree=False)
         simulation.run()
 
         if sum(simulation.cost_p_agent()) > sys.maxint/2: 
             # Trying to minimize the uncertainties that makes it impossible
+            PROBLEMS.append(make_random_problem())
             break
 
         simulations.append(simulation)
@@ -108,4 +117,4 @@ while True:
             logger.info("Agent: {}\nActions: {}".format(agent_name, agent.get_histories()))
 
 
-    break
+    

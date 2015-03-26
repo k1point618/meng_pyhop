@@ -148,10 +148,45 @@ def benchmark_a_star(verbose=0):
                     raw_input("Above problem took too long... {} seconds".format(end-start))
 
 
-# We compare the runtime and solution set for simple pyhop vs pyhop that returns
-# a tree 
-def benchmark_use_tree():
-    pass
+# Generic Bencharmking method
+def benchmark(planner1, planner2):
+
+    # Set the number of problems
+    NUM_RUNS = 20
+    planner1_time = []
+    planner2_time = []
+    for i in range(NUM_RUNS):
+
+        # First generate a problem
+        PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
+
+        # Plan with each planner
+        start = time.time()
+        solutions1 = planner1.plan(PROBLEM, PROBLEM.goals.keys()[0])
+        planner1_time.append(time.time() - start)
+
+        start = time.time()
+        solutions2 = planner2.plan(PROBLEM, PROBLEM.goals.keys()[0])
+        planner2_time.append(time.time() - start)
+
+    print("planner1_time: {}".format(planner1_time))
+    print("planner2_time: {}".format(planner2_time))
+    print("avg planner1_time: {}".format(sum(planner1_time)/len(planner1_time)))
+    print("avg planner2_time: {}".format(sum(planner2_time)/len(planner2_time)))
+
+from planners import *
+# These two are practically the same
+# benchmark(Planner.get_HPlanner_v10(), Planner.get_HPlanner_v13())
+
+# Comparing the simply-modified original and the seek-plan-all
+# benchmark(Planner.get_HPlanner_v12(), Planner.get_HPlanner_v13())
+
+# Comparing using A* vs not using A* for each of the sampling planner
+# benchmark(Planner.get_HPlanner_v10(), Planner.get_HPlanner_v11())
+
+# Comparing using A* vs not for the simply-modified of the original
+# benchmark(Planner.get_HPlanner_v13(), Planner.get_HPlanner_v14())
+
 
 
 # benchmark_amortized(verbose=0)
@@ -160,6 +195,18 @@ def benchmark_use_tree():
 
 # benchmark_compare_a_star()
 
-benchmark_a_star(verbose=0)
+# benchmark_a_star(verbose=0)
+
+
+
+
+
+
+
+
+
+
+
+
 
 

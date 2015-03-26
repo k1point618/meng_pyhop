@@ -364,7 +364,7 @@ class AgentSmartComm(AgentMind):
         other.incoming_comm([CommMessage(self.name, other.name, diff)])
 
         # Pretend to re-plan with new info # no need to check for re-plan
-        new_cost_to_finish = AgentSmartComm.EX_COST(other.mental_world, other)[0]
+        new_cost_to_finish = self.EX_COST(other.mental_world, other)[0]
         self.log.info("The expected cost for agent {} to accomplish {} is: {}"
             .format(other.name, other.goal,new_cost_to_finish))
 
@@ -404,7 +404,7 @@ class AgentSmartComm(AgentMind):
             # If simulated is False, then the cost is up to the point of failure 
             # Must re-plan
             replan_cost = self.mental_world.COST_REPLAN
-            newplan_cost = AgentSmartComm.EX_COST(world, other)[0]
+            newplan_cost = self.EX_COST(world, other)[0]
             total_cost = cost + replan_cost + newplan_cost
             self.log.info("\n\tlost-cost: {} + replan-cost: {} + newplan-cost: {} = {}"
                 .format(cost, replan_cost, newplan_cost, total_cost))
@@ -421,12 +421,11 @@ class AgentSmartComm(AgentMind):
         # TODO: This means that communication should also include "FROM" in addition to "TO"
 
 
-    @staticmethod
-    def EX_COST(world, agent):
+    def EX_COST(self, world, agent):
         agent.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
-        solutions = pyhop(world, agent.name, plantree=True)
-        agent.log.info("Solutions: {}".format([s.get_actions() for s in solutions]))
-        return (solutions[0].cost, solutions)
+        solutions = self.planner.plan(world, agent.name)
+        (actions, states) = solutions[0]
+        return (len(actions), solutions)
 
 
 

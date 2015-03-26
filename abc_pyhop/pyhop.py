@@ -96,7 +96,7 @@ Pyhop provides the following classes and functions:
 
 
 from __future__ import print_function
-import copy,sys, pprint
+import copy,sys, pprint, random
 from plantree import *
 
 ############################################################
@@ -363,10 +363,9 @@ Below author: kgu@mit.edu
 If all_plans = False, then return the first plan found deterministically. 
 """
 # Returns a list of possible [(Plan, End-state)] pairs
-def seek_plan_all(state,tasks,plan,depth,verbose=0, all_plans=False, rand=False):
+def seek_plan_all(state,tasks,plan,depth,verbose=0,all_plans=False):
     
-    global NUM_RECURSE_CALLS 
-    NUM_RECURSE_CALLS += 1 # For benchmarking 
+    if not tasks: return [False]
 
     if verbose>2:print(depth, 'current tasks: ', tasks, 'all_plans=', all_plans)
     plans = []
@@ -396,22 +395,24 @@ def seek_plan_all(state,tasks,plan,depth,verbose=0, all_plans=False, rand=False)
             else:
                 return [False]
         elif task1[0] in methods:
-            if verbose>2: print ('\t is method')
             relevant = methods[task1[0]]
             for method in relevant: # All related methods
-                decompositions = method(state,*task1[1:], rand=rand) # Returns the set of possible decompositions
+                # Returns the set of possible decompositions, in increasing heuristic cost
+                decompositions = method(state,*task1[1:])
+                
+                # If we don't care about optimality, then shuffle the decompositions
+                if state.rand and (not all_plans):
+                    # shuffle the decompositions
+                    random.shuffle(decompositions)
 
-                if verbose>2: print(depth, 'decomposed {} into \n\t{}'.format(task1, decompositions))
-                if decompositions[0] != False:
-                    for subtasks in decompositions: # For each decomposition
-                        # Solutions: the number of ways to acomplish a given sequence of subtasks
-                        # All solutions have OR relationship
-                        solutions = seek_plan_all(copy.deepcopy(state), subtasks, [], depth+1, verbose, all_plans)
-                        if solutions[0] != False:
-                            plans = plans + solutions
-                            if not all_plans:
-                                return plans
-
+                for subtasks in decompositions: # Try each decomposition
+                    # Solutions: the number of ways to acomplish a given sequence of subtasks
+                    # All solutions have OR relationship
+                    solutions = seek_plan_all(copy.deepcopy(state), subtasks, [], depth+1, verbose, all_plans)
+                    if solutions[0] != False:
+                        plans = plans + solutions
+                        if not all_plans:
+                            return plans
     if tasks == []:
         return [([], [])]
 
@@ -419,6 +420,51 @@ def seek_plan_all(state,tasks,plan,depth,verbose=0, all_plans=False, rand=False)
         return [False]
     else: 
         return plans
+
+
+# This is a quick modification of the original planner
+def seek_plan_v13(state,tasks,actions,pstates,depth,verbose=0):
+    """
+    Workhorse for pyhop. state and tasks are as in pyhop.
+    - plan is the current partial plan.
+    - depth is the recursion depth, for use in debugging
+    - verbose is whether to print debugging messages
+    """
+    if verbose>1: print('depth {} tasks {} actions {} pstates {}'.format(depth,tasks, actions, pstates))
+    if tasks == []:
+        if verbose>2: print('depth {} returns plan {}'.format(depth,(actions, pstates)))
+        return [(actions, pstates)]
+    task1 = tasks[0]
+    if task1[0] in operators:
+        if verbose>2: print('depth {} action {}'.format(depth,task1))
+        operator = operators[task1[0]]
+        newstate = operator(copy.deepcopy(state),*task1[1:])
+        if verbose>2:
+            print('depth {} new state:'.format(depth))
+            print_state(newstate)
+        if newstate:
+            prev_state = copy.deepcopy(newstate)
+            solution = seek_plan_v13(newstate,tasks[1:],actions+[task1],pstates+[prev_state],depth+1,verbose)
+            if solution != False:
+                return solution
+    if task1[0] in methods:
+        if verbose>2: print('depth {} method instance {}'.format(depth,task1))
+        relevant = methods[task1[0]]
+        for method in relevant:
+            decompositions = method(state,*task1[1:]) # Gets a set of decomp
+            if state.rand:
+                random.shuffle(decompositions)
+            for subtasks in decompositions:
+                # Can't just say "if subtasks:", because that's wrong if subtasks == []
+                if verbose>2:
+                    print('depth {} new tasks: {}'.format(depth,subtasks))
+                if subtasks != False:
+                    solution = seek_plan_v13(state,subtasks+tasks[1:],actions,pstates,depth+1,verbose)
+                    if solution != False:
+                        return solution
+    if verbose>2: print('depth {} returns failure'.format(depth))
+    return [False]
+
 
 """
 Below is a rescursive seek-plan that finds all plans and keeps track of subproblems 
@@ -564,7 +610,7 @@ def seek_plantrees(state, tasks, root, depth, verbose=0, rand=False):
         if verbose: print("\t task {} is a method".format(task[0]))
         relevant = methods[task[0]]
         for method in relevant: # All related methods
-            decompositions = method(state,*task[1:], rand=rand) # Returns the set of possible decompositions
+            decompositions = method(state,*task[1:]) # Returns the set of possible decompositions
             if decompositions[0] == False:
                 # Cannot use this relevant method definition
                 continue

@@ -7,6 +7,23 @@ import random_rovers_world as rrw
 def random(num_agent=2):
 	return rrw.get_random_world(num_agent=num_agent, a_star=True)
 
+def maze_0():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	world = rrw.get_random_world(3, 3, num_agent=1)
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 9)]
+
+	# Set Lander Location
+	world.at[rrw.LANDER] = 9
+	
+	# Set Rover Location
+	world.at['A1'] = 1
+	world.visited['A1'] = set()
+	world.visited['A1'].add(1)
+	return world
+
 def maze_1():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0

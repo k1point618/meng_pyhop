@@ -1,15 +1,20 @@
 """ 
 This is an attempt to encode the Mars Rover world for pyhop1.1.
-Each method returns the set of ALL possible decompositions. This means...
-- Finding all variable bindings that satisfies the preconditions
-- Different types of decomposition depending on the Case
+Each method returns all decompositions sorted based on heuristic
+
+Technically, there are 3 ways to ask for decompositions:
+1) return 1 random decomp, (in a list)
+2) return the decompositions with the min hueristic 
+	(if there are multiple, deterministically pick 1)
+3) return all decompositions sorted based on heuristic 
+We leave this decision to the planner
 
 Author: Kgu@mit.edu
 """
 import random, pyhop, navigation, heapq
 from rovers_world_operators import *
 
-def empty_store_m(state, store, rover, rand=False):
+def empty_store_m(state, store, rover):
 	possible_decomp = []
 	if state.empty[store]:
 		possible_decomp.append([])
@@ -21,8 +26,8 @@ def empty_store_m(state, store, rover, rand=False):
 pyhop.declare_methods('empty_store',empty_store_m)
 
 
-def navigate_m(state, agent, sink, rand=False):
-	if 'a-star' in state.settings and state.settings['a-star']:
+def navigate_m(state, agent, sink):
+	if state.a_star:
 		return [navigation.a_star(state, agent, sink)]
 		
 	possible_decomp = []
@@ -37,7 +42,7 @@ def navigate_m(state, agent, sink, rand=False):
 pyhop.declare_methods('navigate',navigate_m)
 
 # 
-def navigate2_m(state, agent, source, sink, rand=False):
+def navigate2_m(state, agent, source, sink):
 	possible_decomp = []
 	source_y, source_x = state.loc[source]
 	sink_y, sink_x = state.loc[sink]
@@ -60,19 +65,6 @@ def navigate2_m(state, agent, source, sink, rand=False):
 		for mid in sorted_n:
 			possible_decomp.append([('navigate_op', agent, source, mid), ('visit', agent, mid), ('navigate2', agent, mid, sink), ('unvisit',agent, mid)])
 
-		# Below is the old implemention that doesn't know how to plan around obstacles
-		# if(source_x < sink_x): # move right
-		# 	mid = source + 1
-		# 	possible_decomp.append([('navigate_op', agent, source, mid), ('visit', mid), ('navigate2', agent, mid, sink), ('unvisit', mid)])
-		# if(source_x > sink_x): # move left
-		# 	mid = source - 1
-		# 	possible_decomp.append([('navigate_op', agent, source, mid), ('visit', mid), ('navigate2', agent, mid, sink), ('unvisit', mid)])
-		# if(source_y < sink_y): # move down
-		# 	mid = source + state.prop["num_col"]
-		# 	possible_decomp.append([('navigate_op', agent, source, mid), ('visit', mid), ('navigate2', agent, mid, sink), ('unvisit', mid)])
-		# if(source_y > sink_y): # move up
-		# 	mid = source - state.prop["num_col"]
-		# 	possible_decomp.append([('navigate_op', agent, source, mid), ('visit', mid), ('navigate2', agent, mid, sink), ('unvisit', mid)])
 	if possible_decomp == []: return [False]
 
 	return possible_decomp
@@ -80,7 +72,7 @@ def navigate2_m(state, agent, source, sink, rand=False):
 pyhop.declare_methods('navigate2',navigate2_m)
 
 
-def get_sample_data_m(state, agent, rand=False):
+def get_sample_data_m(state, agent):
 	# Consider two cases here, rock OR soil
 	rock_score = -1 * (int(state.has_rock_sample[agent]) + int(state.has_rock_analysis[agent]))
 	soil_score = -1 * (int(state.has_soil_sample[agent]) + int(state.has_soil_analysis[agent]))
