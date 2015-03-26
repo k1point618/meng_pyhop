@@ -255,9 +255,9 @@ def pyhop(state,agent,verbose=0, all_solutions=False, plantree=True, rand=False)
         return to_return
     else:
         results = seek_plan_all(state,tasks,[],0,verbose, all_plans=all_solutions, rand=rand)
-        print("**** Final Results: **** \n{}".format(results))
-        print(len(results))
-        print(results)
+        # print("**** Final Results: **** \n{}".format(results))
+        # print(len(results))
+        # print(results)
         return results
 
 """

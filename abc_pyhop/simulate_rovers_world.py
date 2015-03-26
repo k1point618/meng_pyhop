@@ -25,15 +25,15 @@ from models import *
 class Simulation():
 
     def make_logger(self, problem, AgentType):
-        self.log = logging.getLogger('{}.{}'.format(AgentType.__name__, problem.ID))
+        self.log = logging.getLogger('{}'.format(AgentType.__name__))
         self.log.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler('logs/sim_{}.log'.format(AgentType.__name__))
-        formatter = logging.Formatter('%(name)s-%(levelname)s:%(message)s')
+        formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s:%(message)s')
         file_handler.setFormatter(formatter)
         self.log.addHandler(file_handler)
 
 
-    def __init__(self, problem, AgentType,
+    def __init__(self, world, AgentType,
                 uncertainty=0, 
                 verbose=0, 
                 a_star=True, 
@@ -41,8 +41,9 @@ class Simulation():
                 re_plan=True,
                 use_tree=True):
         
-        self.make_logger(problem, AgentType)
+        self.make_logger(world, AgentType)
         self.log.info('Simulation Logger Created')
+        self.AgentType = AgentType.__name__
 
         # Simulation parameters: 
         self.PARAMS = {}
@@ -52,8 +53,6 @@ class Simulation():
         self.PARAMS['re_plan'] = re_plan
         self.PARAMS['use_tree'] = use_tree
 
-        world = problem
-
         if self.PARAMS['verbose']:
             print('start state')
             print_state(world)
@@ -61,8 +60,8 @@ class Simulation():
 
         self.agents = {}            # Agents and their mental Models
         self.time = 0               # Global time of the simulation
-        self.communications = {}    # 
-        self.comm_buff = {}         # 
+        self.communications = []    # A set of CommMessage objects
+        self.comm_buff = []         # Keeps temporary communication during the current step
 
         self.real_world = copy.deepcopy(world) # Real world has possible uncertainties.
         self.solutions = {}
@@ -74,7 +73,6 @@ class Simulation():
 
         # Samples 1 solution for each agent in the problem
         for agent_name in world.goals.keys():
-            self.communications[agent_name] = []
             # Get Plan
             results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
             if self.PARAMS['verbose']: 
@@ -250,7 +248,7 @@ class Simulation():
         self.log.info('REAL WORLD: ' + str(self.real_world.at))
         self.log.info(('rock analysis: ', self.real_world.rock_analysis))
         self.log.info(('soil analysis: ', self.real_world.soil_analysis))
-        self.log.info(print_board_str(self.real_world))
+        self.log.info("\n" + print_board_str(self.real_world))
 
         for (agent_name, agent) in self.agents.items():
             self.log.info("\n\nAgent Name: {}\n".format(agent_name))
@@ -265,64 +263,46 @@ class Simulation():
             actions_took[agent_name] = []
             
             # First process the incomming communications
-            agent.incoming_comm(self.communications) # 1. Update agent's world model
+            world_changed = agent.incoming_comm(self.communications) 
+            # 1. Update agent's world model
             # TODO: 2. update agent's model of the sender (plan recognition)
 
             # Diffs contains the new observations
-            self.log.info("****** Make Observations ******")
-            self.log.info("Agent {} is about to make observations".format(agent.name))
             diffs = agent.make_observations(self.real_world)  # 1. Update agent's world model 
             self.log.info("Agent {} made the following observations: {}\n".format(agent.name, diffs))
 
-            # 2. Decide to Communicate
+
+            # 2. Decide to Communicate ~~~~~~~~~~~~
             # Given observations (diffs), determine communications
             # Returns the set of communications to make.
             # Messages is a dictionary that maps agent-names to messages
-            self.log.info("****** Reason about Communicaiton ******")
             if len(diffs) > 0:
-                out_messages = agent.communicate(diffs)
-                self.append_communications(out_messages)
+                self.log.info("****** Agent {} Reasons about Communicaiton ******".format(agent.name))
+                (out_commMsgs, void_msgs) = agent.communicate(diffs) # Out_messages is a set of CommMessage
+                self.comm_buff += out_commMsgs # append to comm-buffer
+                
 
-                # Add communication to actions taken
-                for (tm_n, tm) in self.agents.items():
-                    self.log.info(">>> out_messages = {}".format(out_messages))
-                    self.log.info(">>> (tm_n, tm) = {}, {}".format(tm_n, tm))
-                    if tm_n == agent_name:
-                        continue
-                    if tm_n in out_messages.keys():
-                        m = out_messages[tm_n]
-                        actions_took[agent_name].append(('comm {} to {}'.format(m, tm_n), 0)) # cost of comm is 0
-                        agent.add_history(('comm {} to {}'.format(m, tm_n), 0)) # cost of comm is
-                    else: 
-                        actions_took[agent_name].append(('no-comm from {} to {}'.format(agent_name, tm_n), 0))
-                        agent.add_history(('no-comm from {} to {}'.format(agent_name, tm_n), 0))
+                self.log.info("Agent {} decided to communicate:\n\t{}".format(agent.name, out_commMsgs))
+                self.log.info("Agent {} decide NOT to communicate:\n\t{}".format(agent.name, void_msgs))
+
+                # Add communication to actions taken (including all messages NOT sent)
+                for commMsg in out_commMsgs:
+                    actions_took[commMsg.sender].append(('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM))
+                    agent.add_history(('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM))
+                for commMsg in void_msgs:
+                    actions_took[commMsg.sender].append(('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0))
+                    agent.add_history(('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0))
             
+
 
             # 3.0: If agent is done, no need to replan or act
             if agent.is_done(): continue
 
             # 3. Continue ACTING or REPLAN on real-world (aka: replana or not)
             replan = agent.replan_q()
-            if replan:
-                # When re-plan need to reset "visited" from the Real-world
-                self.real_world.visited[agent_name] = set()
-                results = pyhop(copy.deepcopy(agent.mental_world), agent_name, plantree=self.PARAMS['use_tree'])
-                result = random.choice(results)
-
-                if result == None or result == False:
-                    self.log.info('*** no solution found for agent:{}, goal:{}'.format(agent_name, self.real_world.goals[agent_name]))
-                    agent.add_history(('None', sys.maxint))
-                    agent.done = True
-                    actions_took[agent_name].append(('failed', sys.maxint))
-
-
-                agent.set_solution(result)
-                agent.cur_step = 0
-                agent.global_step += 1
-                agent.add_history(('replan', 1))
-
-                actions_took[agent_name].append(('replan', 1))
-
+            if  replan:
+                agent.replan(self.PARAMS['use_tree'], stuck=replan)
+                actions_took[agent_name].append(('replan', self.real_world.COST_REPLAN))
             else:
                 # 4: (if not replan) Agent takes action
                 self.log.info(('cur_action: ', cur_action))
@@ -332,7 +312,7 @@ class Simulation():
                 assert(self.real_world != False)
                 assert(agent.mental_world != False) 
 
-                agent.add_history((cur_action, 1))
+                agent.add_history((cur_action, 1)) #Cost of action
                 agent.cur_step += 1
                 agent.global_step += 1
 
@@ -340,21 +320,25 @@ class Simulation():
                     agent.done = True
                     agent.success = True
                 
-                actions_took[agent_name].append((cur_action, 1))
+                actions_took[agent_name].append((cur_action, self.real_world.COST_REPLAN))
 
 
         self.communications = {}
         self.flush_communications()
         self.time += 1
+        self.log.info("Timestep: {}")
+        self.log.info("Communications: {}")
+
         return (self.real_world, actions_took)
 
 
-    def append_communications(self, messages):
-        Simulation.append_dict(self.comm_buff, messages)
+    # def append_communications(self, messages):
+    #     Simulation.append_dict(self.comm_buff, messages)
 
     def flush_communications(self):
-        Simulation.append_dict(self.communications, self.comm_buff)
-        self.comm_buff = {}
+        self.communications = []
+        self.communications += self.comm_buff
+        self.comm_buff = []
 
     @staticmethod
     def append_dict(d, delta):
@@ -452,15 +436,35 @@ class Simulation():
         return (self.real_world, step_info)
 
     def cost_p_agent(self):
-
         to_return = []
         for (agent_name, agent) in self.agents.items():
             to_return.append(sum(action[1] for action in agent.get_histories()))
         return to_return
 
+    def total_observations(self):
+        return sum([len(agent.observations) for agent in self.agents.values()])
 
+    def total_messages_sent(self):
+        return sum([len(agent.sent_msgs) for agent in self.agents.values()])
+
+    def total_messages_voided(self):
+        return sum([len(agent.voided_msgs) for agent in self.agents.values()])
+
+    def total_replans(self):
+        return sum([agent.times_replanned for agent in self.agents.values()])
     
 
+    def get_summary(self):
+        return "\nSimulation Summary for Problem:{}.{} with AgentType:{}\n"\
+                    "\tTotal Cost: {}\n"\
+                    "\tTotal Observations: {}\n"\
+                    "\tMessages Communicated: {}\n"\
+                    "\tMessages Voided: {}".format(
+                        self.real_world.name, self.real_world.ID, self.AgentType,
+                        sum(self.cost_p_agent()), 
+                        self.total_observations(),
+                        self.total_messages_sent(), 
+                        self.total_messages_voided())
 
 
 

@@ -59,15 +59,13 @@ logger.addHandler(channel)
 
 # Run forever
 num_problem = 0
-while not models.END_EXPERIMENT:
-    logger.info("********** Exeperiment problem number: {} **********".format(num_problem))
-
+while True:
+    
     # Setting up a Problem and its corresponding Uncertainties
     """
     Random World and Random Uncertainties
     """
     PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
-    PROBLEM.ID = int(time.time())
     AGENT_TYPE = models.AgentNoComm
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=100, a_prob=1)
     PROBLEM.uncertainties = UNCERTAINTIES
@@ -76,28 +74,37 @@ while not models.END_EXPERIMENT:
     Choose any problem from problem bank
     """
     # PROBLEM = problem_bank.navigate_replan_team_2()
+    # PROBLEM = problem_bank.navigate_replan_team_3()
+    PROBLEM = problem_bank.navigate_replan_team_4()
+    
+    # Set costs
+    PROBLEM.COST_OF_COMM = 1
+    PROBLEM.COST_REPLAN = 1
+    PROBLEM.COST_ACTION = 1
 
     """
-    Run Simulaitons for a given problem
+    Run Multiple Simulaitons for a given problem
     """
     simulations = []
     MODELS = []
     MODELS += [models.AgentNoComm]
     MODELS += [models.AgentSmartComm]
     MODELS += [models.AgentFullComm]
+
     for AGENT_TYPE in MODELS:
-        logger.info("Initiating simulaiton for AGENT_TYPE:{};".format(AGENT_TYPE.__name__))
-        simulation = Simulation(PROBLEM, AGENT_TYPE, gui=False, re_plan=True, use_tree=True)
+        # logger.info("\nInitiating simulaiton for AGENT_TYPE:{};".format(AGENT_TYPE.__name__))
+        simulation = Simulation(PROBLEM, AGENT_TYPE, gui=False, re_plan=True, use_tree=False)
         logger.info("running simulaiton ...".format(AGENT_TYPE))
         simulation.run()
-        simulations.append((AGENT_TYPE, simulation))
 
-    print('\n***** Experiment Summary *****\n')
-    for (AGENT_TYPE, simulation) in simulations:
-        print('\nProblem Name: {} \nAgent Type: {}'.format(PROBLEM.name, AGENT_TYPE))
-        print('simulation total cost {}'.format(sum(simulation.cost_p_agent())))
-        print('simulation cost breakdown: ', simulation.cost_p_agent())
+        if sum(simulation.cost_p_agent()) > sys.maxint/2: 
+            # Trying to minimize the uncertainties that makes it impossible
+            break
+
+        simulations.append(simulation)
+        logger.info(simulation.get_summary())
         for (agent_name, agent) in simulation.agents.items():
-            print(agent_name, agent.get_histories())
+            logger.info("Agent: {}\nActions: {}".format(agent_name, agent.get_histories()))
 
 
+    break

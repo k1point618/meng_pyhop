@@ -229,6 +229,79 @@ def navigate_replan_team_2():
 	world.ID = "navigate_replan_team_2"
 	return world
 
+
+
+
+def navigate_replan_team_3():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	rrw.LANDER='X'
+	rrw.LAB = 'X'
+	world = rrw.get_random_world(6, 6, num_agent=2)
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 31)]
+	world.goals['A2'] = [('navigate', 'A2', 36)]
+
+	# Set Soil Location
+	world.at['S1'] = 31
+	world.at['S2'] = 36
+
+	# Set Lander
+	world.at[rrw.LANDER] = 13
+	world.at[rrw.LAB] = 19
+
+	# Set Rover Locations
+	world.at['A1'] = 1
+	world.visited['A1'] = set()
+	world.visited['A1'].add(1)
+	world.at['A2'] = 21
+	world.visited['A2'] = set()
+	world.visited['A1'].add(21)
+
+	traps = [7, 8, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 26, 27, 28, 29]
+	for t in traps:
+		world.loc_available[t] = False
+
+	world.uncertainties = replan_3_rand
+	world.ID = "navigate_replan_team_3"
+	return world
+
+def navigate_replan_team_4():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	rrw.LANDER='X'
+	rrw.LAB = 'X'
+	world = rrw.get_random_world(7, 7, num_agent=2)
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 43)]
+	world.goals['A2'] = [('navigate', 'A2', 49)]
+
+	# Set Soil Location
+	world.at['S1'] = 43
+	world.at['S2'] = 49
+
+	# Set Lander
+	world.at[rrw.LANDER] = 15
+	world.at[rrw.LAB] = 22
+
+	# Set Rover Locations
+	world.at['A1'] = 1
+	world.visited['A1'] = set()
+	world.visited['A1'].add(1)
+	world.at['A2'] = 31
+	world.visited['A2'] = set()
+	world.visited['A1'].add(31)
+
+	traps = [15, 16, 19, 20, 22, 23, 26, 27, 29, 30, 33, 34, 36, 37, 40, 41]
+	for t in traps:
+		world.loc_available[t] = False
+
+	world.uncertainties = replan_4_rand
+	world.ID = "navigate_replan_team_4"
+	return world
+
 # Replan for get_a_soil_data: 
 def decompose_replan():
 	rrw.NUM_ROCKS=0
@@ -312,6 +385,18 @@ def replan_1_rand(world, idx):
 def replan_2_rand(world, idx):
 	if idx == 0:
 		world.loc_available[27] = False
+
+def replan_3_rand(world, idx):
+	if idx == 0:
+		world.loc_available[27] = True
+
+def replan_4_rand(world, idx):
+	if idx == 0:
+		world.loc_available[2] = False
+		world.loc_available[4] = False
+		world.loc_available[6] = False
+		world.loc_available[38] = False
+		world.loc_available[39] = False
 
 def replan_decompose_1(world, idx):
 	print("*** Calling re-lan_decompose_1 for uncertainties ***")
