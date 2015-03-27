@@ -14,7 +14,7 @@ import random
 import time
 import collections
 import matplotlib.pyplot as plt
-import logging
+import logging, shutil
 import rovers_world_operators
 import rovers_world_methods
 from random_rovers_world import *
@@ -25,7 +25,7 @@ from models import *
 class Simulation():
 
     def make_logger(self, problem, AgentType):
-        self.log = logging.getLogger('{}'.format(AgentType.__name__))
+        self.log = logging.getLogger('{}.{}'.format(AgentType.__name__, problem.ID))
         self.log.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler('logs/sim_{}.log'.format(AgentType.__name__))
         formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s:%(message)s')
@@ -44,6 +44,7 @@ class Simulation():
         self.make_logger(world, AgentType)
         self.log.info('Simulation Logger Created')
         self.AgentType = AgentType.__name__
+        self.name = "{}_{}_{}".format(world.name, world.ID, self.AgentType)
         
         # Simulation parameters: 
         self.PARAMS = {}
@@ -288,10 +289,10 @@ class Simulation():
                 # Add communication to actions taken (including all messages NOT sent)
                 for commMsg in out_commMsgs:
                     actions_took[commMsg.sender].append(('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM))
-                    agent.add_history(('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM))
+                    agent.add_history('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM)
                 for commMsg in void_msgs:
                     actions_took[commMsg.sender].append(('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0))
-                    agent.add_history(('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0))
+                    agent.add_history('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0)
             
 
 
@@ -312,7 +313,7 @@ class Simulation():
                 assert(self.real_world != False)
                 assert(agent.mental_world != False) 
 
-                agent.add_history((cur_action, 1)) #Cost of action
+                agent.add_history(cur_action, 1) #Cost of action
                 agent.cur_step += 1
                 agent.global_step += 1
 
@@ -373,7 +374,7 @@ class Simulation():
         if cur_step == len(actions):
             print("Done")
             agent.done = True
-            agent.add_history(('done', 0))
+            agent.add_history('done', 0)
             return (self.real_world, step_info)
         cur_action = actions[cur_step]
         next_state = states[cur_step]     
@@ -406,14 +407,14 @@ class Simulation():
 
             if result == None or result == False:
                 print('*** no solution found for agent:{}, goal:{}'.format(agent_name, self.real_world.goals[agent_name]))
-                agent.add_history(('None', sys.maxint))
+                agent.add_history('None', sys.maxint)
                 agent.done = True
                 return None
 
             agent.set_solution(result)
             agent.cur_step = 0
             agent.global_step += 1
-            agent.add_history(('replan', 1))
+            agent.add_history('replan', 1)
             return (self.real_world, step_info)
 
         else:
@@ -422,7 +423,7 @@ class Simulation():
             self.real_world = act(self.real_world, cur_action)
             agent.mental_world = act(agent.mental_world, cur_action)
 
-            agent.add_history((cur_action, 1))
+            agent.add_history(cur_action, 1)
 
             # end: Info
             print('next state')
@@ -438,7 +439,7 @@ class Simulation():
     def cost_p_agent(self):
         to_return = []
         for (agent_name, agent) in self.agents.items():
-            to_return.append(sum(action[1] for action in agent.get_histories()))
+            to_return.append(sum(action[2] for action in agent.get_histories()))
         return to_return
 
     def total_observations(self):
@@ -454,17 +455,39 @@ class Simulation():
         return sum([agent.times_replanned for agent in self.agents.values()])
     
 
-    def get_summary(self):
-        return "\nSimulation Summary for Problem:{}.{} with AgentType:{}\n"\
-                    "\tTotal Cost: {}\n"\
-                    "\tTotal Observations: {}\n"\
-                    "\tMessages Communicated: {}\n"\
-                    "\tMessages Voided: {}".format(
-                        self.real_world.name, self.real_world.ID, self.AgentType,
-                        sum(self.cost_p_agent()), 
-                        self.total_observations(),
-                        self.total_messages_sent(), 
-                        self.total_messages_voided())
+    def get_summary(self, cost=True, cost_bd=False, obs=True, comm=True, void=True):
+        to_return = "\nSimulation Summary for Problem:{}.{} with AgentType:{}\n".format(
+            self.real_world.name, self.real_world.ID, self.AgentType)
+        if cost:
+            to_return += "\tTotal Cost: {}\n".format(sum(self.cost_p_agent()))
+        if cost_bd:
+            to_return += "\tCost Breakdown: {}\n".format(self.cost_p_agent())
+        if obs:
+            to_return += "\tTotal Observations: {}\n".format(self.total_observations())
+        if comm:
+            to_return += "\tMessages Communicated: {}\n".format(self.total_messages_sent())
+        if void:
+            to_return += "\tMessages Voided: {}".format(self.total_messages_voided())
 
+        return to_return
+
+    def write_to_file(self):
+        # Output a file of name: simulation.name.actions
+        # The number of columns = the number of agents
+        filename = "logs/" + self.name + ".actions"
+        cur_file = "logs/CUR_{}_.actions".format(self.AgentType)
+        f = open(cur_file, 'w')
+        for agent_name in self.agents.keys():
+            f.write(agent_name + "\t")
+        f.write('\n')
+        idx = 0
+        while any([idx < len(a.get_histories())for (an, a) in self.agents.items()]):
+            for (an, a) in self.agents.items():
+                l = str(a.get_histories()[idx]) if idx < len(a.get_histories()) else "None"
+                f.write(l + "\t")
+            idx += 1
+            f.write('\n')
+        # Update cur file
+        # shutil.copyfile(filename, cur_file)
 
 

@@ -25,7 +25,7 @@ simulates agents with different mental models. The method returns a function of 
 func(world, idx), where world is the current state (of the real-world) and the idx is 
 the global time-step of the simulation.
 """
-def get_uncertainty_fun(state, num_step, a_prob=1):
+def get_uncertainty_fun(state, num_step, a_prob):
 
     sequence = []
     for idx in range(num_step):
@@ -47,7 +47,8 @@ def get_uncertainty_fun(state, num_step, a_prob=1):
             return
         rand_loc = sequence[in_idx]
         if rand_loc != None:
-            in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc]
+            # in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc] # This allows flipping
+            in_state.loc_available[rand_loc] = False # This means if a location turns into a trap, it will stay as a trap
 
     return to_return
 

@@ -82,14 +82,14 @@ Choose any problem from problem bank
 # PROBLEMS.append(problem_bank.navigate_replan_team_3())
 # PROBLEMS.append(problem_bank.navigate_replan_team_4())
 
-PROBLEMS = [make_random_problem() for i in range(1)]
 
-
-while len(PROBLEMS) > 0:
-    PROBLEM = PROBLEMS.pop(0)
+num_problem_left = 10
+while num_problem_left > 0:
+    PROBLEM = make_random_problem()
+    show_summary = True
 
     # Set costs
-    PROBLEM.COST_OF_COMM = 1
+    PROBLEM.COST_OF_COMM = 0
     PROBLEM.COST_REPLAN = 1
     PROBLEM.COST_ACTION = 1
     
@@ -102,19 +102,31 @@ while len(PROBLEMS) > 0:
     MODELS += [models.AgentSmartComm]
     MODELS += [models.AgentFullComm]
 
+    logger.info("*** Running simulations for Problem {}.{} for models: {}".format(PROBLEM.name, PROBLEM.ID, [m.__name__ for m in MODELS]))
     for AGENT_TYPE in MODELS:
         simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v14(), gui=False, re_plan=True, use_tree=False)
         simulation.run()
 
         if sum(simulation.cost_p_agent()) > sys.maxint/2: 
             # Trying to minimize the uncertainties that makes it impossible
-            PROBLEMS.append(make_random_problem())
+            show_summary = False
+            logger.info("Incomplete World")
             break
 
         simulations.append(simulation)
-        logger.info(simulation.get_summary())
-        for (agent_name, agent) in simulation.agents.items():
-            logger.info("Agent: {}\nActions: {}".format(agent_name, agent.get_histories()))
+
+    # Output summary 
+    if show_summary:
+        logger.info("*** SUMMARY for Problem {}.{} Summary for Models: {}".format(PROBLEM.name, PROBLEM.ID, MODELS))
+        for sim in simulations:
+            logger.info(sim.get_summary(cost=True, cost_bd=False, obs=False, comm=False, void=True))
+            sim.write_to_file()
+
+        # raw_input("Show Individual Actions?")
+        # for sim in simulations:
+        #     logger.info(sim.get_summary())
+        #     for (agent_name, agent) in sim.agents.items():
+        #         logger.info("Agent: {}\nActions: {}".format(agent_name, agent.get_histories()))
 
 
-    
+    num_problem_left -= 1

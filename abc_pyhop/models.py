@@ -62,7 +62,7 @@ class AgentMind(object):
         self.log.info(("set solution", solution))
         if solution == False or solution == None:
             # no solution found
-            self.add_history(('done', sys.maxint))
+            self.add_history('done', sys.maxint)
             self.done = True
             self.success = False
             return
@@ -87,8 +87,8 @@ class AgentMind(object):
 
     def get_cur_step(self): return self.cur_step
 
-    def add_history(self, new_action):
-        self.histories.append(new_action)
+    def add_history(self, action, cost):
+        self.histories.append((self.global_step, action, cost))
 
     def is_done(self): return self.done
 
@@ -216,7 +216,7 @@ class AgentMind(object):
         solution = random.choice(solutions)
 
         if solution == False: 
-            self.add_history(('None', sys.maxint))
+            self.add_history('None', sys.maxint)
             self.done = True
             return False # Meaning, did not update the solution.
 
@@ -234,7 +234,7 @@ class AgentMind(object):
             self.cur_step = 0
             self.global_step += 1
             self.times_replanned += 1
-            self.add_history(('replan', self.mental_world.COST_REPLAN))
+            self.add_history('replan', self.mental_world.COST_REPLAN)
 
             return True # meaning plan updated
         else: return False
@@ -364,9 +364,9 @@ class AgentSmartComm(AgentMind):
         other.incoming_comm([CommMessage(self.name, other.name, diff)])
 
         # Pretend to re-plan with new info # no need to check for re-plan
-        new_cost_to_finish = self.EX_COST(other.mental_world, other)[0]
-        self.log.info("The expected cost for agent {} to accomplish {} is: {}"
-            .format(other.name, other.goal,new_cost_to_finish))
+        new_cost_to_finish, actions = self.EX_COST(other.mental_world, other)
+        self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan: {}"
+            .format(other.name, other.goal, new_cost_to_finish, actions))
 
         to_return += new_cost_to_finish
         self.log.info("Agent {}: The cost of communicating is {} + {} = {}"
@@ -395,7 +395,7 @@ class AgentSmartComm(AgentMind):
         self.log.info("Other agent's mental world: \n{}".format(print_board_str(other.mental_world)))
         
         (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.actions[self.cur_step+1:])
-        self.log.info("... result -- Simulated: {}; Cost: {}".format(simulated, cost))
+        self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.actions[self.cur_step+1:], cost))
 
         if simulated:
             # if simulated is True, then the cost of the cost for the rest of the plan
@@ -424,8 +424,10 @@ class AgentSmartComm(AgentMind):
     def EX_COST(self, world, agent):
         agent.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
         solutions = self.planner.plan(world, agent.name)
+        if solutions[0] == False:
+            return (sys.maxint, 'None')
         (actions, states) = solutions[0]
-        return (len(actions), solutions)
+        return (len(actions), actions)
 
 
 
