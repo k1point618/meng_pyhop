@@ -25,7 +25,7 @@ from models import *
 class Simulation():
 
     def make_logger(self, problem, AgentType):
-        self.log = logging.getLogger('{}.{}'.format(AgentType.__name__, problem.ID))
+        self.log = logging.getLogger('{}.{}'.format(AgentType.__name__, problem.name))
         self.log.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler('logs/sim_{}.log'.format(AgentType.__name__))
         formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s:%(message)s')
@@ -44,7 +44,7 @@ class Simulation():
         self.make_logger(world, AgentType)
         self.log.info('Simulation Logger Created')
         self.AgentType = AgentType.__name__
-        self.name = "{}_{}_{}".format(world.name, world.ID, self.AgentType)
+        self.name = "{}_{}".format(world.name, self.AgentType)
         
         # Simulation parameters: 
         self.PARAMS = {}
@@ -456,8 +456,8 @@ class Simulation():
     
 
     def get_summary(self, cost=True, cost_bd=False, obs=True, comm=True, void=True):
-        to_return = "\nSimulation Summary for Problem:{}.{} with AgentType:{}\n".format(
-            self.real_world.name, self.real_world.ID, self.AgentType)
+        to_return = "\nSimulation Summary for Problem:{} with AgentType:{}\n".format(
+            self.real_world.name, self.AgentType)
         if cost:
             to_return += "\tTotal Cost: {}\n".format(sum(self.cost_p_agent()))
         if cost_bd:
@@ -474,20 +474,26 @@ class Simulation():
     def write_to_file(self):
         # Output a file of name: simulation.name.actions
         # The number of columns = the number of agents
-        filename = "logs/" + self.name + ".actions"
+        hist_file = "logs/HIST_{}_.actions".format(self.AgentType)
         cur_file = "logs/CUR_{}_.actions".format(self.AgentType)
         f = open(cur_file, 'w')
+        hf = open(hist_file, 'a')
+
+        to_write = ""
         for agent_name in self.agents.keys():
-            f.write(agent_name + "\t")
-        f.write('\n')
+            to_write += agent_name + "\t"
+        to_write += '\n'
+
         idx = 0
         while any([idx < len(a.get_histories())for (an, a) in self.agents.items()]):
             for (an, a) in self.agents.items():
                 l = str(a.get_histories()[idx]) if idx < len(a.get_histories()) else "None"
-                f.write(l + "\t")
+                to_write += l + "\t"
             idx += 1
-            f.write('\n')
-        # Update cur file
-        # shutil.copyfile(filename, cur_file)
+            to_write += '\n'
+
+        f.write(to_write)
+        hf.write("Problem Summary for {}\n".format(self.real_world.name))
+        hf.write(to_write)
 
 

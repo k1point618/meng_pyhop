@@ -201,7 +201,7 @@ class AgentColumnFrame(Tkinter.Frame):
 
     def set_cur_status(self, agent):
         # Get Current Cost
-        cost = sum(action[1] for action in agent.get_histories())
+        cost = sum(action[2] for action in agent.get_histories())
         self.cur_status.set("Incurred Cost: {}\nProjected Cost:{}"
                             .format(sum(action[1] for action in agent.get_histories()), \
                                 len(agent.actions) - agent.cur_step))
@@ -266,12 +266,14 @@ class BoardFrame(Tkinter.Frame):
                 occupied[world.loc[i]] = "X"
 
         idx = 1
+        max_loc_cost = max(world.cost.values())
         for i in range(num_row):
             for j in range(num_col):
                 # # Put down un-available locations
                 if (world.loc_available[idx]):
-                    self.board_var[(i, j)].set("")
-                    self.board_labels[(i, j)].config(bg='white')
+                    self.board_var[(i, j)].set(world.cost[idx])
+                    g_scale = hex(int(float(world.cost[idx]) / max_loc_cost * 16))[2:]
+                    self.board_labels[(i, j)].config(bg='#' + 6*'{}'.format(g_scale))
                 # else:
                 #     self.board_var[(i, j)].set("X")
                 
@@ -286,7 +288,7 @@ class BoardFrame(Tkinter.Frame):
                     elif 'R' in occupied[(i, j)]:
                         self.board_labels[(i, j)].config(bg='#8FB26B')
                     elif 'X' in occupied[(i, j)]:
-                        self.board_labels[(i, j)].config(bg='gray')
+                        self.board_labels[(i, j)].config(bg='red')
                     else: 
                         self.board_labels[(i, j)].config(bg='white')
                 idx += 1

@@ -61,6 +61,7 @@ logger.addHandler(channel)
 Make a Random World and Random Uncertainties
 """
 def make_random_problem():
+    logger.info("Making random problem")
     PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
     AGENT_TYPE = models.AgentNoComm
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=100, a_prob=1)
@@ -73,19 +74,25 @@ def make_random_problem():
 """
 Choose any problem from problem bank
 """
+PROBLEMS = []
+random = False
 # PROBLEMS.append(problem_bank.maze_0())
-# PROBLEMS.append(problem_bank.maze_1())
-# PROBLEMS.append(problem_bank.maze_2())
-# PROBLEMS.append(problem_bank.maze_4())
-# PROBLEMS.append(problem_bank.maze_5())
+PROBLEMS.append(problem_bank.maze_1())
+PROBLEMS.append(problem_bank.maze_2())
+PROBLEMS.append(problem_bank.maze_4())
+PROBLEMS.append(problem_bank.maze_5())
 # PROBLEMS.append(problem_bank.navigate_replan_team_2())
 # PROBLEMS.append(problem_bank.navigate_replan_team_3())
 # PROBLEMS.append(problem_bank.navigate_replan_team_4())
 
+if random:
+    PROBLEMS = [0] * num_problems
 
-num_problem_left = 10
-while num_problem_left > 0:
-    PROBLEM = make_random_problem()
+while len(PROBLEMS) != 0:
+    PROBLEM = PROBLEMS.pop()
+    if random:
+        PROBLEM = make_random_problem()
+
     show_summary = True
 
     # Set costs
@@ -98,26 +105,29 @@ while num_problem_left > 0:
     """
     simulations = []
     MODELS = []
-    MODELS += [models.AgentNoComm]
+    # MODELS += [models.AgentNoComm]
     MODELS += [models.AgentSmartComm]
-    MODELS += [models.AgentFullComm]
+    # MODELS += [models.AgentFullComm]
 
-    logger.info("*** Running simulations for Problem {}.{} for models: {}".format(PROBLEM.name, PROBLEM.ID, [m.__name__ for m in MODELS]))
+    logger.info("*** Running simulations for Problem {} for models: {}".format(PROBLEM.name, [m.__name__ for m in MODELS]))
     for AGENT_TYPE in MODELS:
         simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v14(), gui=False, re_plan=True, use_tree=False)
         simulation.run()
 
         if sum(simulation.cost_p_agent()) > sys.maxint/2: 
             # Trying to minimize the uncertainties that makes it impossible
+            if random:
+                PROBLEMS.append(make_random_problem)
             show_summary = False
             logger.info("Incomplete World")
             break
 
         simulations.append(simulation)
+        
 
     # Output summary 
     if show_summary:
-        logger.info("*** SUMMARY for Problem {}.{} Summary for Models: {}".format(PROBLEM.name, PROBLEM.ID, MODELS))
+        logger.info("*** SUMMARY for Problem {} Summary for Models: {}".format(PROBLEM.name, MODELS))
         for sim in simulations:
             logger.info(sim.get_summary(cost=True, cost_bd=False, obs=False, comm=False, void=True))
             sim.write_to_file()
@@ -129,4 +139,3 @@ while num_problem_left > 0:
         #         logger.info("Agent: {}\nActions: {}".format(agent_name, agent.get_histories()))
 
 
-    num_problem_left -= 1

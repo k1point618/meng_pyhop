@@ -17,7 +17,7 @@ class CommMessage():
 class AgentMind(object):
 
     def make_logger(self):
-        self.log = logging.getLogger('{}.{}.{}'.format(type(self).__name__, self.name, self.mental_world.ID))
+        self.log = logging.getLogger('{}.{}.{}'.format(type(self).__name__, self.name, self.mental_world.name))
         self.log.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
         formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
@@ -199,6 +199,8 @@ class AgentMind(object):
         self.log.info("\t incomming messages: {}".format(incomingMsgs))
 
         for incomingMsg in incomingMsgs:
+            self.add_history('received {} from {}'.format(incomingMsg.msg, incomingMsg.sender), 0)
+            
             (loc, avail) = incomingMsg.msg
             if self.mental_world.loc_available[loc] != avail:
                 loc_diff.append((loc, avail))
@@ -231,10 +233,10 @@ class AgentMind(object):
         # Replace current plan if stuck or new plan is better
         if stuck or (potential_plan_cost < len(self.actions[self.cur_step:])): #Cost function. assuming cost_action is 1
             self.set_solution(solution)
+            self.add_history('replan', self.mental_world.COST_REPLAN)
             self.cur_step = 0
             self.global_step += 1
             self.times_replanned += 1
-            self.add_history('replan', self.mental_world.COST_REPLAN)
 
             return True # meaning plan updated
         else: return False
@@ -358,7 +360,6 @@ class AgentSmartComm(AgentMind):
             self.log.info("... the other agent should be done by the time msg sent. no need for simulation")
             return to_return
         other.mental_world = other.states[other.cur_step-1]
-
 
         # Pretend to send message and update teammate's world
         other.incoming_comm([CommMessage(self.name, other.name, diff)])

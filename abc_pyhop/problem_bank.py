@@ -10,7 +10,7 @@ def random(num_agent=2):
 def maze_0():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(3, 3, num_agent=1)
+	world = rrw.get_random_world(3, 3, num_agent=1, name='maze_0')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 9)]
@@ -22,12 +22,13 @@ def maze_0():
 	world.at['A1'] = 1
 	world.visited['A1'] = set()
 	world.visited['A1'].add(1)
+	
 	return world
 
 def maze_1():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(5, 5, num_agent=1)
+	world = rrw.get_random_world(5, 5, num_agent=1, name='maze_1')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 5)]
@@ -50,7 +51,7 @@ def maze_1():
 def maze_2():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(5, 5, num_agent=1)
+	world = rrw.get_random_world(5, 5, num_agent=1, name='maze_2')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 15)]
@@ -76,7 +77,7 @@ def maze_2():
 def maze_3():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(5, 5, num_agent=1)
+	world = rrw.get_random_world(5, 5, num_agent=1, name='maze_3')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 15)]
@@ -104,7 +105,7 @@ def maze_3():
 def maze_4():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(num_agent=1)
+	world = rrw.get_random_world(num_agent=1, name='maze_4')
 
 	# Set Lander Location
 	world.at[rrw.LANDER] = 78
@@ -135,7 +136,7 @@ def maze_4():
 def maze_5():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(num_agent=1)
+	world = rrw.get_random_world(num_agent=1, name='maze_5')
 
 	# Set Lander Location
 	world.at[rrw.LANDER] = 51
@@ -167,7 +168,7 @@ def maze_5():
 def navigate_replan():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(5, 5, num_agent=1)
+	world = rrw.get_random_world(5, 5, num_agent=1, name='navigate_replan')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 15)]
@@ -188,7 +189,7 @@ def navigate_replan():
 def navigate_replan_team():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0
-	world = rrw.get_random_world(5, 5, num_agent=2)
+	world = rrw.get_random_world(5, 5, num_agent=2, name='navigate_replan_team')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 15)]
@@ -216,7 +217,7 @@ def navigate_replan_team_2():
 	rrw.NUM_SOILS=0
 	rrw.LANDER='X'
 	rrw.LAB = 'X'
-	world = rrw.get_random_world(6, 6, num_agent=2)
+	world = rrw.get_random_world(6, 6, num_agent=2, name='navigate_replan_team_2')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 31)]
@@ -243,7 +244,6 @@ def navigate_replan_team_2():
 		world.loc_available[t] = False
 
 	world.uncertainties = replan_2_rand
-	world.ID = "navigate_replan_team_2"
 	return world
 
 
@@ -254,7 +254,7 @@ def navigate_replan_team_3():
 	rrw.NUM_SOILS=0
 	rrw.LANDER='X'
 	rrw.LAB = 'X'
-	world = rrw.get_random_world(6, 6, num_agent=2)
+	world = rrw.get_random_world(6, 6, num_agent=2, name='navigate_replan_team_3')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 31)]
@@ -289,7 +289,7 @@ def navigate_replan_team_4():
 	rrw.NUM_SOILS=0
 	rrw.LANDER='X'
 	rrw.LAB = 'X'
-	world = rrw.get_random_world(7, 7, num_agent=2)
+	world = rrw.get_random_world(7, 7, num_agent=2, name='navigate_replan_team_4')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 43)]

@@ -76,7 +76,8 @@ def a_star(state, agent, sink):
 		for neighbor in get_neighbors(state, current):
 			if neighbor in closed_set:
 				continue
-			tentative_g_score = g_score[current] + dist_between(current, neighbor)
+			task = ('navigate_op', agent, current, neighbor)
+			tentative_g_score = g_score[current] + state.cost_func(state, task)
 
 			if (not (neighbor in openset)) or tentative_g_score < g_score[neighbor]:
 				came_from[neighbor] = current
@@ -123,7 +124,6 @@ def heuristic(state, source, sink):
 	(sink_x, sink_y) = state.loc[sink]
 
 	return abs((source_x - sink_x)) + abs((source_y - sink_y))
-	# return math.sqrt((source_x - sink_x)**2 + (source_y - sink_y)**2)
 
 
 def reconstruct_path(came_from, current):
@@ -140,7 +140,8 @@ def dist_between(current, neighbor):
 VERBOSE = True
 if __name__ == '__main__':
 	print("Testing a_star")
-	world = random_rovers_world.get_random_world(5, 5)
+	world = random_rovers_world.get_random_world(10, 10)
+	world.rand = False
 	print("Random world: ")
 	random_rovers_world.print_board(world)
 
@@ -149,3 +150,5 @@ if __name__ == '__main__':
 	print("*** Navigating from {} to {} ***".format(world.at['A1'], sink))
 	path = a_star(world, 'A1', sink)
 	print(path)
+	for action in path:
+		print("{}\t{}".format(action, world.cost_func(world, action)))

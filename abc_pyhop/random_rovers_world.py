@@ -141,7 +141,7 @@ def print_board_str(state): # Makes the string output
                 to_print += str(occupied[(i, j)]) + "\t"
             else:
                 if (state.loc_available[idx]):
-                    to_print += "[\t]\t"
+                    to_print += "[{}]\t".format(state.cost[idx])
                 else:
                     to_print += "[++++++]\t"
 
@@ -153,14 +153,14 @@ def print_board_str(state): # Makes the string output
 Main funciton for generating random world
 """
 def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, 
-                    a_star=True):
+                    a_star=True, name="r_{}".format(time.time())):
 
     ##############################
     # Below, we generate the world with pre-defined randomness.
 
     # General and Miscellaneous World info
     world = State("InitialWorld")
-    world.name = "RandomWorld"
+    world.name = name
     world.prop = {"num_col":BOARD_Y, "num_row":BOARD_X}
     available_spaces = range(1,(BOARD_X*BOARD_Y+1))
     world.at = {}
@@ -250,14 +250,16 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     # World's Location definition
     world.loc = {}
     world.loc_available = {}
+    world.cost = {}
     idx = 1
     for i in range(BOARD_X):
         for j in range(BOARD_Y):
             world.loc[idx] = (i, j)
             world.loc_available[idx] = True
+            world.cost[idx] = 1 # Random cost int(random.random() * 20) of the location
             idx += 1
 
-        # Allocate goals to each agent
+
     # TODO: For now, we manually allocate the goals
     world.goals = {}
     for agent_id in range(num_agent):
@@ -267,14 +269,20 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     # For other miscellaneous settings
     world.settings = {}
     world.settings['a-star'] = a_star
-    world.ID = int(time.time())
 
     # Default costs
     world.COST_OF_COMM = 1
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
 
+    world.cost_func = cost_function
     return world
+
+# What is the cost of an action assuming that it can be done.
+def cost_function(state, task):
+    if task[0] == 'navigate_op':
+        agent, source, sink = task[1:]
+    return state.cost[sink]
 
 ######## End for Generating world
 
