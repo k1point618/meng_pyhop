@@ -75,39 +75,47 @@ def make_random_problem():
 Choose any problem from problem bank
 """
 PROBLEMS = []
-random = False
-# PROBLEMS.append(problem_bank.maze_0())
-PROBLEMS.append(problem_bank.maze_1())
-PROBLEMS.append(problem_bank.maze_2())
-PROBLEMS.append(problem_bank.maze_4())
-PROBLEMS.append(problem_bank.maze_5())
-# PROBLEMS.append(problem_bank.navigate_replan_team_2())
-# PROBLEMS.append(problem_bank.navigate_replan_team_3())
-# PROBLEMS.append(problem_bank.navigate_replan_team_4())
+random = True
+if not random:
+    # PROBLEMS.append(problem_bank.maze_0())
+    # PROBLEMS.append(problem_bank.maze_1())
+    # PROBLEMS.append(problem_bank.maze_2())
+    # PROBLEMS.append(problem_bank.maze_4())
+    # PROBLEMS.append(problem_bank.maze_5())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_2())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_3())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
+    # PROBLEMS.append(problem_bank.navigate_replan_team_5())
+    PROBLEMS.append(problem_bank.navigate_replan_team_6())
 
 if random:
-    PROBLEMS = [0] * num_problems
+    num_problems = 5
+    PROBLEMS = [0 for i in range(num_problems)]
 
+
+"""
+Start simulations for each problem
+"""
 while len(PROBLEMS) != 0:
-    PROBLEM = PROBLEMS.pop()
+    PROBLEM = PROBLEMS.pop(0)
     if random:
         PROBLEM = make_random_problem()
+        print(PROBLEM.name + "=================")
 
     show_summary = True
 
     # Set costs
-    PROBLEM.COST_OF_COMM = 0
-    PROBLEM.COST_REPLAN = 1
-    PROBLEM.COST_ACTION = 1
+    PROBLEM.COST_OF_COMM = 1
+    PROBLEM.COST_REPLAN = 0
     
     """
     Run Multiple Simulaitons for a given problem
     """
     simulations = []
     MODELS = []
-    # MODELS += [models.AgentNoComm]
+    MODELS += [models.AgentNoComm]
     MODELS += [models.AgentSmartComm]
-    # MODELS += [models.AgentFullComm]
+    MODELS += [models.AgentFullComm]
 
     logger.info("*** Running simulations for Problem {} for models: {}".format(PROBLEM.name, [m.__name__ for m in MODELS]))
     for AGENT_TYPE in MODELS:
@@ -129,7 +137,7 @@ while len(PROBLEMS) != 0:
     if show_summary:
         logger.info("*** SUMMARY for Problem {} Summary for Models: {}".format(PROBLEM.name, MODELS))
         for sim in simulations:
-            logger.info(sim.get_summary(cost=True, cost_bd=False, obs=False, comm=False, void=True))
+            logger.info(sim.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
             sim.write_to_file()
 
         # raw_input("Show Individual Actions?")

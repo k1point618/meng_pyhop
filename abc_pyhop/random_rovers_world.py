@@ -28,6 +28,8 @@ the global time-step of the simulation.
 def get_uncertainty_fun(state, num_step, a_prob):
 
     sequence = []
+    randoms = [random.random() * state.MAX_COST for i in range(num_step)]
+
     for idx in range(num_step):
         toggle = (random.random() < a_prob)
         if toggle:
@@ -49,7 +51,7 @@ def get_uncertainty_fun(state, num_step, a_prob):
         if rand_loc != None:
             # in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc] # This allows flipping
             in_state.loc_available[rand_loc] = False # This means if a location turns into a trap, it will stay as a trap
-
+            in_state.cost[rand_loc] = randoms[in_idx]
     return to_return
 
 """
@@ -91,7 +93,8 @@ def act(state, action):
     global operators
     assert(task_name in operators)
     operator = operators[task_name]
-    return operator(copy.deepcopy(state), *action[1:])
+    new_state = operator(copy.deepcopy(state), *action[1:])
+    return new_state
 
 """
 NOTE: Obsolete
@@ -153,7 +156,10 @@ def print_board_str(state): # Makes the string output
 Main funciton for generating random world
 """
 def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, 
-                    a_star=True, name="r_{}".format(time.time())):
+                    a_star=True, name=None):
+
+    if name == None:
+        name = str(time.time())
 
     ##############################
     # Below, we generate the world with pre-defined randomness.
@@ -251,12 +257,14 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.loc = {}
     world.loc_available = {}
     world.cost = {}
+    world.MAX_COST = 10
     idx = 1
     for i in range(BOARD_X):
         for j in range(BOARD_Y):
             world.loc[idx] = (i, j)
             world.loc_available[idx] = True
-            world.cost[idx] = 1 # Random cost int(random.random() * 20) of the location
+            world.cost[idx] = 1
+            # world.cost[idx] = int(random.random() * world.MAX_COST) #of the location
             idx += 1
 
 
@@ -274,15 +282,19 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.COST_OF_COMM = 1
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
+    world.MAX_COST = 10
 
     world.cost_func = cost_function
     return world
 
 # What is the cost of an action assuming that it can be done.
+# This cost fucntion is also used by A* during navigation.
 def cost_function(state, task):
+    to_return = 1
     if task[0] == 'navigate_op':
         agent, source, sink = task[1:]
-    return state.cost[sink]
+        to_return = state.cost[sink]
+    return to_return
 
 ######## End for Generating world
 

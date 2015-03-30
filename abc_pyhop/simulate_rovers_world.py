@@ -28,7 +28,7 @@ class Simulation():
         self.log = logging.getLogger('{}.{}'.format(AgentType.__name__, problem.name))
         self.log.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler('logs/sim_{}.log'.format(AgentType.__name__))
-        formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s:%(message)s')
+        formatter = logging.Formatter('%(asctime)s-%(name)s-(%(lineno)d):%(message)s')
         file_handler.setFormatter(formatter)
         self.log.addHandler(file_handler)
 
@@ -236,7 +236,7 @@ class Simulation():
 
         if all(agent.is_done() for agent in self.agents.values()):
             return True # All done
-
+        self.log.info(self.real_world)
         if hasattr(self.real_world, 'uncertainties'):
             self.log.info("Using predefined uncertainties.")
             # If a world comes with it's own uncertainty-funciton, then apply that
@@ -265,6 +265,7 @@ class Simulation():
             
             # First process the incomming communications
             world_changed = agent.incoming_comm(self.communications) 
+
             # 1. Update agent's world model
             # TODO: 2. update agent's model of the sender (plan recognition)
 
@@ -288,12 +289,11 @@ class Simulation():
 
                 # Add communication to actions taken (including all messages NOT sent)
                 for commMsg in out_commMsgs:
-                    actions_took[commMsg.sender].append(('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM))
-                    agent.add_history('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM)
+                    hist = agent.add_history('comm {} to {}'.format(commMsg.msg, commMsg.receiver), self.real_world.COST_OF_COMM)
+                    actions_took[commMsg.sender].append(hist)
                 for commMsg in void_msgs:
-                    actions_took[commMsg.sender].append(('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0))
-                    agent.add_history('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0)
-            
+                    hist = agent.add_history('no-comm from {} to {}'.format(commMsg.msg, commMsg.receiver), 0)
+                    actions_took[commMsg.sender].append(hist)            
 
 
             # 3.0: If agent is done, no need to replan or act
@@ -301,29 +301,34 @@ class Simulation():
 
             # 3. Continue ACTING or REPLAN on real-world (aka: replana or not)
             replan = agent.replan_q()
-            if  replan:
-                agent.replan(self.PARAMS['use_tree'], stuck=replan)
-                actions_took[agent_name].append(('replan', self.real_world.COST_REPLAN))
+            if  replan or world_changed: # If we do not include world_changed, then does not seek for "better" plan
+                if agent.replan(self.PARAMS['use_tree'], stuck=replan):
+                    hist = agent.add_history('replan', self.real_world.COST_REPLAN)
+                    actions_took[agent_name].append(hist)
+                    agent.cur_step = 0
+                    agent.times_replanned += 1
             else:
                 # 4: (if not replan) Agent takes action
                 self.log.info(('cur_action: ', cur_action))
                 self.real_world = act(self.real_world, cur_action)
                 agent.mental_world = act(agent.mental_world, cur_action)
 
+                assert(self.real_world != None)
                 assert(self.real_world != False)
                 assert(agent.mental_world != False) 
 
-                agent.add_history(cur_action, 1) #Cost of action
+                hist = agent.add_history(cur_action, self.real_world.cost_func(self.real_world, cur_action)) #Cost of action
+                
                 agent.cur_step += 1
-                agent.global_step += 1
-
+                
                 if agent.cur_step >= len(agent.actions):
                     agent.done = True
                     agent.success = True
                 
-                actions_took[agent_name].append((cur_action, self.real_world.COST_REPLAN))
+                actions_took[agent_name].append(hist)
 
-
+            agent.global_step += 1
+                    
         self.communications = {}
         self.flush_communications()
         self.time += 1
@@ -423,7 +428,7 @@ class Simulation():
             self.real_world = act(self.real_world, cur_action)
             agent.mental_world = act(agent.mental_world, cur_action)
 
-            agent.add_history(cur_action, 1)
+            agent.add_history(cur_action, self.real_world.cost_func(self.real_world, cur_action))
 
             # end: Info
             print('next state')

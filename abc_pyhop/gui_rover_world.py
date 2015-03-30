@@ -61,6 +61,7 @@ class rover_world_gui(Tkinter.Tk):
                     .format(agent.get_global_step(), agent.get_name()))
             else:
                 # Update Board
+                ste
                 self.boardFrame.update_board(new_world)
                 self.boardFrame.append_info("{}: agent({}) performed action({})"
                     .format(agent.get_global_step(), agent.get_name(), step_info['cur_action']))
@@ -82,15 +83,15 @@ class rover_world_gui(Tkinter.Tk):
             print('All done')
             return 
 
-        (new_world, actions) = results
+        (new_world, histories_by_agent) = results
         
         # Update Board
         self.boardFrame.update_board(new_world)
 
-        for (agent_name, actions) in actions.items():
-            for a in actions:
-                self.boardFrame.append_info("{}: agent({}) performed action({})"
-                        .format(self.simulation.time, agent_name, a))
+        for (agent_name, histories) in histories_by_agent.items():
+            for hist in histories:
+                self.boardFrame.append_info("{}: agent({}) performed action {} cost {}"
+                        .format(hist[0], agent_name, hist[1], hist[2]))
             # update actions column
             self.actionFrame.set_actions(agent_name, self.simulation.agents[agent_name].get_solution())
             self.actionFrame.set_cur_action(agent_name, self.simulation.agents[agent_name].cur_step)
@@ -155,9 +156,9 @@ class AgentColumnFrame(Tkinter.Frame):
 
         # Show costs
         self.cur_status = Tkinter.StringVar()
+        fur_cost = sum(agent.mental_world.cost_func(agent.mental_world, a) for a in agent.actions[agent.cur_step:])
         self.cur_status.set("Incurred Cost: {}\nProjected Cost:{}"
-                            .format(sum(action[1] for action in agent.get_histories()), \
-                                len(agent.actions) - agent.cur_step))
+                            .format(0, fur_cost))
         self.costLabel = Tkinter.Label(self, textvariable=self.cur_status, width=30, height=2)
         self.costLabel.pack(side=Tkinter.TOP, expand=True)
 
@@ -201,10 +202,11 @@ class AgentColumnFrame(Tkinter.Frame):
 
     def set_cur_status(self, agent):
         # Get Current Cost
-        cost = sum(action[2] for action in agent.get_histories())
-        self.cur_status.set("Incurred Cost: {}\nProjected Cost:{}"
-                            .format(sum(action[1] for action in agent.get_histories()), \
-                                len(agent.actions) - agent.cur_step))
+        hist_cost = sum(action[2] for action in agent.get_histories())
+        fur_cost = sum(agent.mental_world.cost_func(agent.mental_world, a) for a in agent.actions[agent.cur_step:])
+        self.cur_status.set("Incurred Cost: {} \nProjected Cost:{}"
+                            .format(hist_cost, \
+                                fur_cost))
 
 
 # For the main board frame (Top left)
@@ -261,19 +263,17 @@ class BoardFrame(Tkinter.Frame):
                 else:
                     occupied[(i, j)] = str(thing)
 
-        for i in world.loc_available.keys():
-            if world.loc_available[i] == False:
+        for i in world.cost.keys():
+            if world.cost[i] > world.MAX_COST:
                 occupied[world.loc[i]] = "X"
 
         idx = 1
         for i in range(num_row):
             for j in range(num_col):
                 # # Put down un-available locations
-                if (world.loc_available[idx]):
-                    self.board_var[(i, j)].set(world.cost[idx])
+                if (world.cost[idx] < world.MAX_COST):
+                    self.board_var[(i, j)].set("%.2f" % round(world.cost[idx],2))
                     g_scale = hex(int(16-float(world.cost[idx]) / world.MAX_COST * 15))[2:]
-                    print "g_scale", g_scale
-                    print "cost", world.cost[idx]
                     self.board_labels[(i, j)].config(bg='#' + 6*'{}'.format(g_scale))
                 # else:
                 #     self.board_var[(i, j)].set("X")
@@ -289,7 +289,7 @@ class BoardFrame(Tkinter.Frame):
                     elif 'R' in occupied[(i, j)]:
                         self.board_labels[(i, j)].config(bg='#8FB26B')
                     elif 'X' in occupied[(i, j)]:
-                        self.board_labels[(i, j)].config(bg='red')
+                        self.board_labels[(i, j)].config(bg='black')
                     else: 
                         self.board_labels[(i, j)].config(bg='white')
                 idx += 1

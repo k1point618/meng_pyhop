@@ -89,6 +89,7 @@ class AgentMind(object):
 
     def add_history(self, action, cost):
         self.histories.append((self.global_step, action, cost))
+        return (self.global_step, action, cost)
 
     def is_done(self): return self.done
 
@@ -132,7 +133,7 @@ class AgentMind(object):
                 return (False, cur_world, accum_cost)
             else:
                 cur_world = next_world
-                accum_cost += 1 #cost(action)
+                accum_cost += cur_world.cost_func(cur_world, action)
                 num_steps += 1
         return (True, cur_world, accum_cost)
 
@@ -148,21 +149,29 @@ class AgentMind(object):
 
         my_l = self.mental_world.at[self.name]
         for l in self.mental_world.loc.keys():
-            if AgentMind.visible(my_l, l, real_world, range=2) and self.mental_world.loc_available[l] != real_world.loc_available[l]:
-                self.mental_world.loc_available[l] = real_world.loc_available[l]
-                loc_diff.append((l, real_world.loc_available[l]))
+            if AgentMind.visible(my_l, l, real_world, range=2) and self.mental_world.cost[l] != real_world.cost[l]:
+                if real_world.cost[l] > real_world.MAX_COST:
+                    self.mental_world.cost[l] = real_world.cost[l]
+                    loc_diff.append((l, real_world.loc_available[l]))
+                    loc_diff.append((l, real_world.cost[l]))
+
+            # Identify differences in cost
+            if AgentMind.visible(my_l, l, real_world) and self.mental_world.cost[l] != real_world.cost[l]:
+                self.mental_world.cost[l] = real_world.cost[l]
+                loc_diff.append((l, real_world.cost[l]))
             
         for (obj, loc) in real_world.at.items():
-            if loc != None and AgentMind.visible(my_l, loc, real_world, range=2) and self.mental_world.at[obj] != real_world.at[obj]:
+            if loc != None and AgentMind.visible(my_l, loc, real_world) and self.mental_world.at[obj] != real_world.at[obj]:
                 self.mental_world.at[obj] = real_world.at[obj]
         for (obj, loc) in self.mental_world.at.items():
-            if loc != None and AgentMind.visible(my_l, loc, self.mental_world, range=2) and self.mental_world.at[obj] != real_world.at[obj]:
+            if loc != None and AgentMind.visible(my_l, loc, self.mental_world) and self.mental_world.at[obj] != real_world.at[obj]:
                 self.mental_world.at[obj] = real_world.at[obj]
 
-        return loc_diff#, #at_diff # TODO: also include other differences inthe observation.
+        # Return a list of locations and their new cost
+        return loc_diff # TODO: also include other differences inthe observation.
 
     @staticmethod
-    def visible(A, B, world, range=2):
+    def visible(A, B, world, range=0):
         a_x, a_y = world.loc[A]
         b_x, b_y = world.loc[B]
         return((abs(a_x - b_x)**2 + abs(a_y - b_y)**2) <= range)
@@ -186,25 +195,25 @@ class AgentMind(object):
     # Return the set of differences
     # TODO: Also update agent_other_world (using from)
     # Returns whether self.mental_world was updated
-    def incoming_comm(self, communications):
+    def incoming_comm(self, communications, sim=False):
         # Find messages sent to receiver
         incomingMsgs = [commMsg for commMsg in communications if commMsg.receiver == self.name]
         if len(incomingMsgs) == 0: 
             return False
 
+        self.log.info("Simulation: {}".format(sim))
         self.log.info("Agent {} is handling incoming communications:\n\t{}".format(self.name, communications))
         # TODO: given communication, return a set of differences that are new
         # NOTE: assume only location-availability information is given
-        loc_diff = []
         self.log.info("\t incomming messages: {}".format(incomingMsgs))
 
         for incomingMsg in incomingMsgs:
             self.add_history('received {} from {}'.format(incomingMsg.msg, incomingMsg.sender), 0)
             
-            (loc, avail) = incomingMsg.msg
-            if self.mental_world.loc_available[loc] != avail:
-                loc_diff.append((loc, avail))
-                self.mental_world.loc_available[loc] = avail
+            (loc, new_cost) = incomingMsg.msg
+            if self.mental_world.cost[loc] != new_cost:
+                self.mental_world.cost[loc] = new_cost
+
         self.log.info("Agent {} finished handling incomming communication. New world:\n{}"
             .format(self.name, print_board_str(self.mental_world)))
         return True
@@ -226,18 +235,14 @@ class AgentMind(object):
         if isinstance(solution, PlanNode):
             potential_plan_cost = solution.cost
         else:
-            potential_plan_cost = len(solution[0])
+            potential_plan_cost = sum(self.mental_world.cost_func(self.mental_world, a) for a in solution[0])
         self.log.info("Potential plan Cost: {}".format(potential_plan_cost))
         self.log.info("Projected Current Plan Cost: {}".format(len(self.actions[self.cur_step:])))
 
         # Replace current plan if stuck or new plan is better
-        if stuck or (potential_plan_cost < len(self.actions[self.cur_step:])): #Cost function. assuming cost_action is 1
+        cur_project_cost = sum(self.mental_world.cost_func(self.mental_world, a) for a in self.actions[self.cur_step:])
+        if stuck or (potential_plan_cost < cur_project_cost): #Cost function. assuming cost_action is 1
             self.set_solution(solution)
-            self.add_history('replan', self.mental_world.COST_REPLAN)
-            self.cur_step = 0
-            self.global_step += 1
-            self.times_replanned += 1
-
             return True # meaning plan updated
         else: return False
 
@@ -338,7 +343,7 @@ class AgentSmartComm(AgentMind):
 
                     self.log.warning("Agent {} decided to COMMUNICATE {} given cost of comm: {} and no-comm: {}..."
                         .format(self.name, diff, cost_comm, cost_no_comm))
-                    END_EXPERIMENT = True
+
                 else:
                     self.log.info("Agent {} decided to NOT COMMUNICATE {} given cost of comm: {} and no-comm: {}..."
                         .format(self.name, diff, cost_comm, cost_no_comm))
@@ -362,11 +367,11 @@ class AgentSmartComm(AgentMind):
         other.mental_world = other.states[other.cur_step-1]
 
         # Pretend to send message and update teammate's world
-        other.incoming_comm([CommMessage(self.name, other.name, diff)])
+        other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
 
         # Pretend to re-plan with new info # no need to check for re-plan
         new_cost_to_finish, actions = self.EX_COST(other.mental_world, other)
-        self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan: {}"
+        self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan:\n{}"
             .format(other.name, other.goal, new_cost_to_finish, actions))
 
         to_return += new_cost_to_finish
@@ -377,11 +382,16 @@ class AgentSmartComm(AgentMind):
 
     def no_comm_cost(self, other, diff):
 
-        # Then check for point of failure
         self.log.info("Agent {} is simulating agent {}'s world \n{}\n\
             ...for no-comm,\n\
             ...regarding on diffs: {}"
             .format(self.name, other.name, print_board_str(other.mental_world), diff))
+
+        # projected_other_world = act(copy.deepcopy(self.mental_world), other.actions[self.cur_step])
+        # self.log.info("Other agent's mental world: \n{}".format(print_board_str(projected_other_world)))
+        
+        # (simulated, world, cost) = self.simulate(other.name, projected_other_world, other.actions[self.cur_step+1:])
+        # self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.actions[self.cur_step+1:], cost))
 
         # By the time other receives message
         other.cur_step = self.cur_step + 1
@@ -391,7 +401,7 @@ class AgentSmartComm(AgentMind):
         other.mental_world = other.states[other.cur_step-1]
 
         # Simulation?
-        other.incoming_comm([CommMessage(self.name, other.name, diff)])
+        other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
 
         self.log.info("Other agent's mental world: \n{}".format(print_board_str(other.mental_world)))
         
@@ -428,7 +438,11 @@ class AgentSmartComm(AgentMind):
         if solutions[0] == False:
             return (sys.maxint, 'None')
         (actions, states) = solutions[0]
-        return (len(actions), actions)
+        total_cost = 0
+        for action in actions:
+            total_cost += world.cost_func(world, action)
+        agent.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, actions))
+        return (total_cost, actions)
 
 
 

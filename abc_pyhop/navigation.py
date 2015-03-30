@@ -109,13 +109,21 @@ def to_actions(path, agent):
 def get_neighbors(state, current):
 	neighbors = []
 	(cur_x, cur_y) = state.loc[current]
-	if cur_x != 0 and state.loc_available[current-state.prop['num_col']]:
+	# Neighbor above
+	# if cur_x != 0 and state.loc_available[current-state.prop['num_col']]:
+	if cur_x != 0:
 		neighbors.append(current-state.prop['num_col'])
-	if cur_x != state.prop['num_row'] - 1 and state.loc_available[current+state.prop['num_col']]:
+	# Neighbor below
+	# if cur_x != state.prop['num_row'] - 1 and state.loc_available[current+state.prop['num_col']]:
+	if cur_x != state.prop['num_row'] - 1:
 		neighbors.append(current + state.prop['num_col'])
-	if cur_y != 0 and state.loc_available[current-1]:
+	# Neighbor Left
+	# if cur_y != 0 and state.loc_available[current-1]:
+	if cur_y != 0:
 		neighbors.append(current-1)
-	if cur_y != state.prop['num_col']-1 and state.loc_available[current+1]:
+	# Neighbor Right
+	# if cur_y != state.prop['num_col']-1 and state.loc_available[current+1]:
+	if cur_y != state.prop['num_col']-1:
 		neighbors.append(current+1)
 	return neighbors
 

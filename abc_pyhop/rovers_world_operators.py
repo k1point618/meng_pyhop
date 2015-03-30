@@ -4,7 +4,7 @@ Author: Kgu@mit.edu
 """
 
 import pyhop
-
+import random_rovers_world as rrw
 
 """ 
 Below are some helper functions for implementing the operators
@@ -24,10 +24,7 @@ The first argument is the current state, always, and the others are the planning
 """
 
 def navigate_op(state, a, source, sink):
-	# print('is agent', state.is_agent[a])
-	# print('at', state.at[a], 'source', source)
-	# print('can_traverse', can_traverse(state, source, sink));
-	if state.is_agent[a] and state.at[a] == source and can_traverse(state, source, sink) and state.loc_available[sink]:
+	if state.is_agent[a] and state.at[a] == source and can_traverse(state, source, sink) and state.cost[sink] <= state.MAX_COST:
 		state.at[a] = sink
 		return state
 	else:

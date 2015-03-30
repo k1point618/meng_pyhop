@@ -56,7 +56,8 @@ class Planner():
 		def v14_plan(problem, agent):
 			problem.a_star = True
 			problem.rand = False # False for debugging
-			return pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
+			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
+			return solutions
 		v14.planner = v14_plan
 		return v14
 
