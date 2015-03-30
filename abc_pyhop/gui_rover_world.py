@@ -266,13 +266,14 @@ class BoardFrame(Tkinter.Frame):
                 occupied[world.loc[i]] = "X"
 
         idx = 1
-        max_loc_cost = max(world.cost.values())
         for i in range(num_row):
             for j in range(num_col):
                 # # Put down un-available locations
                 if (world.loc_available[idx]):
                     self.board_var[(i, j)].set(world.cost[idx])
-                    g_scale = hex(int(float(world.cost[idx]) / max_loc_cost * 16))[2:]
+                    g_scale = hex(int(16-float(world.cost[idx]) / world.MAX_COST * 15))[2:]
+                    print "g_scale", g_scale
+                    print "cost", world.cost[idx]
                     self.board_labels[(i, j)].config(bg='#' + 6*'{}'.format(g_scale))
                 # else:
                 #     self.board_var[(i, j)].set("X")
