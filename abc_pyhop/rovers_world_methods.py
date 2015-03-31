@@ -14,7 +14,7 @@ Author: Kgu@mit.edu
 import random, pyhop, navigation, heapq
 from rovers_world_operators import *
 
-def empty_store_m(state, store, rover):
+def empty_store_m(state, store, rover, rand=False):
 	possible_decomp = []
 	if state.empty[store]:
 		possible_decomp.append([])
@@ -35,7 +35,7 @@ def can_traverse(state, source, sink):
 	elif (b-a == num_col):
 		return True
 
-def navigate_m(state, agent, sink):
+def navigate_m(state, agent, sink, rand=False):
 	if state.a_star:
 		return [navigation.a_star(state, agent, sink)]
 		
@@ -50,8 +50,8 @@ def navigate_m(state, agent, sink):
 
 pyhop.declare_methods('navigate',navigate_m)
 
-# 
-def navigate2_m(state, agent, source, sink):
+# Multiple Decomp: Yes
+def navigate2_m(state, agent, source, sink, rand=False):
 	possible_decomp = []
 	source_y, source_x = state.loc[source]
 	sink_y, sink_x = state.loc[sink]
@@ -69,6 +69,9 @@ def navigate2_m(state, agent, source, sink):
 			if n not in state.visited[agent]: 
 				neighbors.append(n)
 
+		if rand: 
+			random.shuffle(neighbors)
+
 		sorted_n = sorted(neighbors, key=lambda n: navigation.heuristic(state,n, sink))
 
 		for mid in sorted_n:
@@ -80,44 +83,50 @@ def navigate2_m(state, agent, source, sink):
 
 pyhop.declare_methods('navigate2',navigate2_m)
 
-
-def get_sample_data_m(state, agent):
+# Multiple Decomp : Yes
+def get_sample_data_m(state, agent, rand=False):
 	# Consider two cases here, rock OR soil
-	rock_score = -1 * (int(state.has_rock_sample[agent]) + int(state.has_rock_analysis[agent]))
-	soil_score = -1 * (int(state.has_soil_sample[agent]) + int(state.has_soil_analysis[agent]))
+	rock_score = int(state.has_rock_sample[agent]) + int(state.has_rock_analysis[agent])
+	soil_score = int(state.has_soil_sample[agent]) + int(state.has_soil_analysis[agent])
 
 	possible_decomp = []
 	if state.is_agent[agent] and state.equipped_for_rock_analysis[agent]:
-		decomp = [('get_rock_data', agent)]
-		heapq.heappush(possible_decomp, (rock_score, decomp))
+		possible_decomp.append([('get_rock_data', agent)])
+		
 	if state.is_agent[agent] and state.equipped_for_soil_analysis[agent]:
-		decomp = [('get_soil_data', agent)]
-		heapq.heappush(possible_decomp, (soil_score, decomp))
+		if rock_score > soil_score:
+			# Rock in front
+			possible_decomp = possible_decomp + [[('get_soil_data', agent)]]
+		elif soil_score <= rock_score:
+			possible_decomp = [[('get_soil_data', agent)]] + possible_decomp
 
 	if len(possible_decomp) == 0: return [False]
-
-	num_result = len(possible_decomp)
-	return [heapq.heappop(possible_decomp)[1] for i in range(num_result)]
+	if rock_score == soil_score and rand:
+		random.shuffle(possible_decomp)
+	return possible_decomp
 
 pyhop.declare_methods('get_sample_data',get_sample_data_m)
 
 
+# Multiple Decomp : yes
 def get_soil_data_m(state, agent, rand=False):
-	possible_decomp = []
+	keys = []
 	to_return = []
 	for (key, val) in state.at.items():
 		if val != None:
 			if (key in state.soils):
 				# Using heapq
-				decomp = [('get_a_soil_data', agent, key)]
-				heuristic = navigation.heuristic(state, state.at[agent], state.at[key])
-				heapq.heappush(possible_decomp, (heuristic, decomp))
-			
+				keys.append(key)
+
 	if state.has_soil_sample[agent]:
 		to_return += [[('get_a_soil_data', agent, state.soil_sample[agent])]] # First
 
-	num_result = len(possible_decomp)
-	to_return += [heapq.heappop(possible_decomp)[1] for i in range(num_result)]
+	if rand: 
+		random.shuffle(keys)
+	sorted_keys = sorted(keys, key=lambda n: navigation.heuristic(state, state.at[agent], state.at[n]))
+	for k in sorted_keys:
+		to_return.append([('get_a_soil_data', agent, k)])
+
 	if len(to_return) == 0: return [False] # If there is no soil anywhere
 	return to_return
 
@@ -165,25 +174,26 @@ def send_soil_data_m(state, rover, rand=False):
 	return possible_decomp
 pyhop.declare_methods('send_soil_data',send_soil_data_m)
 
-
+# Multiple Decomp
 def get_rock_data_m(state, agent, rand=False):
-	possible_decomp = []
-	to_return =[]
-
+	keys = []
+	to_return = []
 	for (key, val) in state.at.items():
 		if val != None:
 			if (key in state.rocks):
 				# Using heapq
-				decomp = [('get_a_rock_data', agent, key)]
-				heuristic = navigation.heuristic(state, state.at[agent], state.at[key])
-				heapq.heappush(possible_decomp, (heuristic, decomp))
+				keys.append(key)
 
 	if state.has_rock_sample[agent]:
 		to_return = [[('get_a_rock_data', agent, state.rock_sample[agent])]]
 
-	num_result = len(possible_decomp)
-	to_return += [heapq.heappop(possible_decomp)[1] for i in range(num_result)]
-	if len(to_return) == 0: return [False]
+	if rand: 
+		random.shuffle(keys)
+	sorted_keys = sorted(keys, key=lambda n: navigation.heuristic(state, state.at[agent], state.at[n]))
+	for k in sorted_keys:
+		to_return.append([('get_a_rock_data', agent, key)])
+
+	if len(to_return) == 0: return [False] # If there is no soil anywhere
 	return to_return
 
 pyhop.declare_methods('get_rock_data',get_rock_data_m)
