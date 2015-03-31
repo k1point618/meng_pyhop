@@ -150,7 +150,7 @@ class AgentMind(object):
         my_l = self.mental_world.at[self.name]
         for l in self.mental_world.loc.keys():
             if AgentMind.visible(my_l, l, real_world, range=2) and self.mental_world.cost[l] != real_world.cost[l]:
-                if real_world.cost[l] > real_world.MAX_COST:
+                if real_world.cost[l] > real_world.MAX_COST or self.mental_world.cost[l] > real_world.MAX_COST:
                     self.mental_world.cost[l] = real_world.cost[l]
                     loc_diff.append((l, real_world.loc_available[l]))
                     loc_diff.append((l, real_world.cost[l]))

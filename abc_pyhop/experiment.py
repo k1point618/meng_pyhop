@@ -75,7 +75,7 @@ def make_random_problem():
 Choose any problem from problem bank
 """
 PROBLEMS = []
-random = True
+random = False
 if not random:
     # PROBLEMS.append(problem_bank.maze_0())
     # PROBLEMS.append(problem_bank.maze_1())
@@ -83,10 +83,10 @@ if not random:
     # PROBLEMS.append(problem_bank.maze_4())
     # PROBLEMS.append(problem_bank.maze_5())
     # PROBLEMS.append(problem_bank.navigate_replan_team_2())
-    # PROBLEMS.append(problem_bank.navigate_replan_team_3())
+    PROBLEMS.append(problem_bank.navigate_replan_team_3())
     # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
-    # PROBLEMS.append(problem_bank.navigate_replan_team_5())
-    PROBLEMS.append(problem_bank.navigate_replan_team_6())
+    PROBLEMS.append(problem_bank.navigate_replan_team_5())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_6())
 
 if random:
     num_problems = 5
@@ -119,7 +119,7 @@ while len(PROBLEMS) != 0:
 
     logger.info("*** Running simulations for Problem {} for models: {}".format(PROBLEM.name, [m.__name__ for m in MODELS]))
     for AGENT_TYPE in MODELS:
-        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v14(), gui=False, re_plan=True, use_tree=False)
+        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v14(), gui=True, re_plan=True, use_tree=False)
         simulation.run()
 
         if sum(simulation.cost_p_agent()) > sys.maxint/2: 

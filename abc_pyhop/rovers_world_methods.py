@@ -25,6 +25,15 @@ def empty_store_m(state, store, rover):
 
 pyhop.declare_methods('empty_store',empty_store_m)
 
+def can_traverse(state, source, sink):
+	num_col = state.prop["num_col"]
+	num_row = state.prop["num_row"]
+	a = min(source, sink)
+	b = max(source, sink)
+	if (b-a == 1) and (a % num_col != 0):
+		return True
+	elif (b-a == num_col):
+		return True
 
 def navigate_m(state, agent, sink):
 	if state.a_star:

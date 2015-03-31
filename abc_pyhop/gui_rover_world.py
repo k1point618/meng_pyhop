@@ -270,6 +270,7 @@ class BoardFrame(Tkinter.Frame):
         idx = 1
         for i in range(num_row):
             for j in range(num_col):
+                self.board_labels[(i, j)].config(fg='black')                        
                 # # Put down un-available locations
                 if (world.cost[idx] < world.MAX_COST):
                     self.board_var[(i, j)].set("%.2f" % round(world.cost[idx],2))
@@ -290,6 +291,9 @@ class BoardFrame(Tkinter.Frame):
                         self.board_labels[(i, j)].config(bg='#8FB26B')
                     elif 'X' in occupied[(i, j)]:
                         self.board_labels[(i, j)].config(bg='black')
+                    elif 'A' in occupied[(i, j)]:
+                        self.board_labels[(i, j)].config(fg='red')                        
+                        self.board_labels[(i, j)].config(bg='white')
                     else: 
                         self.board_labels[(i, j)].config(bg='white')
                 idx += 1
