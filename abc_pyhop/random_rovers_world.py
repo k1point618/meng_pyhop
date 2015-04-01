@@ -294,6 +294,8 @@ def cost_function(state, task):
     if task[0] == 'navigate_op':
         agent, source, sink = task[1:]
         to_return = state.cost[sink]
+    if task[0] == 'visit' or task[0] == 'unvisit':
+        to_return = 0
     return to_return
 
 ######## End for Generating world

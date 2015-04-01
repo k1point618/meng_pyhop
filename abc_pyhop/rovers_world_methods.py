@@ -191,7 +191,7 @@ def get_rock_data_m(state, agent, rand=False):
 		random.shuffle(keys)
 	sorted_keys = sorted(keys, key=lambda n: navigation.heuristic(state, state.at[agent], state.at[n]))
 	for k in sorted_keys:
-		to_return.append([('get_a_rock_data', agent, key)])
+		to_return.append([('get_a_rock_data', agent, k)])
 
 	if len(to_return) == 0: return [False] # If there is no soil anywhere
 	return to_return

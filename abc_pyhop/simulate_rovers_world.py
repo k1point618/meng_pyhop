@@ -79,7 +79,7 @@ class Simulation():
             results = planner.plan(world, agent_name)
             self.solutions[agent_name] = random.choice(results)
 
-        # Create Agent
+        # Create Agent and set solutions
         for agent_name in self.solutions.keys():
             agent = AgentType(agent_name, copy.deepcopy(world), args=[self.solutions])
             agent.planner = planner

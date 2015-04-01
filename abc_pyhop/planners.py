@@ -44,8 +44,8 @@ class Planner():
 	def get_HPlanner_v13(): # Modified version of original pyhop to achieve hueristic and randomness
 		v13 = Planner()
 		def v13_plan(problem, agent):
-			problem.a_star = False
-			problem.rand = True
+			problem.a_star = False # TODO: need to debug no-a-* first before using v13
+			problem.rand = False
 			return pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
 		v13.planner = v13_plan
 		return v13

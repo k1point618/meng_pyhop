@@ -1,10 +1,11 @@
 import Tkinter
-
+import time
+import thread
 class rover_world_gui(Tkinter.Tk):
     def __init__(self,parent, simulation):
         Tkinter.Tk.__init__(self,parent)
         self.parent = parent
-
+        self.running = None
         self.simulation = simulation
 
         self.real_world = simulation.real_world
@@ -30,8 +31,8 @@ class rover_world_gui(Tkinter.Tk):
 
     def initialize(self, world):
         # Add next-button to board
-        self.nextButton = Tkinter.Button(self,text=u"Next", command=self.NextStepAll)
-        self.nextButton.pack(side=Tkinter.LEFT)
+        self.leftControls = ControlsFrame(self, world)
+        self.leftControls.pack(side=Tkinter.LEFT)
 
         self.boardFrame = BoardFrame(self, world)
         self.boardFrame.pack(side=Tkinter.LEFT)
@@ -44,6 +45,7 @@ class rover_world_gui(Tkinter.Tk):
             self.grid_columnconfigure(i,weight=1)
 
         self.resizable(True,False)
+
 
     def NextStep(self):
 
@@ -76,12 +78,13 @@ class rover_world_gui(Tkinter.Tk):
                 cur_step = agent.get_cur_step()
                 self.actionFrame.set_cur_action(agent_name, cur_step)
 
+    # Returns True if all done. 
     def NextStepAll(self):
         results = self.simulation.step_all()
         
         if results == True: # All done
             print('All done')
-            return 
+            return True
 
         (new_world, histories_by_agent) = results
         
@@ -96,6 +99,17 @@ class rover_world_gui(Tkinter.Tk):
             self.actionFrame.set_actions(agent_name, self.simulation.agents[agent_name].get_solution())
             self.actionFrame.set_cur_action(agent_name, self.simulation.agents[agent_name].cur_step)
             self.actionFrame.set_cur_status(agent_name, self.simulation.agents[agent_name])
+        self.update()
+        return False
+
+
+    def SimulateAll(self):
+        def runAll():
+            while not self.NextStepAll():
+                self.update()
+                time.sleep(0.1)
+        self.running = thread.start_new_thread(runAll, ())
+
 
     def OnButtonClick(self):
         print "You clicked the button !"
@@ -207,6 +221,15 @@ class AgentColumnFrame(Tkinter.Frame):
         self.cur_status.set("Incurred Cost: {} \nProjected Cost:{}"
                             .format(hist_cost, \
                                 fur_cost))
+
+class ControlsFrame(Tkinter.Frame):
+    def __init__(self, parent, world):
+        Tkinter.Frame.__init__(self, parent)
+        self.nextButton = Tkinter.Button(self,text=u"Next", command=parent.NextStepAll)
+        self.nextButton.pack(side=Tkinter.TOP)
+
+        self.runButton = Tkinter.Button(self,text=u"StepAll", command=parent.SimulateAll)
+        self.runButton.pack(side=Tkinter.TOP)
 
 
 # For the main board frame (Top left)
