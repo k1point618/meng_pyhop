@@ -28,7 +28,7 @@ the global time-step of the simulation.
 def get_uncertainty_fun(state, num_step, a_prob):
 
     sequence = []
-    randoms = [random.random() * state.MAX_COST for i in range(num_step)]
+    randoms = [random.random() * state.RAND_RANGE for i in range(num_step)]
 
     for idx in range(num_step):
         toggle = (random.random() < a_prob)
@@ -51,7 +51,8 @@ def get_uncertainty_fun(state, num_step, a_prob):
         if rand_loc != None:
             # in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc] # This allows flipping
             in_state.loc_available[rand_loc] = False # This means if a location turns into a trap, it will stay as a trap
-            in_state.cost[rand_loc] = randoms[in_idx]
+            in_state.cost[rand_loc] += randoms[in_idx]
+
     return to_return
 
 """
@@ -282,7 +283,8 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.COST_OF_COMM = 1
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
-    world.MAX_COST = 10
+    world.MAX_COST = 20
+    world.RAND_RANGE = 10
 
     world.cost_func = cost_function
     return world

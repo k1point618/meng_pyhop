@@ -86,10 +86,11 @@ if not random:
     # PROBLEMS.append(problem_bank.navigate_replan_team_3())
     # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
     # PROBLEMS.append(problem_bank.navigate_replan_team_5())
-    PROBLEMS.append(problem_bank.navigate_replan_team_6())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_6())
+    PROBLEMS.append(problem_bank.navigate_replan_team_7())
 
 if random:
-    num_problems = 5
+    num_problems = 1
     PROBLEMS = [0 for i in range(num_problems)]
 
 
@@ -115,11 +116,12 @@ while len(PROBLEMS) != 0:
     MODELS = []
     MODELS += [models.AgentNoComm]
     MODELS += [models.AgentSmartComm]
+    MODELS += [models.AgentSmartCommII]
     MODELS += [models.AgentFullComm]
 
     logger.info("*** Running simulations for Problem {} for models: {}".format(PROBLEM.name, [m.__name__ for m in MODELS]))
     for AGENT_TYPE in MODELS:
-        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v14(), gui=True, re_plan=True, use_tree=False)
+        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_v14(), gui=False, re_plan=True, use_tree=False)
         simulation.run()
 
         if sum(simulation.cost_p_agent()) > sys.maxint/2: 
@@ -138,12 +140,6 @@ while len(PROBLEMS) != 0:
         logger.info("*** SUMMARY for Problem {} Summary for Models: {}".format(PROBLEM.name, MODELS))
         for sim in simulations:
             logger.info(sim.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
-            sim.write_to_file()
 
-        # raw_input("Show Individual Actions?")
-        # for sim in simulations:
-        #     logger.info(sim.get_summary())
-        #     for (agent_name, agent) in sim.agents.items():
-        #         logger.info("Agent: {}\nActions: {}".format(agent_name, agent.get_histories()))
-
+        Simulation.write_to_file(PROBLEM, simulations)
 

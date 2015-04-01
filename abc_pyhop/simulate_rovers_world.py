@@ -278,6 +278,8 @@ class Simulation():
             # Given observations (diffs), determine communications
             # Returns the set of communications to make.
             # Messages is a dictionary that maps agent-names to messages
+            out_commMsgs = []
+            void_msgs = []
             if len(diffs) > 0:
                 self.log.info("****** Agent {} Reasons about Communicaiton ******".format(agent.name))
                 (out_commMsgs, void_msgs) = agent.communicate(diffs) # Out_messages is a set of CommMessage
@@ -299,36 +301,28 @@ class Simulation():
             # 3.0: If agent is done, no need to replan or act
             if agent.is_done(): continue
 
-            # 3. Continue ACTING or REPLAN on real-world (aka: replana or not)
+            # 3. REPLAN if needed
             replan = agent.replan_q()
             if  replan or world_changed: # If we do not include world_changed, then does not seek for "better" plan
-                if agent.replan(self.PARAMS['use_tree'], stuck=replan):
+                if agent.replan(stuck=replan):
                     hist = agent.add_history('replan', self.real_world.COST_REPLAN)
                     actions_took[agent_name].append(hist)
                     agent.cur_step = 0
                     agent.times_replanned += 1
-            else:
-                # 4: (if not replan) Agent takes action
-                self.log.info(('cur_action: ', cur_action))
-                self.real_world = act(self.real_world, cur_action)
-                agent.mental_world = act(agent.mental_world, cur_action)
+                # If replan returns false, then plan was not updated
+            
+            # 4: Agent takes action
+            self.log.info(('cur_action: ', agent.get_cur_action()))
+            self.real_world = act(self.real_world, agent.get_cur_action())
+            assert(self.real_world != None)
+            assert(self.real_world != False)
 
-                assert(self.real_world != None)
-                assert(self.real_world != False)
-                assert(agent.mental_world != False) 
+            # Step Agent                
+            hist = agent.step(self.real_world, out_commMsgs)
+            actions_took[agent_name].append(hist)
+            
 
-                hist = agent.add_history(cur_action, self.real_world.cost_func(self.real_world, cur_action)) #Cost of action
-                
-                agent.cur_step += 1
-                
-                if agent.cur_step >= len(agent.actions):
-                    agent.done = True
-                    agent.success = True
-                
-                actions_took[agent_name].append(hist)
-
-            agent.global_step += 1
-                    
+            
         self.communications = {}
         self.flush_communications()
         self.time += 1
@@ -500,5 +494,25 @@ class Simulation():
         f.write(to_write)
         hf.write("Problem Summary for {}\n".format(self.real_world.name))
         hf.write(to_write)
+
+    @staticmethod
+    def write_to_file(PROBLEM, simulations):
+        file_name = "logs/PROBLEM_{}.sims".format(PROBLEM.name)
+        f = open(file_name, 'w')
+        header = [str(sim.AgentType) for sim in simulations]
+        f.write(str(header) + "\n")
+        for agent_name in PROBLEM.goals.keys():
+            f.write(agent_name + '\n')
+            idx = 0
+            while any([idx < len(sim.agents[agent_name].get_histories()) for sim in simulations]):
+                for sim in simulations:
+                    h = sim.agents[agent_name].get_histories()
+                    if idx < len(h):
+                        f.write("{}\t{}\t{}".format(*h[idx]))
+                    else:
+                        f.write("None\tNone\tNone")
+                    f.write("\t")
+                f.write("\n")
+                idx += 1
 
 

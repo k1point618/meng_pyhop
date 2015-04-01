@@ -58,6 +58,12 @@ class AgentMind(object):
         if makeLog:
             self.make_logger()
 
+    def __repr__(self):
+        to_return = "name: {}, goal: {}, mental_world:\n{},\nSolution:{}"\
+            .format(self.name, self.goal, print_board_str(self.mental_world), self.solution)
+        return to_return
+
+
     def set_solution(self, solution):
         self.log.info(("set solution", solution))
         if solution == False or solution == None:
@@ -73,6 +79,7 @@ class AgentMind(object):
         else:
             self.solution = solution
         (self.actions, self.states) = self.solution
+        self.cur_step = 0
 
         if len(self.actions) == 0: # Do nothing
             self.done = True
@@ -86,6 +93,12 @@ class AgentMind(object):
     def get_planTree(self): return self.planTree
 
     def get_cur_step(self): return self.cur_step
+
+    def get_cur_action(self): return self.actions[self.cur_step]
+    
+    def get_rest_actions(self): return self.actions[self.cur_step:]
+
+    def get_next_state(self): return self.states[self.cur_step]
 
     def add_history(self, action, cost):
         self.histories.append((self.global_step, action, cost))
@@ -152,7 +165,6 @@ class AgentMind(object):
             if AgentMind.visible(my_l, l, real_world, range=2) and self.mental_world.cost[l] != real_world.cost[l]:
                 if real_world.cost[l] > real_world.MAX_COST or self.mental_world.cost[l] > real_world.MAX_COST:
                     self.mental_world.cost[l] = real_world.cost[l]
-                    loc_diff.append((l, real_world.loc_available[l]))
                     loc_diff.append((l, real_world.cost[l]))
 
             # Identify differences in cost
@@ -219,10 +231,9 @@ class AgentMind(object):
         return True
 
     # Returns True if new plan is initated
-    def replan(self, use_tree, stuck):
+    def replan(self, stuck):
 
         # If the new expected cost is lower, then update plan.
-        # solutions = pyhop(self.mental_world, self.name, plantree=use_tree)
         solutions = self.planner.plan(self.mental_world, self.name)
         solution = random.choice(solutions)
 
@@ -245,6 +256,28 @@ class AgentMind(object):
             self.set_solution(solution)
             return True # meaning plan updated
         else: return False
+
+    # Update: mental_world, cur_step
+    def step(self, real_world, args=None):
+        if self.done:
+            return self.add_history('done', 0)
+
+        # 1. Step and verify
+        cur_action = self.get_cur_action()
+        self.mental_world = act(self.mental_world, cur_action)
+        assert(self.mental_world != False) 
+
+        # 2. Add to history
+        cost = real_world.cost_func(real_world, cur_action)
+        hist = self.add_history(cur_action, cost) #Cost of action
+
+        # 3. update counters
+        self.cur_step += 1
+        if self.cur_step >= len(self.actions):
+            self.done = True
+            self.success = True
+
+        return hist
 
 
 class AgentFullComm(AgentMind):
@@ -290,6 +323,7 @@ class AgentNoComm(AgentMind):
 
 
 
+
 class AgentSmartComm(AgentMind):
     def __init__(self, name, world, args=[]):
         super(AgentSmartComm, self).__init__(name, world)
@@ -303,10 +337,10 @@ class AgentSmartComm(AgentMind):
                 self.teammates[a] = teammate
                 # We want to keep track of each teammate's plan and the relative cost of each plan. 
                 # (Later, we might want to add a distribution of solutions?)
-
-    
+                
     # Given the set of differences observed from environment and communication
     # Determine what and to-whome to communicate to.
+    # We do not change self.teammates
     def communicate(self, diffs):
         super(AgentSmartComm, self).communicate(diffs)
 
@@ -322,7 +356,6 @@ class AgentSmartComm(AgentMind):
             
                 self.log.info("AgentSmartComm.communicate ... Should Agent {} communicate <{}> to teammate: {}?"
                     .format(self.name, diff, teammate_name))
-
                 commMsg = CommMessage(self.name, teammate_name, diff)
                 
                 # Assuming that the teammate has already completed the current step
@@ -360,17 +393,17 @@ class AgentSmartComm(AgentMind):
         to_return = self.mental_world.COST_OF_COMM # Cost of comm
 
         # By the time other receives message
-        other.cur_step = self.cur_step + 1
-        if other.cur_step >= len(other.actions):
+        if other.is_done():
             self.log.info("... the other agent should be done by the time msg sent. no need for simulation")
             return to_return
-        other.mental_world = other.states[other.cur_step-1]
+        other.mental_world = other.get_next_state()
+        other.cur_step += 1 
 
         # Pretend to send message and update teammate's world
         other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
 
         # Pretend to re-plan with new info # no need to check for re-plan
-        new_cost_to_finish, actions = self.EX_COST(other.mental_world, other)
+        new_cost_to_finish, (actions, states) = self.EX_COST(other.mental_world, other)
         self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan:\n{}"
             .format(other.name, other.goal, new_cost_to_finish, actions))
 
@@ -384,8 +417,10 @@ class AgentSmartComm(AgentMind):
 
         self.log.info("Agent {} is simulating agent {}'s world \n{}\n\
             ...for no-comm,\n\
-            ...regarding on diffs: {}"
-            .format(self.name, other.name, print_board_str(other.mental_world), diff))
+            ...regarding on diffs: {}\n\
+            ... with actions: {}"
+            .format(self.name, other.name, print_board_str(other.mental_world),
+                diff, other.get_rest_actions()))
 
         # projected_other_world = act(copy.deepcopy(self.mental_world), other.actions[self.cur_step])
         # self.log.info("Other agent's mental world: \n{}".format(print_board_str(projected_other_world)))
@@ -394,19 +429,19 @@ class AgentSmartComm(AgentMind):
         # self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.actions[self.cur_step+1:], cost))
 
         # By the time other receives message
-        other.cur_step = self.cur_step + 1
-        if other.cur_step >= len(other.actions):
+        if other.is_done():
             self.log.info("... the other agent should be done by the time msg sent. no need for simulation")
             return 0
-        other.mental_world = other.states[other.cur_step-1]
+        other.mental_world = other.get_next_state()
+        other.cur_step += 1 
 
         # Simulation?
         other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
 
         self.log.info("Other agent's mental world: \n{}".format(print_board_str(other.mental_world)))
         
-        (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.actions[self.cur_step+1:])
-        self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.actions[self.cur_step+1:], cost))
+        (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.get_rest_actions())
+        self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.get_rest_actions(), cost))
 
         if simulated:
             # if simulated is True, then the cost of the cost for the rest of the plan
@@ -442,8 +477,57 @@ class AgentSmartComm(AgentMind):
         for action in actions:
             total_cost += world.cost_func(world, action)
         agent.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, actions))
-        return (total_cost, actions)
+        return (total_cost, (actions, states))
+
+    # After steping, SmartComm updates the belief of teammate's plan
+    def step(self, real_world, commMsgs=None):
+        # Agent self steps in the real-world
+        hist = super(AgentSmartComm, self).step(real_world)
+        # Each teammate steps in agent's mental world.
+        for t_name, teammate in self.teammates.items():
+            teammate_action = None
+            if not teammate.is_done():
+                teammate_action = teammate.get_cur_action()
+                teammate.mental_world = teammate.get_next_state()
+                teammate.cur_step += 1
+                if teammate.cur_step >= len(teammate.actions):
+                    teammate.done = True
+        self.log.info("GlobalTime: {} Agent: {} Action: {}".format(self.global_step, self.name, hist))
+        self.log.info("GlobalTime: {} Agent: {} Action: {}".format(self.global_step, t_name, teammate_action))
+        self.global_step += 1
+        return hist
 
 
+class AgentSmartCommII(AgentSmartComm):
+    def __init__(self, name, world, args=[]):
+        super(AgentSmartCommII, self).__init__(name, world, args)
+        self.TYPE = 'SmartCommII'
+
+    # After decideing what to communicate, agent updates belief of teammate's world.
+    # If we expect teammate to re-plan (which shoud be at t+1), then we update solution
+    # by trimming future actions and states, append with 'replan' and then new solution
+    # Edit: Now that 'replan' occurs at the same time, we simply append new solution
+        
+    def step(self, real_world, commMsgs):
+        hist = super(AgentSmartCommII, self).step(real_world)
+
+        # Given the messages to be communicated, we update our belief of teammate's plan.
+        self.log.info("Gven the messages to be communicated: \n\t{}\nWe update our belief of teammates plan.".format(commMsgs))
+        for commMsg in commMsgs:
+            # Update teammate's World
+            teammate = self.teammates[commMsg.receiver]
+            if teammate.is_done(): 
+                continue
+            (loc, new_cost) = commMsg.msg
+            if teammate.mental_world.cost[loc] != new_cost:
+                teammate.mental_world.cost[loc] = new_cost
+
+            # update teammate's Plan, potentially
+            # TODO: Need to step first, and then append later-plan
+            (new_cost, solution) = self.EX_COST(teammate.mental_world, teammate)
+            teammate.set_solution(solution) # Setting cur_step = 0
+            self.log.info("\n\n Updated teammate {}'s solution. New solution: \n\t{}".format(teammate.name, solution[0]))
+
+        return hist
 
 

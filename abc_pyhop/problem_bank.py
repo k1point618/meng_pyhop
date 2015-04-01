@@ -386,6 +386,35 @@ def navigate_replan_team_6():
 	world.ID = "navigate_replan_team_6"
 	return world
 
+def navigate_replan_team_7():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	rrw.LANDER=''
+	rrw.LAB = ''
+	world = rrw.get_random_world(5, 9, num_agent=2, name='navigate_replan_team_7')
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 45)]
+	world.goals['A2'] = [('navigate', 'A2', 5)]
+
+	# Set Lander
+	world.at[rrw.LANDER] = 1
+	world.at[rrw.LAB] = 1
+
+	# Set Rover Locations
+	world.at['A1'] = 37
+	world.visited['A1'] = set()
+	world.visited['A1'].add(37)
+	world.at['A2'] = 41
+	world.visited['A2'] = set()
+	world.visited['A2'].add(41)
+
+	world.cost[41] = 10
+
+	world.uncertainties = replan_7_rand
+	world.ID = "navigate_replan_team_7"
+	return world
+
 
 # Replan for get_a_soil_data: 
 def decompose_replan():
@@ -497,6 +526,12 @@ def replan_6_rand(world, idx):
 		world.cost[14] = world.MAX_COST/2
 		world.cost[13] = world.MAX_COST/2
 		world.cost[15] = world.MAX_COST/2
+
+def replan_7_rand(world, idx):
+	if idx == 0:
+		world.cost[32] = 9
+		world.cost[23] = 8
+		world.cost[14] = 7
 
 def replan_decompose_1(world, idx):
 	print("*** Calling re-lan_decompose_1 for uncertainties ***")
