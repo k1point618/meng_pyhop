@@ -97,3 +97,40 @@ class PlanNode():
 	# def print_planTree(root):
 
 
+class Node(object):
+	def __init__(self, state, name):
+		self.name = name
+		self.state = state
+		self.children = []
+		self.parent = None
+		self.type = "NODE"
+
+	def get_string(self, prefix=""):
+		if self.parent == None:
+			parent="NONE"
+		else: parent=self.parent.name
+
+		toReturn = prefix + str(self.name) + ":" + self.type + "\n"
+		for child in self.children:
+			toReturn += prefix + child.get_string(prefix + " ")
+		return toReturn
+
+class andNode(Node):
+	def __init__(self, state, name, decomps):
+		super(andNode, self).__init__(state, name)
+		self.decomps = decomps # Sequence of the and-node. Indicates the children
+		self.type = 'AND'
+
+	def __repr__(self):
+		return "andNode: {}".format(self.name)
+
+
+class orNode(Node):
+	def __init__(self, state, name):
+		super(orNode, self).__init__(state, name)
+		self.type = 'OR'
+
+	def __repr__(self):
+		return "orNode: {}".format(self.name)
+
+

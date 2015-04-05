@@ -91,3 +91,16 @@ class Planner():
 		v20.planner = v20_plan
 		return v20
 
+
+	@staticmethod
+	def get_HPlanner_bb():		
+		# Returns ALL possible plans
+		# - No Explanation
+		v20 = Planner()
+		def v20_plan(problem, agent):
+			problem.a_star = False
+			problem.rand = True
+			return pyhop.seek_bb(problem, problem.goals[agent], None)
+		v20.planner = v20_plan
+		return v20
+

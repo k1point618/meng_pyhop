@@ -643,3 +643,72 @@ def seek_plantrees(state, tasks, root, depth, verbose=0, rand=False):
 
     return [None]
 
+"""
+Given goal, and state, decomposes the task and returns the root.
+"""
+def seek_bb(state, tasks, parent, root=None):
+
+    if parent == None:
+        parent = Node(state, 'root')
+        root = parent
+    print("Tasks: {}; Parent: {}".format(tasks, parent))
+
+    raw_input("...")
+
+    if len(tasks) > 1:
+        # if multiple tasks, this is an AND relationship
+        print("... Creating AND nodes for multiple tasks")
+        cur_node = andNode(copy.deepcopy(state), parent.name, tasks)
+        cur_node.parent = parent
+        parent.children.append(cur_node)
+
+        cur_state = state
+        for task in tasks:
+            cur_state = seek_bb(copy.deepcopy(cur_state), [task], cur_node, root)
+        to_return = cur_state
+
+    elif len(tasks) == 1 and tasks[0][0] in methods:
+        # if 1 task and is a method, then the current node is an OR node.
+        print("... Creating OR node for method {}".format(tasks[0]))
+        task = tasks[0]
+        cur_node = orNode(copy.deepcopy(state), task)
+        cur_node.parent = parent
+        parent.children.append(cur_node)
+
+        relevant = methods[task[0]]
+        for method in relevant:
+            decompositions = method(state, *task[1:]) # retruns the set of possible decomps
+            for sequence in decompositions:
+                print("... decomposed into sequence {}".format(sequence))
+                after_state = seek_bb(state, sequence, cur_node, root)
+        to_return = after_state
+
+    elif len(tasks) == 1 and tasks[0][0] in operators:
+        print("... Creating Node for operators {}".format(tasks[0]))
+        task = tasks[0]
+        cur_node = Node(copy.deepcopy(state), tasks[0])
+        cur_node.parent = parent
+        parent.children.append(cur_node)
+
+        operator = operators[task[0]]
+        newstate = operator(copy.deepcopy(state),*task[1:])
+        to_return = newstate
+
+    elif tasks == []:
+        to_return = state
+
+    print("Tasks: {}; Parent: {}".format(tasks, parent))
+    print("Root: \n{}".format(root.get_string()))
+    raw_input("...")
+
+    return to_return
+
+
+
+
+
+
+
+
+
+
