@@ -100,7 +100,9 @@ class Planner():
 		def v20_plan(problem, agent):
 			problem.a_star = False
 			problem.rand = True
-			return pyhop.seek_bb(problem, problem.goals[agent], None)
+			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
+			print("v_13", solutions)
+			return pyhop.seek_bb(problem, problem.goals[agent])
 		v20.planner = v20_plan
 		return v20
 
