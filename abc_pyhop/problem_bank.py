@@ -319,6 +319,40 @@ def navigate_replan_team_4():
 	world.ID = "navigate_replan_team_4"
 	return world
 
+def navigate_replan_team_4p():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	rrw.LANDER='X'
+	rrw.LAB = 'X'
+	world = rrw.get_random_world(7, 7, num_agent=2, name='navigate_replan_team_4p')
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 43)]
+	world.goals['A2'] = [('navigate', 'A2', 49)]
+
+	# Set Soil Location
+	world.at['S1'] = 43
+	world.at['S2'] = 49
+
+	# Set Lander
+	world.at[rrw.LANDER] = 15
+	world.at[rrw.LAB] = 22
+
+	# Set Rover Locations
+	world.at['A1'] = 32
+	world.visited['A1'] = set()
+	world.visited['A1'].add(32)
+	world.at['A2'] = 31
+	world.visited['A2'] = set()
+	world.visited['A1'].add(31)
+
+	traps = [2, 4, 6, 38, 39, 15, 16, 19, 20, 22, 23, 26, 27, 29, 30, 33, 34, 36, 37, 40, 41]
+	for t in traps:
+		world.cost[t] = sys.maxint
+
+	world.ID = "navigate_replan_team_4p"
+	return world
+
 def navigate_replan_team_5():
 	rrw.NUM_ROCKS=0
 	rrw.NUM_SOILS=0

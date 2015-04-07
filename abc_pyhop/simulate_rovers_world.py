@@ -302,7 +302,10 @@ class Simulation():
             if agent.is_done(): continue
 
             # 3. REPLAN if needed
-            replan = agent.replan_q()
+            if len(diffs) == 0 and not world_changed:
+                replan = False
+            else:
+                replan = agent.replan_q()
             if  replan or world_changed: # If we do not include world_changed, then does not seek for "better" plan
                 if agent.replan(stuck=replan):
                     hist = agent.add_history('replan', self.real_world.COST_REPLAN)

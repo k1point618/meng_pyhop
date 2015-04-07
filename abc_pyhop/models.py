@@ -234,7 +234,9 @@ class AgentMind(object):
     def replan(self, stuck):
 
         # If the new expected cost is lower, then update plan.
-        solutions = self.planner.plan(self.mental_world, self.name)
+        temp_mental_world = copy.deepcopy(self.mental_world)
+        temp_mental_world.visited[self.name] = set()
+        solutions = self.planner.plan(temp_mental_world, self.name)
         solution = random.choice(solutions)
 
         if solution == False: 
@@ -248,22 +250,30 @@ class AgentMind(object):
         else:
             potential_plan_cost = sum(self.mental_world.cost_func(self.mental_world, a) for a in solution[0])
         self.log.info("Potential plan Cost: {}".format(potential_plan_cost))
-        self.log.info("Projected Current Plan Cost: {}".format(len(self.actions[self.cur_step:])))
-
+        
         # Replace current plan if stuck or new plan is better
         cur_project_cost = sum(self.mental_world.cost_func(self.mental_world, a) for a in self.actions[self.cur_step:])
+        self.log.info("Projected Current Plan Cost: {}".format(cur_project_cost))
         if stuck or (potential_plan_cost < cur_project_cost): #Cost function. assuming cost_action is 1
+            self.mental_world = temp_mental_world
             self.set_solution(solution)
+            self.log.info("Replan: YES")
             return True # meaning plan updated
-        else: return False
+        else: 
+            self.log.info("Replan: NO")
+            return False
 
     # Update: mental_world, cur_step
     def step(self, real_world, args=None):
+
         if self.done:
             return self.add_history('done', 0)
 
         # 1. Step and verify
         cur_action = self.get_cur_action()
+        
+        self.log.info("STEP: {}".format(cur_action))
+        
         self.mental_world = act(self.mental_world, cur_action)
         assert(self.mental_world != False) 
 

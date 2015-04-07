@@ -704,9 +704,15 @@ def seek_bb_r(state, tasks, parent, root=None):
 
 import heapq
 from plantree import *
+import random_rovers_world as rrw
+    
+def seek_bb(state, tasks, verbose=0):
 
-def seek_bb(state, tasks):
-
+    if verbose: 
+        print("SEEK_BB: solving problem for task {} and state:".format(tasks))
+        print("STATE:")
+        rrw.print_board(state)
+    
     root = andNode(state, None, tasks)
     openset = []
 
@@ -729,26 +735,29 @@ def seek_bb(state, tasks):
 
     # Iterate to decompose until openset is done.
     while len(openset) != 0:
-        print("root cost:{}".format(root.cost))
+        if verbose: print("root cost:{}".format(root.cost))
 
         cur_node = openset.pop(0)
-        print("Tasks: {}; Parent: {}; Cost: {}".format(cur_node.name, cur_node.parent, cur_node.cost))
+        if verbose: print("Tasks: {}; Parent: {}; Cost: {}".format(cur_node.name, cur_node.parent, cur_node.cost))
+        
         if cur_node.tasks == []:
+            # Basecase
             cur_node.success = True
             cur_node.completed = True
-            print("right", cur_node.right)
-            print("parent-right", cur_node.parent.right)
+            if verbose: print("right", cur_node.right)
+            if verbose: print("parent-right", cur_node.parent.right)
             cur_node.parent.update(cur_node, openset)
             continue
+
         # If the min cost for openset is greater than the best plan right now, then kill this node.
-        if cur_node.min_cost > root.cost:
-            print("... not expanding current_node: {}".format(cur_node.name))
-            continue
+        # if cur_node.min_cost > root.cost:
+        #     if verbose: print("... not expanding current_node: {}".format(cur_node.name))
+        #     continue
 
         # Otherwise, decompose this node and add new nodes to queue
         tasks = cur_node.tasks
         if isinstance(cur_node, andNode): 
-            print("is decomposition")
+            if verbose: print("is decomposition")
             left_node = None
             for task in tasks:
                 child_node = orNode(cur_node.before_state, cur_node, [task])
@@ -757,19 +766,22 @@ def seek_bb(state, tasks):
         elif isinstance(cur_node, orNode):
             task = tasks[0]
             if task[0] in methods:
-                print("is method")
+                if verbose: print("is method")
                 relevant = methods[task[0]]
                 for method in relevant:
                     decompositions = method(cur_node.before_state, *task[1:]) # retruns the set of possible decomps
-                    for sequence in decompositions:
-                        child_node = andNode(cur_node.before_state, cur_node, sequence)
-                        cur_node.add_child(child_node)
-                    openset.append(cur_node.children[0])
+                    if decompositions[0]:
+                        for sequence in decompositions:
+                            child_node = andNode(cur_node.before_state, cur_node, sequence)
+                            cur_node.add_child(child_node)
+                        if verbose: print("adding to openset: {}".format(cur_node.children[0]))
+                        openset.append(cur_node.children[0])
             elif task[0] in operators:
-                print("is operators")
+                if verbose: print("is operators")
                 cur_node.update(None, openset)
 
-        print("ACTIVESET: ", openset)
+        if verbose: print("ACTIVESET: ", openset)
+        # print("root: ", root.get_string())
         # raw_input("...")   
 
     # print("root cost:{}".format(root.cost))     
@@ -777,20 +789,11 @@ def seek_bb(state, tasks):
     one_plan = root.get_plan()
     # print("one plan:", one_plan)
 
-    # print("get_num_plans:", root.get_num_plans())
+    print("root: ", root.get_string())
+    print("get_num_plans:", root.get_num_plans())
+    print("get_num_plans:", root.get_num_opt_plans())
     return [one_plan]
 
-def propagate(cur_node, openset):
-    print("START PROPAGATE")
-    import random_rovers_world as rrw
-    if cur_node.right != None and cur_node.success:
-        cur_node.right.before_state = cur_node.post_state
-        openset.append(cur_node.right)
-        print("... ... cur_node is done, adding RIGHT node to openset: {}".format(cur_node.right))
-        print("... ... right node before_state: ")
-        rrw.print_board(cur_node.right.before_state)
-    cur_node.parent.update(cur_node, openset)
-    print("AFTER: {}".format(openset))
 
 
 

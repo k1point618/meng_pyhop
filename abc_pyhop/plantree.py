@@ -11,6 +11,7 @@ the chosen decomposition and their corresponding sampling-probabilities.
 It maintians strictily more information than the old (solution = (actions, states))
 representation.
 """
+VERBOSE = False
 class PlanNode():
     
     METHOD = 'METHOD'
@@ -102,14 +103,17 @@ class PlanNode():
 
 
 class Node(object):
+    ONE_PLAN = True
+
     def __init__(self, state, parent, tasks):
+        self.level = 0
         self.name = str(tasks)
         self.state = state
         self.before_state = copy.deepcopy(state)
         self.post_state = self.before_state
         self.children = []
         self.cost = sys.maxint
-        self.min_cost = 0
+        self.cost_lower_bound = 0
 
         self.type = None
         self.tasks = tasks
@@ -121,20 +125,28 @@ class Node(object):
         self.success = None
         self.plans = None
 
+        if parent != None:
+            self.level = parent.level + 1
+
     def get_string(self, prefix=""):
         if self.parent == None:
             parent="NONE"
         else: parent=self.parent.name
 
+        # toReturn = prefix + str(self.name) + ":" + self.type + \
+        #             "\tleft:" + str(self.left) + \
+        #             "\t cost: " + str(self.cost) + \
+        #             "\t pre_state: " + str(self.before_state) + \
+        #             "\t post_state: " + str(self.post_state) + \
+        #             "\t success: " + str(self.success) + \
+        #             "\n"
         toReturn = prefix + str(self.name) + ":" + self.type + \
-                    "\tleft:" + str(self.left) + \
                     "\t cost: " + str(self.cost) + \
-                    "\t pre_state: " + str(self.before_state) + \
-                    "\t post_state: " + str(self.post_state) + \
+                    "\t cost_lb: " + str(self.cost_lower_bound) + \
                     "\t success: " + str(self.success) + \
                     "\n"
         for child in self.children:
-            toReturn += prefix + child.get_string(prefix + " ")
+            toReturn += str(self.level) + prefix + child.get_string(prefix + " ")
         return toReturn
 
     def add_child(self, child):
@@ -159,35 +171,38 @@ class andNode(Node):
             child.before_state = self.children[-2].post_state
 
     def update(self, child, openset):
-        print("Updating node: {}".format(self))
-
-        # Failed AND node
-        if child.completed and child.success == False:
-            print("\t FAILED")
-            self.success = False
-            self.completed = True
-            self.cost = sum([c.cost for c in self.children])            
-            if self.parent != None:
-                self.parent.update(self, openset)
-
-        # All successful
-        if all([c.completed and c.success for c in self.children]):
-            print("\t ALL SUCCESSFUL")
+        if VERBOSE: print("Updating node: {}".format(self))
+        propagate_update = False
+        # Just became successful
+        if (not self.completed) and all([c.completed and c.success for c in self.children]):
+            if VERBOSE: print("\t ALL SUCCESSFUL")
             self.completed = True
             self.success = True
             self.cost = sum([c.cost for c in self.children])  
             self.post_state = self.children[len(self.children)-1].post_state
-            if self.parent != None:
-                self.parent.update(self, openset)
+            propagate_update = True
 
-        # Making Progress
-        if child.success == True and child.completed and not all([c.completed for c in self.children]):
-            print("\t MAKING PROGRESS")
-            self.min_cost += child.min_cost
+        # Updating cost
+        n_cost_lb = sum([c.cost_lower_bound for c in self.children])
+        if n_cost_lb != self.cost_lower_bound:
+            self.cost_lower_bound = n_cost_lb
+            # Update parent
+            propagate_update = True
+
+        # Child just failed: Kill this node
+        if child.completed and child.success == False:
+            if VERBOSE: print("\t FAILED")
+            self.success = False
+            self.completed = True
+            self.cost = sum([c.cost for c in self.children])            
+            self.cost_lower_bound = sys.maxint
+            propagate_update = True
+
+        if propagate_update and self.parent != None:
+            self.parent.update(self, openset)
+
 
     def get_plan(self):
-        # print("get plan for {}".format(self))
-        # print("------ self.success: ", self.success)
         actions = []
         states = []
         if self.success:
@@ -206,6 +221,18 @@ class andNode(Node):
             return to_return
         return 0
 
+    def get_num_opt_plans(self):
+        if self.success:
+            to_return = 1
+            for c in self.children:
+                to_return*=c.get_num_opt_plans()
+            return to_return
+        return 0
+
+    # Actions only
+    def get_all_opt_plans(self):
+        pass
+
 import random_rovers_world as rrw
 class orNode(Node):
     def __init__(self, state, parent, tasks):
@@ -213,71 +240,97 @@ class orNode(Node):
         assert(len(tasks) == 1)
         self.task = tasks[0]
         self.type = 'OR'
+        self.good_children = []
 
     def __repr__(self):
         return "orNode: {}".format(self.tasks)
+
+    # For Operator/Leafs only
+    def do_operator(self, openset):
+        # updating for an operator.
+        assert(self.task[0] in operators and len(self.children) == 0)
+
+        if VERBOSE: print("ORNODE: ... cur_node {} is an OPERATOR".format(self))
+        operator = operators[self.task[0]]
+        new_state = operator(copy.deepcopy(self.before_state),*self.task[1:])
+        if new_state:
+            self.post_state = new_state
+            self.success = True
+            self.completed = True
+
+            # Set Cost
+            self.cost = self.state.cost_func(self.state, self.task[0])
+            self.cost_lower_bound = self.cost
+
+            # Continue
+            if self.right != None:
+                self.right.before_state = self.post_state
+                openset.append(self.right)
+
+            if VERBOSE: print("Found plan for node {} as: ".format(self))
+            if VERBOSE: print(self.get_plan())
+        else: 
+            # This is a dead node (success = False)
+            if VERBOSE: 
+                print("... ... FAILED operator {}; state:".format(self.task))
+                rrw.print_board(self.before_state)
+            self.post_state = False
+            self.success = False
+            self.completed = True
+            self.cost = sys.maxint
+            # No point in adding "right" node
 
 
     def update(self, child, openset):
 
         if child == None and self.task[0] in operators and len(self.children) == 0:
-            # updating for an operator.
-            print("ORNODE: ... cur_node {} is an OPERATOR".format(self))
-            operator = operators[self.task[0]]
-            new_state = operator(copy.deepcopy(self.before_state),*self.task[1:])
-            if new_state:
-                self.post_state = new_state
-                self.success = True
+            # If Operator
+            self.do_operator(openset)            
+        else:
+
+
+            if VERBOSE: print("Updating node: {}".format(self))
+
+            if (not self.completed) and child.completed and child.success:
+                # Just becames Successful and Completed
+                if VERBOSE: print("Just became sucessful and commpleted")
                 self.completed = True
+                self.success = True
+                self.cost = child.cost
+                self.good_children = [child]
+                self.cost_lower_bound = -1 # LW is no longer useful when the plan is realized
+                self.post_state = child.post_state 
 
-                # Set Cost
-                self.cost = self.state.cost_func(self.state, self.task[0])
-
-                # Continue
-                if self.right != None:
+                if self.right != None and self.success:
+                    if VERBOSE: 
+                        print("Adding RIGHT node to openset {}".format(self.right))
                     self.right.before_state = self.post_state
                     openset.append(self.right)
 
-                print("Found plan for node {} as: ".format(self))
-                print(self.get_plan())
-            else: 
-                # This is a dead node (success = False)
-                print("... ... FAILED operator {}; state:".format(self.task))
-                rrw.print_board(self.before_state)
-                self.post_state = False
-                self.success = False
-                self.completed = True
-                self.cost = sys.maxint
+            elif child.completed and child.success:
+                # Found better plan
+                if child.cost < self.cost:
+                    self.cost = child.cost
+                    self.good_children = [child]
+                elif child.cost == self.cost:
+                    self.good_children.append(child)
 
-                # No point in adding "right" node
-        else:
-            print("Updating node: {}".format(self))
 
-            # If failed, then look for the next
-            if child.success == False and child.completed:
-                print("Child failed")
-                if child.right != None:
-                    openset.append(child.right)
-                    return
-
-            # Most recently completed node
-            if child.completed and child.success:
-                self.post_state = child.post_state 
+            # If child is done, then go to the next child.
+            if child.completed and child.right != None:
+                if VERBOSE: print("Child is done, go to next child {}".format(child.right))
+                openset.append(child.right)
+                
+            
 
             # Best Case Scenario
             # print("self.children completed: {}".format([c.completed for c in self.children]))
-            self.completed = any([c.completed for c in self.children])
+            if all([c.completed for c in self.children]) or any([c.success for c in self.children]):
+                self.completed = True
             if self.completed:
                 self.success = any([c.success for c in self.children])
-            else:
-                self.success = None
-            self.cost = min([c.cost for c in self.children])
 
-            # print("{} success: {}".format(self, self.success))
-            # print("{} right: {}".format(self, self.right))
-            if self.right != None and self.success:
-                self.right.before_state = self.post_state
-                openset.append(self.right)
+            self.cost = min([c.cost for c in self.children])
 
 
         if self.parent != None:
@@ -289,12 +342,12 @@ class orNode(Node):
             # print("... returning {}".format([self.task]))
             return ([self.task], [self.post_state])
 
+        if self.success == False:
+            return ([False], [False])
+
         to_return = []
-        if self.success:
-            for c in self.children:
-                if c.success:
-                    (actions, states) = c.get_plan()
-                    return (actions, states)
+        success_children = [c for c in self.good_children]
+        return random.choice(success_children).get_plan()        
 
     def get_num_plans(self):
         if self.success:
@@ -308,7 +361,25 @@ class orNode(Node):
         return 0
 
 
+    def get_num_opt_plans(self):
+        if self.success:
+            if len(self.children) == 0:
+                return 1
+            to_return = 0
+            for c in self.good_children:
+                to_return += c.get_num_opt_plans()
+            return to_return
+        return 0
 
+    def get_all_opt_plans(self):
+        if self.success:
+            if len(self.children) == 0:
+                return [[self.task]]
+            to_return = []
+            for c in self.good_children:
+                to_return += c.get_all_opt_plans()
+            return to_return
+        return
 
 
 

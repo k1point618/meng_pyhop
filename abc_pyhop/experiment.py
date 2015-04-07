@@ -78,7 +78,7 @@ PROBLEMS = []
 random = False
 if not random:
     # PROBLEMS.append(problem_bank.maze_0())
-    # PROBLEMS.append(problem_bank.maze_1())
+    PROBLEMS.append(problem_bank.maze_1())
     # PROBLEMS.append(problem_bank.maze_2())
     # PROBLEMS.append(problem_bank.maze_4())
     # PROBLEMS.append(problem_bank.maze_5())
@@ -114,10 +114,10 @@ while len(PROBLEMS) != 0:
     """
     simulations = []
     MODELS = []
-    MODELS += [models.AgentNoComm]
+    # MODELS += [models.AgentNoComm]
     # MODELS += [models.AgentSmartComm]
     # MODELS += [models.AgentSmartCommII]
-    # MODELS += [models.AgentFullComm]
+    MODELS += [models.AgentFullComm]
 
     logger.info("*** Running simulations for Problem {} for models: {}".format(PROBLEM.name, [m.__name__ for m in MODELS]))
     for AGENT_TYPE in MODELS:

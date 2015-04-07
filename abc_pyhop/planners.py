@@ -100,6 +100,9 @@ class Planner():
 		def v20_plan(problem, agent):
 			problem.a_star = False
 			problem.rand = True
+			# print("HPLANNER_BB: SOLVING PROBLEM {} FOR AGENT {} WITH STATE:".format(problem.goals[agent], agent))
+			# import random_rovers_world as rrw
+			# rrw.print_board(problem)
 			return pyhop.seek_bb(problem, problem.goals[agent])
 		v20.planner = v20_plan
 		return v20
