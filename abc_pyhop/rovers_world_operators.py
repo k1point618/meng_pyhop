@@ -89,6 +89,8 @@ def analyze_rock_sample(state, agent, s, lab):
 		return state
 	else: return False
 
+def none(state):
+	return state
 
 def drop(state, agent, store):
 	if state.is_agent[agent] \

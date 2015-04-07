@@ -729,44 +729,55 @@ def seek_bb(state, tasks):
 
     # Iterate to decompose until openset is done.
     while len(openset) != 0:
+        print("root cost:{}".format(root.cost))
+
         cur_node = openset.pop(0)
         print("Tasks: {}; Parent: {}; Cost: {}".format(cur_node.name, cur_node.parent, cur_node.cost))
-                
+        if cur_node.tasks == []:
+            cur_node.success = True
+            cur_node.completed = True
+            print("right", cur_node.right)
+            print("parent-right", cur_node.parent.right)
+            cur_node.parent.update(cur_node, openset)
+            continue
         # If the min cost for openset is greater than the best plan right now, then kill this node.
-        if cur_node.cost > root.cost:
+        if cur_node.min_cost > root.cost:
             print("... not expanding current_node: {}".format(cur_node.name))
             continue
 
         # Otherwise, decompose this node and add new nodes to queue
         tasks = cur_node.tasks
         if isinstance(cur_node, andNode): 
+            print("is decomposition")
             left_node = None
             for task in tasks:
                 child_node = orNode(cur_node.before_state, cur_node, [task])
-                if left_node == None:
-                    # Only add the first one to openset
-                    openset.append(child_node)
-                if left_node != None:
-                    child_node.set_left(left_node)
-                left_node = child_node
-                cur_node.children.append(child_node)
+                cur_node.add_child(child_node)
+            openset.append(cur_node.children[0])
         elif isinstance(cur_node, orNode):
             task = tasks[0]
             if task[0] in methods:
+                print("is method")
                 relevant = methods[task[0]]
                 for method in relevant:
                     decompositions = method(cur_node.before_state, *task[1:]) # retruns the set of possible decomps
                     for sequence in decompositions:
                         child_node = andNode(cur_node.before_state, cur_node, sequence)
-                        cur_node.children.append(child_node)
-                        openset.append(child_node)
+                        cur_node.add_child(child_node)
+                    openset.append(cur_node.children[0])
             elif task[0] in operators:
+                print("is operators")
                 cur_node.update(None, openset)
-        
-    print(root.get_string())
+
+        print("ACTIVESET: ", openset)
+        # raw_input("...")   
+
+    # print("root cost:{}".format(root.cost))     
+    # print(root.get_string())
     one_plan = root.get_plan()
-    print("one plan:", one_plan)
-    print("get_num_plans:", root.get_num_plans())
+    # print("one plan:", one_plan)
+
+    # print("get_num_plans:", root.get_num_plans())
     return [one_plan]
 
 def propagate(cur_node, openset):

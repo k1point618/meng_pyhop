@@ -109,6 +109,8 @@ class Node(object):
         self.post_state = self.before_state
         self.children = []
         self.cost = sys.maxint
+        self.min_cost = 0
+
         self.type = None
         self.tasks = tasks
         self.parent = parent
@@ -116,7 +118,7 @@ class Node(object):
         self.right = None
 
         self.completed = False
-        self.success = False
+        self.success = None
         self.plans = None
 
     def get_string(self, prefix=""):
@@ -124,15 +126,24 @@ class Node(object):
             parent="NONE"
         else: parent=self.parent.name
 
-        toReturn = prefix + str(self.name) + ":" + self.type + "\tleft:" + str(self.left) + \
+        toReturn = prefix + str(self.name) + ":" + self.type + \
+                    "\tleft:" + str(self.left) + \
                     "\t cost: " + str(self.cost) + \
                     "\t pre_state: " + str(self.before_state) + \
                     "\t post_state: " + str(self.post_state) + \
+                    "\t success: " + str(self.success) + \
                     "\n"
         for child in self.children:
             toReturn += prefix + child.get_string(prefix + " ")
         return toReturn
 
+    def add_child(self, child):
+        if len(self.children) == 0:
+            self.children = [child]
+        else:
+            self.children[len(self.children)-1].right = child
+            child.left = self.children[len(self.children)-1]
+            self.children.append(child)
 
 class andNode(Node):
     def __init__(self, state, parent, tasks):
@@ -142,20 +153,41 @@ class andNode(Node):
     def __repr__(self):
         return "andNode: {}".format(self.tasks)
 
-    def update(self, child, openset):
+    def add_child(self, child):
+        super(andNode, self).add_child(child)
+        if len(self.children) > 2:
+            child.before_state = self.children[-2].post_state
 
-        completed = all([c.completed for c in self.children])
-        success = all([c.success for c in self.children])
-        cost = sum([c.cost for c in self.children])
-        if completed != self.completed or success != self.success or cost != self.cost:
-            self.completed = completed
-            self.success = success
-            self.cost = cost
+    def update(self, child, openset):
+        print("Updating node: {}".format(self))
+
+        # Failed AND node
+        if child.completed and child.success == False:
+            print("\t FAILED")
+            self.success = False
+            self.completed = True
+            self.cost = sum([c.cost for c in self.children])            
+            if self.parent != None:
+                self.parent.update(self, openset)
+
+        # All successful
+        if all([c.completed and c.success for c in self.children]):
+            print("\t ALL SUCCESSFUL")
+            self.completed = True
+            self.success = True
+            self.cost = sum([c.cost for c in self.children])  
             self.post_state = self.children[len(self.children)-1].post_state
             if self.parent != None:
                 self.parent.update(self, openset)
 
+        # Making Progress
+        if child.success == True and child.completed and not all([c.completed for c in self.children]):
+            print("\t MAKING PROGRESS")
+            self.min_cost += child.min_cost
+
     def get_plan(self):
+        # print("get plan for {}".format(self))
+        # print("------ self.success: ", self.success)
         actions = []
         states = []
         if self.success:
@@ -170,9 +202,11 @@ class andNode(Node):
         if self.success:
             to_return = 1
             for c in self.children:
-                to_return+=c.get_num_plans()
+                to_return*=c.get_num_plans()
+            return to_return
         return 0
 
+import random_rovers_world as rrw
 class orNode(Node):
     def __init__(self, state, parent, tasks):
         super(orNode, self).__init__(state,parent,  tasks)
@@ -183,14 +217,11 @@ class orNode(Node):
     def __repr__(self):
         return "orNode: {}".format(self.tasks)
 
-    def set_left(self, left_node):
-        self.left = left_node
-        self.before_state = left_node.post_state
-        left_node.right = self
 
     def update(self, child, openset):
-        # If or-node is a single operator
+
         if child == None and self.task[0] in operators and len(self.children) == 0:
+            # updating for an operator.
             print("ORNODE: ... cur_node {} is an OPERATOR".format(self))
             operator = operators[self.task[0]]
             new_state = operator(copy.deepcopy(self.before_state),*self.task[1:])
@@ -206,26 +237,44 @@ class orNode(Node):
                 if self.right != None:
                     self.right.before_state = self.post_state
                     openset.append(self.right)
+
+                print("Found plan for node {} as: ".format(self))
+                print(self.get_plan())
             else: 
+                # This is a dead node (success = False)
                 print("... ... FAILED operator {}; state:".format(self.task))
                 rrw.print_board(self.before_state)
                 self.post_state = False
                 self.success = False
-                self.completed = False
+                self.completed = True
                 self.cost = sys.maxint
 
                 # No point in adding "right" node
         else:
+            print("Updating node: {}".format(self))
+
+            # If failed, then look for the next
+            if child.success == False and child.completed:
+                print("Child failed")
+                if child.right != None:
+                    openset.append(child.right)
+                    return
+
+            # Most recently completed node
+            if child.completed and child.success:
+                self.post_state = child.post_state 
+
+            # Best Case Scenario
+            # print("self.children completed: {}".format([c.completed for c in self.children]))
             self.completed = any([c.completed for c in self.children])
-            self.success = any([c.success for c in self.children])
+            if self.completed:
+                self.success = any([c.success for c in self.children])
+            else:
+                self.success = None
             self.cost = min([c.cost for c in self.children])
 
-            if child.completed:
-                self.cost = min(self.cost, child.cost)
-                self.post_state = child.post_state 
-            
-            
-
+            # print("{} success: {}".format(self, self.success))
+            # print("{} right: {}".format(self, self.right))
             if self.right != None and self.success:
                 self.right.before_state = self.post_state
                 openset.append(self.right)
@@ -235,19 +284,31 @@ class orNode(Node):
             self.parent.update(self, openset)
 
     def get_plan(self):
+        # print("get plan for {}".format(self))
         if len(self.children) == 0 and self.success:
+            # print("... returning {}".format([self.task]))
             return ([self.task], [self.post_state])
 
         to_return = []
         if self.success:
-            (actions, states) = random.choice(self.children).get_plan()
-            return (actions, states)
+            for c in self.children:
+                if c.success:
+                    (actions, states) = c.get_plan()
+                    return (actions, states)
 
     def get_num_plans(self):
         if self.success:
-            if len(self.children) == 0 :
+            if len(self.children) == 0:
                 return 1
             to_return = 0
             for c in self.children:
                 to_return += c.get_num_plans()
+            # print("get_num_plans {}: returning {}".format(self, to_return))
+            return to_return
         return 0
+
+
+
+
+
+

@@ -153,14 +153,18 @@ def benchmark_a_star(verbose=0):
 def benchmark(planner1, planner2):
 
     # Set the number of problems
-    NUM_RUNS = 10
+    NUM_RUNS = 1
     planner1_time = []
     planner2_time = []
     for i in range(NUM_RUNS):
 
         # First generate a problem
-        PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
+        PROBLEM = get_random_world(BOARD_X=5, BOARD_Y=5, num_agent=2, a_star=True) # with default width and height (10 x 10)
         # PROBLEM = problem_bank.navigate_replan_team_4()
+        # PROBLEM = problem_bank.maze_5()
+        # PROBLEM = problem_bank.navigate_replan_team_4()
+        # PROBLEM = problem_bank.navigate_replan_team_5()
+        # PROBLEM = problem_bank.maze_0()
 
         # Plan with each planner
         start = time.time()
@@ -171,6 +175,8 @@ def benchmark(planner1, planner2):
         solutions2 = planner2.plan(PROBLEM, PROBLEM.goals.keys()[0])
         planner2_time.append(time.time() - start)
 
+        print("\nplanner1 solution: ", solutions1[0])
+        print("\nplanner2 solution: ", solutions2[0])
     print("planner1_time: {}".format(planner1_time))
     print("planner2_time: {}".format(planner2_time))
     print("avg planner1_time: {}".format(sum(planner1_time)/len(planner1_time)))
@@ -183,13 +189,17 @@ def test_planner(planner1):
     # Set the number of problems
     NUM_RUNS = 1
     planner1_time = []
-    planner2_time = []
     for i in range(NUM_RUNS):
 
         # First generate a problem
         # PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
         # PROBLEM = problem_bank.navigate_replan_team_4()
-        PROBLEM = problem_bank.navigate_replan_team_5()
+        # PROBLEM = problem_bank.navigate_replan_team_5()
+        # PROBLEM = problem_bank.maze_0()
+        PROBLEM = problem_bank.maze_1()
+        # PROBLEMS.append(problem_bank.maze_2())
+        # PROBLEMS.append(problem_bank.maze_4())
+        # PROBLEMS.append(problem_bank.maze_5())
 
         # Plan with each planner
         start = time.time()
@@ -213,9 +223,12 @@ from planners import *
 # Comparing using A* vs not for the simply-modified of the original
 # benchmark(Planner.get_HPlanner_v13(), Planner.get_HPlanner_v14())
 
-# test_planner(Planner.get_HPlanner_v13())
-test_planner(Planner.get_HPlanner_v14())
+benchmark(Planner.get_HPlanner_v14(), Planner.get_HPlanner_bb())
 
+# test_planner(Planner.get_HPlanner_v13())
+# test_planner(Planner.get_HPlanner_v14())
+# test_planner(Planner.get_HPlanner_bb())
+# test_planner(Planner.get_HPlanner_v13())
 
 # benchmark_amortized(verbose=0)
 
