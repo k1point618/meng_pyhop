@@ -114,7 +114,6 @@ class Node(object):
         self.children = []
         self.cost = sys.maxint
         self.cost_lower_bound = 0
-
         self.type = None
         self.tasks = tasks
         self.parent = parent
@@ -142,7 +141,6 @@ class Node(object):
         #             "\n"
         toReturn = prefix + str(self.name) + ":" + self.type + \
                     "\t cost: " + str(self.cost) + \
-                    "\t cost_lb: " + str(self.cost_lower_bound) + \
                     "\t success: " + str(self.success) + \
                     "\n"
         for child in self.children:
@@ -182,25 +180,16 @@ class andNode(Node):
             self.post_state = self.children[len(self.children)-1].post_state
             propagate_update = True
 
-        # Updating cost
-        n_cost_lb = sum([c.cost_lower_bound for c in self.children])
-        if n_cost_lb != self.cost_lower_bound:
-            self.cost_lower_bound = n_cost_lb
-            # Update parent
-            propagate_update = True
-
         # Child just failed: Kill this node
         if child.completed and child.success == False:
             if VERBOSE: print("\t FAILED")
             self.success = False
             self.completed = True
             self.cost = sum([c.cost for c in self.children])            
-            self.cost_lower_bound = sys.maxint
             propagate_update = True
 
         if propagate_update and self.parent != None:
             self.parent.update(self, openset)
-
 
     def get_plan(self):
         actions = []
@@ -229,9 +218,67 @@ class andNode(Node):
             return to_return
         return 0
 
+    def get_all_plans(self):
+        to_return = []
+        if self.success:
+            for child in self.children:
+                cplan = child.get_all_plans() # a list of lists.
+                # print("\tCPLAN: {}".format(cplan))
+                prev = to_return + []
+                # print("\tPREV: {}".format(prev))
+                to_return = []
+
+                if prev == []:
+                    to_return = cplan + []
+                else:
+                    for p in prev:
+                        for q in cplan:
+                            to_return.append(p + q)
+                # print("\tTO RETURN: {}".format(to_return))
+            # print("AND NODE: returning... for task {} : {}".format(self, to_return))
+            return to_return
+        else:
+            return None
+
     # Actions only
     def get_all_opt_plans(self):
-        pass
+        to_return = []
+        if self.success:
+            for child in self.children:
+                cplan = child.get_all_opt_plans() # a list of lists.
+                prev = to_return + []
+                to_return = []
+
+                if prev == []:
+                    to_return = cplan + []
+                else:
+                    for p in prev:
+                        (pa, ps) = p
+                        for q in cplan:
+                            (qa, qs) = q
+                            sol = (pa + qa, ps + qs)
+                            to_return.append(sol)
+            return to_return
+        else:
+            return None
+
+    # Propagating lower-bound cost for AND-NODE
+    def report_lb_cost(self, child):
+
+        if self.parent == None:
+            return (child.cost_lower_bound < self.cost)
+        self.cost_lower_bound = 0
+        for c in self.children:
+            if c == child:
+                self.cost_lower_bound += child.cost_lower_bound
+            elif c.success:
+                self.cost_lower_bound += c.cost
+        if self.cost_lower_bound < self.cost:
+            if self.parent != None:
+                return self.parent.report_lb_cost(self)
+        else:
+            return False
+
 
 import random_rovers_world as rrw
 class orNode(Node):
@@ -262,11 +309,14 @@ class orNode(Node):
             self.cost = self.state.cost_func(self.state, self.task[0])
             self.cost_lower_bound = self.cost
 
-            # Continue
+            # Continue depending on the lower-bound
             if self.right != None:
-                self.right.before_state = self.post_state
-                openset.append(self.right)
-
+                if self.parent.report_lb_cost(self):
+                    self.right.before_state = self.post_state
+                    openset.append(self.right)
+                else:
+                    if VERBOSE: print("DECIDED NOT to add next-node: {} with parent {}".format(self.right, self.parent))
+            
             if VERBOSE: print("Found plan for node {} as: ".format(self))
             if VERBOSE: print(self.get_plan())
         else: 
@@ -281,14 +331,35 @@ class orNode(Node):
             # No point in adding "right" node
 
 
+    def report_lb_cost(self, child):
+        if self.success: 
+            # There is previous solutions
+            if child.cost_lower_bound >= self.cost:
+                # No need to continue (Not good enough)
+                return False
+            # Otherwise, could potentially continue
+            self.cost_lower_bound = child.cost_lower_bound
+            if self.parent != None:
+                return self.parent.report_lb_cost(self)
+            else: 
+                return True
+        else:
+            # not success:
+            if child.success:
+                # Should never really be here...
+                self.cost_lower_bound = child.cost_lower_bound
+                if self.parent != None:
+                    return self.parent.report_lb_cost(self)
+                else: 
+                    return True
+        return True
+
     def update(self, child, openset):
 
         if child == None and self.task[0] in operators and len(self.children) == 0:
             # If Operator
             self.do_operator(openset)            
         else:
-
-
             if VERBOSE: print("Updating node: {}".format(self))
 
             if (not self.completed) and child.completed and child.success:
@@ -297,19 +368,23 @@ class orNode(Node):
                 self.completed = True
                 self.success = True
                 self.cost = child.cost
+                self.cost_lower_bound = self.cost
                 self.good_children = [child]
-                self.cost_lower_bound = -1 # LW is no longer useful when the plan is realized
                 self.post_state = child.post_state 
 
                 if self.right != None and self.success:
-                    if VERBOSE: 
-                        print("Adding RIGHT node to openset {}".format(self.right))
-                    self.right.before_state = self.post_state
-                    openset.append(self.right)
-
+                    # Update lowerbound (Propagate to see if it's worth to continue)
+                    if self.parent.report_lb_cost(self):                    
+                        if VERBOSE: 
+                            print("Adding RIGHT node to openset {}".format(self.right))
+                        self.right.before_state = self.post_state
+                        openset.append(self.right)
+                    else:
+                        if VERBOSE: print("DECIDED NOT to add next-node: {} with parent {}".format(self.right, self.parent))
             elif child.completed and child.success:
                 # Found better plan
                 if child.cost < self.cost:
+                    print("FOUND BETTER PLAN for {} cost: {}".format(child, child.cost))
                     self.cost = child.cost
                     self.good_children = [child]
                 elif child.cost == self.cost:
@@ -319,10 +394,12 @@ class orNode(Node):
             # If child is done, then go to the next child.
             if child.completed and child.right != None:
                 if VERBOSE: print("Child is done, go to next child {}".format(child.right))
-                openset.append(child.right)
+                if child.success == False:
+                    # if failed, try next one now
+                    openset.append(child.right)
+                else:
+                    openset.insert(0, child.right)
                 
-            
-
             # Best Case Scenario
             # print("self.children completed: {}".format([c.completed for c in self.children]))
             if all([c.completed for c in self.children]) or any([c.success for c in self.children]):
@@ -331,7 +408,6 @@ class orNode(Node):
                 self.success = any([c.success for c in self.children])
 
             self.cost = min([c.cost for c in self.children])
-
 
         if self.parent != None:
             self.parent.update(self, openset)
@@ -343,11 +419,12 @@ class orNode(Node):
             return ([self.task], [self.post_state])
 
         if self.success == False:
-            return ([False], [False])
+            return [False]
 
         to_return = []
         success_children = [c for c in self.good_children]
-        return random.choice(success_children).get_plan()        
+        # return random.choice(success_children).get_plan()        
+        return success_children[0].get_plan()
 
     def get_num_plans(self):
         if self.success:
@@ -371,13 +448,31 @@ class orNode(Node):
             return to_return
         return 0
 
+    def get_all_plans(self):
+        if self.success:
+            # print("All opt plans for {}: ".format(self))
+            to_return = []
+            if len(self.children) == 0:
+                to_return = [[self.task]]
+            else:
+                for c in self.children:
+                    # print ("\tGood child: {}".format(c))
+                    if c.success:
+                        to_return += c.get_all_plans()
+            # print("returning... for task {} : {}".format(self, to_return))
+            return to_return
+        return
+
+    # Actions and States
     def get_all_opt_plans(self):
         if self.success:
-            if len(self.children) == 0:
-                return [[self.task]]
             to_return = []
-            for c in self.good_children:
-                to_return += c.get_all_opt_plans()
+            if len(self.children) == 0:
+                to_return = [([self.task], [self.post_state])]
+            else:
+                for c in self.good_children:
+                    if c.success:
+                        to_return += c.get_all_opt_plans() # Adding distinct plans together
             return to_return
         return
 

@@ -13,15 +13,15 @@ def maze_0():
 	world = rrw.get_random_world(3, 3, num_agent=1, name='maze_0')
 
 	# Set Goal
-	world.goals['A1'] = [('navigate', 'A1', 9)]
+	world.goals['A1'] = [('navigate', 'A1', 2)]
 
 	# Set Lander Location
 	world.at[rrw.LANDER] = 9
 	
 	# Set Rover Location
-	world.at['A1'] = 1
+	world.at['A1'] = 9
 	world.visited['A1'] = set()
-	world.visited['A1'].add(1)
+	world.visited['A1'].add(9)
 	
 	return world
 

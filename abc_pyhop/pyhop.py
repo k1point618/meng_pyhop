@@ -706,7 +706,7 @@ import heapq
 from plantree import *
 import random_rovers_world as rrw
     
-def seek_bb(state, tasks, verbose=0):
+def seek_bb(state, tasks, verbose=0, all_plans=True):
 
     if verbose: 
         print("SEEK_BB: solving problem for task {} and state:".format(tasks))
@@ -735,9 +735,13 @@ def seek_bb(state, tasks, verbose=0):
 
     # Iterate to decompose until openset is done.
     while len(openset) != 0:
+
+        if root.success and not all_plans:
+            break
+
         if verbose: print("root cost:{}".format(root.cost))
 
-        cur_node = openset.pop(0)
+        cur_node = openset.pop()
         if verbose: print("Tasks: {}; Parent: {}; Cost: {}".format(cur_node.name, cur_node.parent, cur_node.cost))
         
         if cur_node.tasks == []:
@@ -748,11 +752,6 @@ def seek_bb(state, tasks, verbose=0):
             if verbose: print("parent-right", cur_node.parent.right)
             cur_node.parent.update(cur_node, openset)
             continue
-
-        # If the min cost for openset is greater than the best plan right now, then kill this node.
-        # if cur_node.min_cost > root.cost:
-        #     if verbose: print("... not expanding current_node: {}".format(cur_node.name))
-        #     continue
 
         # Otherwise, decompose this node and add new nodes to queue
         tasks = cur_node.tasks
@@ -770,28 +769,32 @@ def seek_bb(state, tasks, verbose=0):
                 relevant = methods[task[0]]
                 for method in relevant:
                     decompositions = method(cur_node.before_state, *task[1:]) # retruns the set of possible decomps
-                    if decompositions[0]:
-                        for sequence in decompositions:
-                            child_node = andNode(cur_node.before_state, cur_node, sequence)
-                            cur_node.add_child(child_node)
-                        if verbose: print("adding to openset: {}".format(cur_node.children[0]))
-                        openset.append(cur_node.children[0])
+                    if decompositions[0] == False:
+                        continue
+                    for sequence in decompositions:
+                        child_node = andNode(cur_node.before_state, cur_node, sequence)
+                        cur_node.add_child(child_node)
+                    openset.append(cur_node.children[0])
+                    
             elif task[0] in operators:
                 if verbose: print("is operators")
                 cur_node.update(None, openset)
 
         if verbose: print("ACTIVESET: ", openset)
-        # print("root: ", root.get_string())
-        # raw_input("...")   
+        # raw_input("...")
 
-    # print("root cost:{}".format(root.cost))     
-    # print(root.get_string())
     one_plan = root.get_plan()
-    # print("one plan:", one_plan)
 
-    print("root: ", root.get_string())
+    # print("root: ", root.get_string())
     print("get_num_plans:", root.get_num_plans())
-    print("get_num_plans:", root.get_num_opt_plans())
+    print("num_opt_plans:", root.get_num_opt_plans())
+    
+    # print("all opt plans:")
+    # plans = root.get_all_opt_plans()
+    # for p in plans:
+    #     print("opt p", p[0])
+    
+    
     return [one_plan]
 
 
