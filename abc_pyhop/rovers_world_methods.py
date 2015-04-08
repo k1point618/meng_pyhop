@@ -69,10 +69,7 @@ def navigate2_m(state, agent, source, sink, rand=False):
 			if n not in state.visited[agent]: 
 				neighbors.append(n)
 
-		if rand: 
-			random.shuffle(neighbors)
-
-		sorted_n = sorted(neighbors, key=lambda n: navigation.heuristic(state,n, sink))
+		sorted_n = sorted(neighbors, key=lambda n: navigation.heuristic(state, n, sink))
 
 		for mid in sorted_n:
 			possible_decomp.append([('navigate_op', agent, source, mid), ('visit', agent, mid), ('navigate2', agent, mid, sink), ('unvisit',agent, mid)])
@@ -88,21 +85,28 @@ def get_sample_data_m(state, agent, rand=False):
 	# Consider two cases here, rock OR soil
 	rock_score = int(state.has_rock_sample[agent]) + int(state.has_rock_analysis[agent])
 	soil_score = int(state.has_soil_sample[agent]) + int(state.has_soil_analysis[agent])
+	# print("\t\tAgent{} -- RockScore: {} \t Soil Score: {}".format(agent, rock_score, soil_score))
+	# print("\t\tIs Agent: {}".format(state.is_agent))
+	# print("\t\tEquipped (Rock): {}".format(state.equipped_for_rock_analysis))
+	# print("\t\tEquipped (Soil): {}".format(state.equipped_for_rock_analysis))
 
 	possible_decomp = []
 	if state.is_agent[agent] and state.equipped_for_rock_analysis[agent]:
+		# print("\t\tis agent AND equipped for rock analysis")
 		possible_decomp.append([('get_rock_data', agent)])
 		
 	if state.is_agent[agent] and state.equipped_for_soil_analysis[agent]:
+		# print("\t\tis agent AND equipped for soil analysis")
 		if rock_score > soil_score:
 			# Rock in front
 			possible_decomp = possible_decomp + [[('get_soil_data', agent)]]
-		elif soil_score <= rock_score:
+		elif rock_score <= soil_score:
 			possible_decomp = [[('get_soil_data', agent)]] + possible_decomp
 
 	if len(possible_decomp) == 0: return [False]
 	if rock_score == soil_score and rand:
 		random.shuffle(possible_decomp)
+	# print("\t\tMethod:get_sample_data\t toreturn: Possible_decomp={}".format(possible_decomp))
 	return possible_decomp
 
 pyhop.declare_methods('get_sample_data',get_sample_data_m)

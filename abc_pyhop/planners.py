@@ -17,7 +17,6 @@ class Planner():
 		return self.planner(problem, agent)
 
 
-
 	""" Below defines the set of possible planners currently in the lib """
 	@staticmethod
 	def get_HPlanner_v10():	# Returns the out-of-the-box pyshop planner
@@ -56,7 +55,12 @@ class Planner():
 		def v14_plan(problem, agent):
 			problem.a_star = True
 			problem.rand = False # False for debugging
-			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
+			if not hasattr(problem, 'verbose'):
+				problem.verbose = 0
+			elif problem.verbose == 1:
+				print("Problem State: ")
+				pyhop.print_state(problem)
+			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0, verbose=problem.verbose)
 			return solutions
 		v14.planner = v14_plan
 		return v14
@@ -99,11 +103,11 @@ class Planner():
 		v20 = Planner()
 		def v20_plan(problem, agent):
 			problem.a_star = False
-			problem.rand = True
-			# print("HPLANNER_BB: SOLVING PROBLEM {} FOR AGENT {} WITH STATE:".format(problem.goals[agent], agent))
-			# import random_rovers_world as rrw
-			# rrw.print_board(problem)
-			return pyhop.seek_bb(problem, problem.goals[agent])
+			problem.rand = False
+			if not hasattr(problem, 'verbose'):
+				problem.verbose = 0
+			return pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose)
+
 		v20.planner = v20_plan
 		return v20
 

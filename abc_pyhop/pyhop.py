@@ -706,12 +706,15 @@ import heapq
 from plantree import *
 import random_rovers_world as rrw
     
-def seek_bb(state, tasks, verbose=0, all_plans=True):
+def seek_bb(state, tasks, verbose=0, all_plans=False):
 
     if verbose: 
         print("SEEK_BB: solving problem for task {} and state:".format(tasks))
         print("STATE:")
         rrw.print_board(state)
+        print_state(state)
+        print("...")
+        print("VISITED: ", state.visited)
     
     root = andNode(state, None, tasks)
     openset = []
@@ -769,7 +772,12 @@ def seek_bb(state, tasks, verbose=0, all_plans=True):
                 relevant = methods[task[0]]
                 for method in relevant:
                     decompositions = method(cur_node.before_state, *task[1:]) # retruns the set of possible decomps
+                    if verbose: print("decompositions: {}".format(decompositions))
                     if decompositions[0] == False:
+                        # This node failed
+                        cur_node.completed = True
+                        cur_node.success = False
+                        cur_node.parent.update(cur_node, openset)
                         continue
                     for sequence in decompositions:
                         child_node = andNode(cur_node.before_state, cur_node, sequence)
@@ -785,14 +793,14 @@ def seek_bb(state, tasks, verbose=0, all_plans=True):
 
     one_plan = root.get_plan()
 
-    # print("root: ", root.get_string())
-    print("get_num_plans:", root.get_num_plans())
-    print("num_opt_plans:", root.get_num_opt_plans())
-    
-    # print("all opt plans:")
-    # plans = root.get_all_opt_plans()
-    # for p in plans:
-    #     print("opt p", p[0])
+    if verbose:
+        plans = root.get_all_opt_plans()
+        print("root: ", root.get_string())
+        print("get_num_plans:", root.get_num_plans())
+        print("num_opt_plans:", root.get_num_opt_plans())
+        print("all opt plans: {}".format(plans))
+        # for p in plans:
+        #     print("opt p", p[0])
     
     
     return [one_plan]

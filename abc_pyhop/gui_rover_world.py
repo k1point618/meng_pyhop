@@ -194,11 +194,8 @@ class AgentColumnFrame(Tkinter.Frame):
 
     def set_cur_action(self, idx):
         lb = self.listBox
-        print("cur selection: ", lb.curselection())
         if len(lb.curselection()) != 0:
             lb.selection_clear(lb.curselection())
-        print("*** Clearning Selections... ***")
-        print("*** Setting new selection by index: ", idx)
         lb.selection_set(idx)
 
         # Update explanation box

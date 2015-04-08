@@ -27,7 +27,7 @@ the global time-step of the simulation.
 """
 def get_uncertainty_fun(state, num_step, a_prob):
 
-    sequence = []
+    sequence = [] # Locations of interest
     randoms = [random.random() * state.RAND_RANGE for i in range(num_step)]
 
     for idx in range(num_step):
@@ -45,13 +45,23 @@ def get_uncertainty_fun(state, num_step, a_prob):
         else: sequence.append(None)
 
     def to_return(in_state, in_idx):
-        if in_idx >= len(sequence):
-            return
-        rand_loc = sequence[in_idx]
-        if rand_loc != None:
-            # in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc] # This allows flipping
-            in_state.loc_available[rand_loc] = False # This means if a location turns into a trap, it will stay as a trap
-            in_state.cost[rand_loc] += randoms[in_idx]
+        # Get all the uncertainties at the first time step
+        if in_idx == 1:
+            # Make all uncertainties
+            for idx in range(len(sequence)):
+                if sequence[idx] != None:
+                    in_state.cost[sequence[idx]] += randoms[idx]
+        else:
+            pass # Do nothing
+
+        # Generates uncerties for a constantly-changing world.
+        # if in_idx >= len(sequence):
+        #     return
+        # rand_loc = sequence[in_idx]
+        # if rand_loc != None:
+        #     # in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc] # This allows flipping
+        #     in_state.loc_available[rand_loc] = False # This means if a location turns into a trap, it will stay as a trap
+        #     in_state.cost[rand_loc] += randoms[in_idx]
 
     return to_return
 
@@ -144,13 +154,11 @@ def print_board_str(state): # Makes the string output
             if (i, j) in occupied:
                 to_print += str(occupied[(i, j)]) + "\t"
             else:
-                if (state.loc_available[idx]):
-                    to_print += "[{}]\t".format(state.cost[idx])
-                else:
-                    to_print += "[++++++]\t"
+                to_print += "[{}]\t".format(state.cost[idx])
 
             idx += 1
         to_print += "\n"
+
     return to_print
 
 """
@@ -258,7 +266,6 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.loc = {}
     world.loc_available = {}
     world.cost = {}
-    world.MAX_COST = 10
     idx = 1
     for i in range(BOARD_X):
         for j in range(BOARD_Y):
@@ -284,7 +291,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
     world.MAX_COST = 20
-    world.RAND_RANGE = 10
+    world.RAND_RANGE = 20
 
     world.cost_func = cost_function
     return world

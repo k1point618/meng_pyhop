@@ -310,12 +310,22 @@ class orNode(Node):
             self.cost_lower_bound = self.cost
 
             # Continue depending on the lower-bound
-            if self.right != None:
-                if self.parent.report_lb_cost(self):
+            if self.right != None: # Now consider adding the next or-node
+                add_right = False
+                if self.parent.success and self.parent.completed:
+                    # now try to improve lowerbound
+                    add_right = self.parent.report_lb_cost(self)
+                else:
+                    # If parent is not complete, then add .right Node fo sho
+                    add_right = True
+
+                if add_right:
+                    if VERBOSE: 
+                        print("Adding RIGHT node to openset {}".format(self.right))
                     self.right.before_state = self.post_state
                     openset.append(self.right)
                 else:
-                    if VERBOSE: print("DECIDED NOT to add next-node: {} with parent {}".format(self.right, self.parent))
+                    if VERBOSE: print("PLANTREE.UPDATE: DECIDED NOT to add next-node: {} with parent {}".format(self.right, self.parent))
             
             if VERBOSE: print("Found plan for node {} as: ".format(self))
             if VERBOSE: print(self.get_plan())
@@ -372,15 +382,22 @@ class orNode(Node):
                 self.good_children = [child]
                 self.post_state = child.post_state 
 
-                if self.right != None and self.success:
-                    # Update lowerbound (Propagate to see if it's worth to continue)
-                    if self.parent.report_lb_cost(self):                    
+                if self.right != None: # Now consider adding the next or-node
+                    add_right = False
+                    if self.parent.success and self.parent.completed:
+                        # now add lowerbound
+                        add_right = self.parent.report_lb_cost(self)
+                    else:
+                        add_right = True
+
+                    if add_right:
                         if VERBOSE: 
                             print("Adding RIGHT node to openset {}".format(self.right))
                         self.right.before_state = self.post_state
                         openset.append(self.right)
                     else:
-                        if VERBOSE: print("DECIDED NOT to add next-node: {} with parent {}".format(self.right, self.parent))
+                        if VERBOSE: print("PLANTREE.UPDATE: DECIDED NOT to add next-node: {} with parent {}".format(self.right, self.parent))
+
             elif child.completed and child.success:
                 # Found better plan
                 if child.cost < self.cost:

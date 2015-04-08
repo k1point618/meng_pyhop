@@ -45,7 +45,8 @@ class Simulation():
         self.log.info('Simulation Logger Created')
         self.AgentType = AgentType.__name__
         self.name = "{}_{}".format(world.name, self.AgentType)
-        
+        self.planner_name = planner.planner.__name__
+
         # Simulation parameters: 
         self.PARAMS = {}
         self.PARAMS['uncertainty'] = uncertainty
@@ -239,7 +240,6 @@ class Simulation():
         self.log.info(self.real_world)
         if hasattr(self.real_world, 'uncertainties'):
             self.log.info("Using predefined uncertainties.")
-            # If a world comes with it's own uncertainty-funciton, then apply that
             self.real_world.uncertainties(self.real_world, self.time)
         elif self.PARAMS['uncertainty']:
             generate_uncertainty(self.real_world, a_prob=self.PARAMS['uncertainty'], verbose=True)
@@ -247,8 +247,11 @@ class Simulation():
         actions_took = {} # Maps agent names to the set of actions
 
         self.log.info('REAL WORLD: ' + str(self.real_world.at))
+        self.log.info('REAL WORLD: ' + str(self.real_world.cost))
         self.log.info(('rock analysis: ', self.real_world.rock_analysis))
         self.log.info(('soil analysis: ', self.real_world.soil_analysis))
+        self.log.info(('has rock sample: ', self.real_world.has_rock_sample))
+        self.log.info(('has soil sample: ', self.real_world.has_soil_sample))
         self.log.info("\n" + print_board_str(self.real_world))
 
         for (agent_name, agent) in self.agents.items():
@@ -302,12 +305,16 @@ class Simulation():
             if agent.is_done(): continue
 
             # 3. REPLAN if needed
-            if len(diffs) == 0 and not world_changed:
-                replan = False
-            else:
-                replan = agent.replan_q()
+            replan = agent.replan_q()
             if  replan or world_changed: # If we do not include world_changed, then does not seek for "better" plan
-                if agent.replan(stuck=replan):
+                verbose = 0
+
+                # Used for debugging re-planning
+                # if world_changed and not replan:
+                #     self.log.info("Replanning Agent {} due to incoming message!!".format(agent.name))
+                #     verbose = 10
+                
+                if agent.replan(stuck=replan, verbose=verbose):
                     hist = agent.add_history('replan', self.real_world.COST_REPLAN)
                     actions_took[agent_name].append(hist)
                     agent.cur_step = 0
@@ -315,10 +322,16 @@ class Simulation():
                 # If replan returns false, then plan was not updated
             
             # 4: Agent takes action
-            self.log.info(('cur_action: ', agent.get_cur_action()))
-            self.real_world = act(self.real_world, agent.get_cur_action())
-            assert(self.real_world != None)
-            assert(self.real_world != False)
+            try:
+                self.log.info(('cur_action: ', agent.get_cur_action()))
+            except IndexError: 
+                print("Agent: {}", agent)
+                raw_input("...")
+
+            new_world = act(self.real_world, agent.get_cur_action())
+            assert(new_world != None), "Real world:\n{}\nAgent {}'s world:\n{}".format(print_board_str(self.real_world), agent.name, print_board_str(agent.mental_world))
+            assert(new_world != False), "Real world:\n{}\nAgent {}'s world:\n{}".format(print_board_str(self.real_world), agent.name, print_board_str(agent.mental_world))
+            self.real_world = new_world
 
             # Step Agent                
             hist = agent.step(self.real_world, out_commMsgs)
@@ -457,9 +470,11 @@ class Simulation():
         return sum([agent.times_replanned for agent in self.agents.values()])
     
 
-    def get_summary(self, cost=True, cost_bd=False, obs=True, comm=True, void=True):
+    def get_summary(self, cost=True, cost_bd=False, obs=True, comm=True, void=True, planner=True):
         to_return = "\nSimulation Summary for Problem:{} with AgentType:{}\n".format(
             self.real_world.name, self.AgentType)
+        if planner:
+            to_return += "\Planner: {}\n".format(self.planner_name)
         if cost:
             to_return += "\tTotal Cost: {}\n".format(sum(self.cost_p_agent()))
         if cost_bd:

@@ -161,8 +161,9 @@ class AgentMind(object):
         # at_diff = [] # Note TODO: For now also include object locaitons
 
         my_l = self.mental_world.at[self.name]
-        for l in self.mental_world.loc.keys():
+        for l in self.mental_world.loc.keys(): # Look at all the locations
             if AgentMind.visible(my_l, l, real_world, range=2) and self.mental_world.cost[l] != real_world.cost[l]:
+                # Can see traps that are far away
                 if real_world.cost[l] > real_world.MAX_COST or self.mental_world.cost[l] > real_world.MAX_COST:
                     self.mental_world.cost[l] = real_world.cost[l]
                     loc_diff.append((l, real_world.cost[l]))
@@ -231,11 +232,13 @@ class AgentMind(object):
         return True
 
     # Returns True if new plan is initated
-    def replan(self, stuck):
-
+    def replan(self, stuck, verbose=0):
+        self.log.info("replanning...verbose:{}".format(verbose))
+        
         # If the new expected cost is lower, then update plan.
         temp_mental_world = copy.deepcopy(self.mental_world)
         temp_mental_world.visited[self.name] = set()
+        temp_mental_world.verbose = verbose
         solutions = self.planner.plan(temp_mental_world, self.name)
         solution = random.choice(solutions)
 
@@ -283,6 +286,8 @@ class AgentMind(object):
 
         # 3. update counters
         self.cur_step += 1
+        self.global_step += 1
+
         if self.cur_step >= len(self.actions):
             self.done = True
             self.success = True
@@ -412,6 +417,8 @@ class AgentSmartComm(AgentMind):
         # Pretend to send message and update teammate's world
         other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
 
+        self.log.info("in COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
+        
         # Pretend to re-plan with new info # no need to check for re-plan
         new_cost_to_finish, (actions, states) = self.EX_COST(other.mental_world, other)
         self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan:\n{}"
@@ -448,8 +455,8 @@ class AgentSmartComm(AgentMind):
         # Simulation?
         other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
 
-        self.log.info("Other agent's mental world: \n{}".format(print_board_str(other.mental_world)))
-        
+        self.log.info("in NO_COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
+        self.log.info("... Other agent's State.visited: {}".format(other.mental_world.visited))
         (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.get_rest_actions())
         self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.get_rest_actions(), cost))
 
@@ -477,8 +484,12 @@ class AgentSmartComm(AgentMind):
         # TODO: This means that communication should also include "FROM" in addition to "TO"
 
 
-    def EX_COST(self, world, agent):
+    def EX_COST(self, in_world, agent):
+        world = copy.deepcopy(in_world)
         agent.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
+        self.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
+
+        world.visited[agent.name] = set()
         solutions = self.planner.plan(world, agent.name)
         if solutions[0] == False:
             return (sys.maxint, 'None')
@@ -487,6 +498,7 @@ class AgentSmartComm(AgentMind):
         for action in actions:
             total_cost += world.cost_func(world, action)
         agent.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, actions))
+        self.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, actions))
         return (total_cost, (actions, states))
 
     # After steping, SmartComm updates the belief of teammate's plan
@@ -503,8 +515,7 @@ class AgentSmartComm(AgentMind):
                 if teammate.cur_step >= len(teammate.actions):
                     teammate.done = True
         self.log.info("GlobalTime: {} Agent: {} Action: {}".format(self.global_step, self.name, hist))
-        self.log.info("GlobalTime: {} Agent: {} Action: {}".format(self.global_step, t_name, teammate_action))
-        self.global_step += 1
+        # self.log.info("GlobalTime: {} Agent: {} Action: {}".format(self.global_step, t_name, teammate_action))
         return hist
 
 
@@ -534,7 +545,7 @@ class AgentSmartCommII(AgentSmartComm):
 
             # update teammate's Plan, potentially
             # TODO: Need to step first, and then append later-plan
-            (new_cost, solution) = self.EX_COST(teammate.mental_world, teammate)
+            (new_cost, solution) = self.EX_COST(copy.deepcopy(teammate.mental_world), teammate)
             teammate.set_solution(solution) # Setting cur_step = 0
             self.log.info("\n\n Updated teammate {}'s solution. New solution: \n\t{}".format(teammate.name, solution[0]))
 

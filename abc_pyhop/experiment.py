@@ -62,9 +62,11 @@ Make a Random World and Random Uncertainties
 """
 def make_random_problem():
     logger.info("Making random problem")
-    PROBLEM = get_random_world(BOARD_X=7, BOARD_Y=7, num_agent=2, a_star=True) # with default width and height (10 x 10)
+    X = 7
+    Y = 7
+    PROBLEM = get_random_world(BOARD_X=X, BOARD_Y=Y, num_agent=2, a_star=True) # with default width and height (10 x 10)
     AGENT_TYPE = models.AgentNoComm
-    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=100, a_prob=1)
+    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=X*Y, a_prob=0.3)
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
 
@@ -75,22 +77,22 @@ def make_random_problem():
 Choose any problem from problem bank
 """
 PROBLEMS = []
-random = False
+random = True
 if not random:
-    # PROBLEMS.append(problem_bank.maze_0())
-    # PROBLEMS.append(problem_bank.maze_1())
-    # PROBLEMS.append(problem_bank.maze_2())
-    # PROBLEMS.append(problem_bank.maze_4())
-    # PROBLEMS.append(problem_bank.maze_5())
-    # PROBLEMS.append(problem_bank.navigate_replan_team_2())
-    # PROBLEMS.append(problem_bank.navigate_replan_team_3())
+    PROBLEMS.append(problem_bank.maze_0())
+    PROBLEMS.append(problem_bank.maze_1())
+    PROBLEMS.append(problem_bank.maze_2())
+    PROBLEMS.append(problem_bank.maze_4())
+    PROBLEMS.append(problem_bank.maze_5())
+    PROBLEMS.append(problem_bank.navigate_replan_team_2())
+    PROBLEMS.append(problem_bank.navigate_replan_team_3())
     # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
-    # PROBLEMS.append(problem_bank.navigate_replan_team_5())
+    PROBLEMS.append(problem_bank.navigate_replan_team_5())
     PROBLEMS.append(problem_bank.navigate_replan_team_6())
-    # PROBLEMS.append(problem_bank.navigate_replan_team_7())
+    PROBLEMS.append(problem_bank.navigate_replan_team_7())
 
 if random:
-    num_problems = 1
+    num_problems = 10
     PROBLEMS = [0 for i in range(num_problems)]
 
 
@@ -110,34 +112,49 @@ while len(PROBLEMS) != 0:
     PROBLEM.COST_REPLAN = 0
     
     """
-    Run Multiple Simulaitons for a given problem
+    Run Multiple Simulations for a given problem
     """
     simulations = []
     MODELS = []
     MODELS += [models.AgentNoComm]
-    # MODELS += [models.AgentSmartComm]
-    # MODELS += [models.AgentSmartCommII]
-    # MODELS += [models.AgentFullComm]
+    MODELS += [models.AgentSmartComm]
+    MODELS += [models.AgentSmartCommII]
+    MODELS += [models.AgentFullComm]
+
+    PLANNERS = []
+    # PLANNERS += [Planner.get_HPlanner_v14()]
+    # PLANNERS += [Planner.get_HPlanner_v13()]
+    PLANNERS += [Planner.get_HPlanner_bb()]
 
     logger.info("*** Running simulations for Problem {} for models: {}".format(PROBLEM.name, [m.__name__ for m in MODELS]))
     for AGENT_TYPE in MODELS:
-        simulation = Simulation(PROBLEM, AGENT_TYPE, Planner.get_HPlanner_bb(), gui=False, re_plan=True, use_tree=False)
-        simulation.run()
+        for PLANNER in PLANNERS:
+            logger.info("*** Running simulations for [PROBLEM: {}]\t[MODEL: {}]\t[PLANNER: {}]".format(PROBLEM.name, AGENT_TYPE.__name__, PLANNER.planner.__name__))
+            simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False, re_plan=True, use_tree=False)
+            simulation.run()
 
-        if sum(simulation.cost_p_agent()) > sys.maxint/2: 
-            # Trying to minimize the uncertainties that makes it impossible
-            if random:
-                PROBLEMS.append(make_random_problem)
-            show_summary = False
-            logger.info("Incomplete World")
-            break
+            
+            if sum(simulation.cost_p_agent()) > sys.maxint/2: 
+                # Trying to minimize the uncertainties that makes it impossible
+                if random:
+                    PROBLEMS.append(make_random_problem)
+                show_summary = False
+                logger.info("Incomplete World")
+                break
 
-        simulations.append(simulation)
-        
+            # If we care to re-play simulations where agents communicated
+            # if simulation.total_messages_sent() != 0 and sum(simulation.cost_p_agent()) > sum(simulations[-1].cost_p_agent()):
+            #     logger.info("communicated AND performed worse... re-running simulaiton with GUI")
+            #     Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True, re_plan=True, use_tree=False)
+            
+            simulations.append(simulation)
+
+
+
 
     # Output summary 
     if show_summary:
-        logger.info("*** SUMMARY for Problem {} Summary for Models: {}".format(PROBLEM.name, MODELS))
+        logger.info("*** SUMMARY for Problem {} Summary for Models: {}".format(PROBLEM.name, [m.__name__ for m in MODELS]))
         for sim in simulations:
             logger.info(sim.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
 

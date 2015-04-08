@@ -161,10 +161,11 @@ def benchmark(planner1, planner2):
         # First generate a problem
         # PROBLEM = get_random_world(BOARD_X=5, BOARD_Y=5, num_agent=2, a_star=True) # with default width and height (10 x 10)
         # PROBLEM = problem_bank.navigate_replan_team_4p()
-        PROBLEM = problem_bank.maze_5()
+        # PROBLEM = problem_bank.maze_5()
         # PROBLEM = problem_bank.navigate_replan_team_4()
-        # PROBLEM = problem_bank.navigate_replan_team_5()
-        PROBLEM = problem_bank.maze_0()
+        # PROBLEM = problem_bank.navigate_replan_team_6()
+        # PROBLEM = problem_bank.maze_0()
+        # PROBLEM = problem_bank.navigate_replan_team_2()
 
         # Plan with each planner
         start = time.time()

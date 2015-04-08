@@ -204,7 +204,7 @@ def navigate_replan_team():
 	world.visited['A1'].add(11)
 	world.at['A2'] = 9
 	world.visited['A2'] = set()
-	world.visited['A1'].add(9)
+	world.visited['A2'].add(9)
 
 	# Add uncertainties
 	world.uncertainties = replan_1_rand
@@ -237,7 +237,7 @@ def navigate_replan_team_2():
 	world.visited['A1'].add(1)
 	world.at['A2'] = 21
 	world.visited['A2'] = set()
-	world.visited['A1'].add(21)
+	world.visited['A2'].add(21)
 
 	traps = [7, 8, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 26, 28, 29]
 	for t in traps:
@@ -274,7 +274,7 @@ def navigate_replan_team_3():
 	world.visited['A1'].add(1)
 	world.at['A2'] = 21
 	world.visited['A2'] = set()
-	world.visited['A1'].add(21)
+	world.visited['A2'].add(21)
 
 	traps = [7, 8, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23, 25, 26, 27, 28, 29]
 	for t in traps:
@@ -309,7 +309,7 @@ def navigate_replan_team_4():
 	world.visited['A1'].add(1)
 	world.at['A2'] = 31
 	world.visited['A2'] = set()
-	world.visited['A1'].add(31)
+	world.visited['A2'].add(31)
 
 	traps = [15, 16, 19, 20, 22, 23, 26, 27, 29, 30, 33, 34, 36, 37, 40, 41]
 	for t in traps:
@@ -344,7 +344,7 @@ def navigate_replan_team_4p():
 	world.visited['A1'].add(32)
 	world.at['A2'] = 31
 	world.visited['A2'] = set()
-	world.visited['A1'].add(31)
+	world.visited['A2'].add(31)
 
 	traps = [2, 4, 6, 38, 39, 15, 16, 19, 20, 22, 23, 26, 27, 29, 30, 33, 34, 36, 37, 40, 41]
 	for t in traps:
@@ -358,7 +358,7 @@ def navigate_replan_team_5():
 	rrw.NUM_SOILS=0
 	rrw.LANDER='X'
 	rrw.LAB = 'X'
-	world = rrw.get_random_world(7, 7, num_agent=2, name='navigate_replan_team_4')
+	world = rrw.get_random_world(7, 7, num_agent=2, name='navigate_replan_team_5')
 
 	# Set Goal
 	world.goals['A1'] = [('navigate', 'A1', 43)]
@@ -378,7 +378,7 @@ def navigate_replan_team_5():
 	world.visited['A1'].add(1)
 	world.at['A2'] = 31
 	world.visited['A2'] = set()
-	world.visited['A1'].add(31)
+	world.visited['A2'].add(31)
 
 	traps = [15, 16, 19, 18, 22, 23, 26, 25, 29, 30, 33, 32, 36, 37, 40, 39]
 	for t in traps:
@@ -563,9 +563,9 @@ def replan_6_rand(world, idx):
 
 def replan_7_rand(world, idx):
 	if idx == 0:
-		world.cost[32] = 9
-		world.cost[23] = 8
-		world.cost[14] = 7
+		world.cost[32] = 15
+		world.cost[23] = 10
+		world.cost[14] = 2
 
 def replan_decompose_1(world, idx):
 	print("*** Calling re-lan_decompose_1 for uncertainties ***")

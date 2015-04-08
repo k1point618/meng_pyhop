@@ -131,7 +131,7 @@ def heuristic(state, source, sink):
 	(source_x, source_y) = state.loc[source]
 	(sink_x, sink_y) = state.loc[sink]
 
-	return abs((source_x - sink_x)) + abs((source_y - sink_y))
+	return abs((source_x - sink_x)) + abs((source_y - sink_y)) + state.cost[source] + state.cost[sink]
 
 
 def reconstruct_path(came_from, current):
