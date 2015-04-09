@@ -39,7 +39,7 @@ class Simulation():
                 a_star=True, 
                 gui=True, 
                 re_plan=True,
-                use_tree=True):
+                use_tree=False):
         
         self.make_logger(world, AgentType)
         self.log.info('Simulation Logger Created')
@@ -313,7 +313,7 @@ class Simulation():
                 # if world_changed and not replan:
                 #     self.log.info("Replanning Agent {} due to incoming message!!".format(agent.name))
                 #     verbose = 10
-                
+
                 if agent.replan(stuck=replan, verbose=verbose):
                     hist = agent.add_history('replan', self.real_world.COST_REPLAN)
                     actions_took[agent_name].append(hist)

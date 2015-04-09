@@ -18,6 +18,15 @@ import time
 import rovers_world_operators
 import rovers_world_methods
 
+"""
+Make a Random World AND Random Uncertainties
+"""
+def make_random_problem(BOARD_X, BOARD_Y, name=None):
+    PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name) # with default width and height (10 x 10)
+    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=0.3)
+    PROBLEM.uncertainties = UNCERTAINTIES
+    return PROBLEM
+
 
 """
 Below is the new uncertainty generating method for running experiment that 
