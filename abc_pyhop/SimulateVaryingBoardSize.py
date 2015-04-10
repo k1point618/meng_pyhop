@@ -32,17 +32,17 @@ GUI = False
 """
 Board Size - Indicates length of the tasks
 """
-BOARD_SIDES = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-
+# BOARD_SIDES = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+BOARD_SIDES = [5, 6, 7]
 
 """
 Pick which Models to compare
 """
 MODELS = []
 MODELS += [models.AgentNoComm]
-MODELS += [models.AgentSmartComm]
-MODELS += [models.AgentSmartCommII]
-MODELS += [models.AgentRandComm]
+# MODELS += [models.AgentSmartComm]
+# MODELS += [models.AgentSmartCommII]
+# MODELS += [models.AgentRandComm]
 MODELS += [models.AgentFullComm]
 
 
@@ -64,7 +64,8 @@ COC = 10
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 100
+# NUM_PROBLEMS = 100
+NUM_PROBLEMS = 3
     
 def SimulateVaryingBoard(COC):
     lines = []
@@ -138,19 +139,40 @@ def SimulateVaryingBoard(COC):
 
         # Plot lines
         logger.info("Plot Lines: {}".format(plot_lines))
-        for (name, line) in plot_lines.items():
-            lines.append(plt.plot(line[0], line[1], label=name))
+
 
         # Adjust Plotting
-        plt.legend(loc='lower right')    
+        fig = plt.figure()
+        ax = plt.subplot(111)
+
+        for (name, line) in plot_lines.items():
+            lines.append(ax.plot(line[0], line[1], label=name))
+
+        # Locate Legend
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0 + box.height * 0.2,
+                 box.width, box.height * 0.8])
+
+        legend = ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13),
+          fancybox=True, shadow=True, ncol=2, prop={'size':9})
+        for legobj in legend.legendHandles:
+            legobj.set_linewidth(2.0)
+        
+        # Labels
         plt.xlabel("Board Size")
         plt.ylabel("Average Costs over {} Random Problems".format(NUM_PROBLEMS))
         plt.title('Planner:{} COC:{}'.format(PLANNER.planner.__name__, COC))
         plt.setp(lines, linewidth=2.0)
+
         plt.savefig("images/SimulateVaryingBoardSize_{}.png".format(time.time()%1000))
         plt.show()
 
 
+
+# DELAY for overnight runs
+# for i in range(120):
+#     time.sleep(60)
+#     print('starting in {} minutes ... ...'.format(119-i))
 
 SimulateVaryingBoard(COC)
 

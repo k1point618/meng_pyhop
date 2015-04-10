@@ -41,8 +41,8 @@ GUI = False
 Pick which Models to compare
 """
 MODELS = []
-MODELS += [models.AgentNoComm]
-MODELS += [models.AgentSmartComm]
+# MODELS += [models.AgentNoComm]
+# MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentSmartCommII]
 MODELS += [models.AgentRandComm]
 MODELS += [models.AgentFullComm]
@@ -52,8 +52,8 @@ MODELS += [models.AgentFullComm]
 Pick which Planners to use
 """
 PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
 
@@ -61,13 +61,13 @@ PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 Cost of Communication
 """
 # COSTS = range(30)
-COSTS = [1, 4, 8, 12, 16]
+COSTS = [1, 4, 8]
 
 """
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 10
+NUM_PROBLEMS = 3
     
 
 def SimulateVaryingCosts(BOARD_X, BOARD_Y):
@@ -124,22 +124,40 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
 
         logger.info("Plot Lines: {}".format(plot_lines))
         lines = []
-        for (name, line) in plot_lines.items():
-            lines.append(plt.plot(line[0], line[1], label=name))
+        # Adjust Plotting
+        fig = plt.figure()
+        ax = plt.subplot(111)
 
-        plt.legend(loc='lower right')    
+        for (name, line) in plot_lines.items():
+            lines.append(ax.plot(line[0], line[1], label=name))
+
+        # Locate Legend
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0 + box.height * 0.2,
+                 box.width, box.height * 0.8])
+        legend = ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13),
+          fancybox=True, shadow=True, ncol=2, prop={'size':9})
+        
+        # Set Line Width
+        for legobj in legend.legendHandles:
+            legobj.set_linewidth(2.0)
+        plt.setp(lines, linewidth=2.0)
+
+        # Labels
         plt.xlabel("Cost of Communication")
         plt.ylabel("Average Costs over {} Random Problems".format(NUM_PROBLEMS))
         plt.title('Planner:{} Board-Size:{}'.format(PLANNER.planner.__name__, BOARD_X*BOARD_Y))
-
-        plt.setp(lines, linewidth=2.0)
-
+        
         # write simulation parameters to file.
         filename = "images/SimulateVaryingCosts_{}".format(time.time()%1000)
         plt.savefig(filename+".png")
 
         plt.show()
 
+# DELAY for overnight run
+# for i in range(240):
+#     time.sleep(60)
+#     print('starting in {} minutes ... ...'.format(239-i))
 
 SimulateVaryingCosts(BOARD_X, BOARD_Y)
 

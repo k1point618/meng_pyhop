@@ -258,9 +258,8 @@ class Simulation():
             self.log.info("\n\nAgent Name: {}\n".format(agent_name))
             # info and base-case
             if not agent.is_done():
-                (actions, states) = agent.get_solution()
-                cur_action = actions[agent.get_cur_step()]
-                next_state = states[agent.get_cur_step()]     
+                cur_action = agent.get_cur_action()
+                next_state = agent.get_next_state()
                 self.log.info("agent {} current action is {}".format(agent_name, cur_action))
 
             # initailize
@@ -385,7 +384,8 @@ class Simulation():
 
         # Get actions and states
         # If agent is Done and successful
-        (actions, states) = solution
+        actions = solution.get_actions()
+        states = solution.get_states()
         if cur_step == len(actions):
             print("Done")
             agent.done = True

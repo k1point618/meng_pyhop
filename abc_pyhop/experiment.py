@@ -62,9 +62,9 @@ Pick which Models to compare
 MODELS = []
 MODELS += [models.AgentNoComm]
 MODELS += [models.AgentSmartComm]
-# MODELS += [models.AgentSmartCommII]
+MODELS += [models.AgentSmartCommII]
 MODELS += [models.AgentRandComm]
-# MODELS += [models.AgentFullComm]
+MODELS += [models.AgentFullComm]
 
 
 """
@@ -87,19 +87,6 @@ COC = 3
 Choose any problem from problem bank
 """
 PROBLEMS = []
-random = True
-if not random:
-    PROBLEMS.append(problem_bank.maze_0())
-    PROBLEMS.append(problem_bank.maze_1())
-    PROBLEMS.append(problem_bank.maze_2())
-    PROBLEMS.append(problem_bank.maze_4())
-    PROBLEMS.append(problem_bank.maze_5())
-    PROBLEMS.append(problem_bank.navigate_replan_team_2())
-    PROBLEMS.append(problem_bank.navigate_replan_team_3())
-    # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
-    PROBLEMS.append(problem_bank.navigate_replan_team_5())
-    PROBLEMS.append(problem_bank.navigate_replan_team_6())
-    PROBLEMS.append(problem_bank.navigate_replan_team_7())
 NUM_PROBLEMS = 10
     
 
@@ -254,6 +241,38 @@ def SimulateVaryingBoard(COC):
         plt.show()
 
 
+def TestOnProblemBank():
+    PROBLEMS = []
+    
+    PROBLEMS.append(problem_bank.maze_0())
+    PROBLEMS.append(problem_bank.maze_1())
+    PROBLEMS.append(problem_bank.maze_2())
+    PROBLEMS.append(problem_bank.maze_3())
+    PROBLEMS.append(problem_bank.maze_4())
+    PROBLEMS.append(problem_bank.maze_5())
+    PROBLEMS.append(problem_bank.navigate_replan_team_2())
+    PROBLEMS.append(problem_bank.navigate_replan_team_3())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
+    PROBLEMS.append(problem_bank.navigate_replan_team_5())
+    PROBLEMS.append(problem_bank.navigate_replan_team_6())
+    PROBLEMS.append(problem_bank.navigate_replan_team_7())
+
+    for PLANNER in PLANNERS:
+        for PROBLEM in PROBLEMS:
+            for AGENT_TYPE in MODELS:
+                # Each point is the average over all problems
+                PROBLEM.COST_OF_COMM = COC
+                PROBLEM.COST_REPLAN = 0
+
+                # Run
+                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False)
+                simulation.run()
+                
+                
+                # Show result
+                logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
+
+
 """
 This reproduces the baseline with parameters:
     PLANNER: Any planner
@@ -267,11 +286,11 @@ This reproduces the baseline with parameters:
 """
 Input: Fix COC
 """
-SimulateVaryingBoard(COC)
+# SimulateVaryingBoard(COC)
 
 
 
-
+TestOnProblemBank()
 
 
 

@@ -6,7 +6,7 @@ Examples of using a planer can be found in planer_lib_example.py
 import pyhop
 import rovers_world_operators
 import rovers_world_methods
-
+from solution import Solution
 
 class Planner():
 
@@ -17,6 +17,14 @@ class Planner():
 	def plan(self, problem, agent):
 		return self.planner(problem, agent)
 
+	@staticmethod
+	def make_sol_obj(solutions, problem, agent):
+		# Make soluiton objects
+		sol_objs = []
+		for (actions, states) in solutions:
+			sol_obj = Solution(problem, agent, actions, states)
+			sol_objs.append(sol_obj)
+		return sol_objs
 
 	""" Below defines the set of possible planners currently in the lib """
 	@staticmethod
@@ -46,7 +54,14 @@ class Planner():
 		def v13_plan(problem, agent):
 			problem.a_star = False # TODO: need to debug no-a-* first before using v13
 			problem.rand = False
-			return pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
+			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
+
+			# If there is no solution
+			if solutions[0] == False:
+				return solutions
+
+			return Planner.make_sol_obj(solutions, problem, agent)
+
 		v13.planner = v13_plan
 		v13.name = "Det_HTN_OnePlan"
 		return v13
@@ -63,7 +78,13 @@ class Planner():
 				print("Problem State: ")
 				pyhop.print_state(problem)
 			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0, verbose=problem.verbose)
-			return solutions
+			
+			# If there is no solution
+			if solutions[0] == False:
+				return solutions
+
+			return Planner.make_sol_obj(solutions, problem, agent)
+			
 		v14.planner = v14_plan
 		v14.name = "Det_Astar_OnePlan"
 		return v14
@@ -81,7 +102,10 @@ class Planner():
 				print("Problem State: ")
 				pyhop.print_state(problem)
 			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0, verbose=problem.verbose)
-			return solutions
+			# If there is no solution
+			if solutions[0] == False:
+				return solutions
+			return Planner.make_sol_obj(solutions, problem, agent)
 		v15.planner = v15_plan
 		v15.name = "Rand_Astar_OnePlan"
 		return v15
@@ -128,8 +152,29 @@ class Planner():
 			if not hasattr(problem, 'verbose'):
 				problem.verbose = 0
 			return pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose)
+			# TODO: Make seek_bb return root
+			# Then make linear-solution object here.
+			# All_solution is False --> Not optimal
 
 		v20.planner = v20_plan
 		v20.name = "Det_HTN_BB"
 		return v20
 
+	@staticmethod
+	def get_HPlanner_bb_prob():		
+		# Returns ALL possible plans
+		# - No Explanation
+		v20 = Planner()
+		def v20_plan(problem, agent):
+			problem.a_star = False
+			problem.rand = True
+			if not hasattr(problem, 'verbose'):
+				problem.verbose = 0
+			return pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose)
+			# TODO: Make seek_bb return root
+			# Make TREE-SOLUTION object here
+			# return [sol_tree]
+			
+		v20.planner = v20_plan
+		v20.name = "Rand_HTN_BB"
+		return v20

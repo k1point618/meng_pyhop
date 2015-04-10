@@ -13,7 +13,6 @@ class rover_world_gui(Tkinter.Tk):
         self.CUR_COL = simulation.real_world.prop['num_col']
         self.CUR_ROW = simulation.real_world.prop['num_row']
 
-        self.solutions = None
         self.rovers = []
         # self.agent_worlds = {}
         self.agent_solutions = {}
@@ -119,9 +118,6 @@ class rover_world_gui(Tkinter.Tk):
     def OnPressEnter(self,event):
         print "You pressed enter !"
 
-    def set_solutions(self, solutions):
-        this.solutions = solutions
-
 
 # For the actions Frame (right of the board)
 class AgentActionsFrame(Tkinter.Frame):
@@ -187,8 +183,7 @@ class AgentColumnFrame(Tkinter.Frame):
             lb.insert(Tkinter.END, "No Solution Found")
             return
         # Show agent's plans
-        (plan, states) = solution
-        for action in plan:
+        for action in solution.get_actions():
             # Tkinter.Label(self, text=plan[cur_row-1]).grid(column=self.CUR_COL, row=cur_row)
             lb.insert(Tkinter.END, action)
 

@@ -63,32 +63,27 @@ class AgentMind(object):
             .format(self.name, self.goal, print_board_str(self.mental_world), self.solution)
         return to_return
 
+    # Takes in a solution-object
+    def set_solution(self, sol_obj):
+        self.log.info(("set solution", sol_obj))
 
-    def set_solution(self, solution):
-        self.log.info(("set solution", solution))
-        if solution == False or solution == None:
+        if sol_obj == False or sol_obj == None:
             # no solution found
             self.add_history('done', sys.maxint)
             self.done = True
             self.success = False
+            self.solution = None
             return
-        if isinstance(solution, PlanNode):
-            self.log.info("solution is a planNode")
-            self.planTree = solution
-            self.solution = (solution.get_actions(), solution.get_states())
-        else:
-            self.solution = solution
-        (self.actions, self.states) = self.solution
+        self.solution = sol_obj
+        self.actions = sol_obj.get_actions()
+        self.states = sol_obj.get_states()
         self.cur_step = 0
 
-        if len(self.actions) == 0: # Do nothing
+        if len(self.actions) == 0: # Do nothing => Done
             self.done = True
             self.success = True
 
-    def get_solution(self): 
-        if self.solution == None or self.solution[0] == False:
-            return None
-        return self.solution
+    def get_solution(self): return self.solution
 
     def get_planTree(self): return self.planTree
 
@@ -245,13 +240,11 @@ class AgentMind(object):
         if solution == False: 
             self.add_history('None', sys.maxint)
             self.done = True
+            self.solution = None
             return False # Meaning, did not update the solution.
 
         # Look at potential Plans
-        if isinstance(solution, PlanNode):
-            potential_plan_cost = solution.cost
-        else:
-            potential_plan_cost = sum(self.mental_world.cost_func(self.mental_world, a) for a in solution[0])
+        potential_plan_cost = solution.get_cost(self.mental_world)
         self.log.info("Potential plan Cost: {}".format(potential_plan_cost))
         
         # Replace current plan if stuck or new plan is better
@@ -373,12 +366,12 @@ class AgentSmartComm(AgentMind):
     def __init__(self, name, world, args=[]):
         super(AgentSmartComm, self).__init__(name, world)
         self.TYPE = 'SmartComm'
-        solutions = args[0] # Assuming that the only input is solutions
+        solutions_by_agent = args[0] # Assuming that the only input is solutions
         self.teammates = {}
         for a in world.goals.keys():
             if a != self.name:
                 teammate = AgentMind(a, copy.deepcopy(world))
-                teammate.set_solution(solutions[a]) # <-- The type of solution is the same as the agent's solution type (PlanTree or Linear)
+                teammate.set_solution(solutions_by_agent[a]) # <-- The type of solution is the same as the agent's solution type (PlanTree or Linear)
                 self.teammates[a] = teammate
                 # We want to keep track of each teammate's plan and the relative cost of each plan. 
                 # (Later, we might want to add a distribution of solutions?)
@@ -450,9 +443,9 @@ class AgentSmartComm(AgentMind):
         self.log.info("in COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
         
         # Pretend to re-plan with new info # no need to check for re-plan
-        new_cost_to_finish, (actions, states) = self.EX_COST(other.mental_world, other)
+        new_cost_to_finish, sol = self.EX_COST(other.mental_world, other)
         self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan:\n{}"
-            .format(other.name, other.goal, new_cost_to_finish, actions))
+            .format(other.name, other.goal, new_cost_to_finish, sol.get_actions()))
 
         to_return += new_cost_to_finish
         self.log.info("Agent {}: The cost of communicating is {} + {} = {}"
@@ -520,16 +513,15 @@ class AgentSmartComm(AgentMind):
         self.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
 
         world.visited[agent.name] = set()
-        solutions = self.planner.plan(world, agent.name)
-        if solutions[0] == False:
+        sol = self.planner.plan(world, agent.name)[0]
+        if sol == False:
             return (sys.maxint, 'None')
-        (actions, states) = solutions[0]
-        total_cost = 0
-        for action in actions:
-            total_cost += world.cost_func(world, action)
-        agent.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, actions))
-        self.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, actions))
-        return (total_cost, (actions, states))
+        
+        total_cost = sol.get_cost(agent.mental_world)
+        agent.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, sol.get_actions()))
+        self.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, sol.get_actions()))
+        return (total_cost, sol)
+
 
     # After steping, SmartComm updates the belief of teammate's plan
     def step(self, real_world, commMsgs=None):
@@ -577,7 +569,7 @@ class AgentSmartCommII(AgentSmartComm):
             # TODO: Need to step first, and then append later-plan
             (new_cost, solution) = self.EX_COST(copy.deepcopy(teammate.mental_world), teammate)
             teammate.set_solution(solution) # Setting cur_step = 0
-            self.log.info("\n\n Updated teammate {}'s solution. New solution: \n\t{}".format(teammate.name, solution[0]))
+            self.log.info("\n\n Updated teammate {}'s solution. New solution: \n\t{}".format(teammate.name, solution))
 
         return hist
 
