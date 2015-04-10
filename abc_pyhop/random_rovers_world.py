@@ -299,8 +299,8 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.COST_OF_COMM = 1
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
-    world.MAX_COST = 20
-    world.RAND_RANGE = 20
+    world.MAX_COST = 100
+    world.RAND_RANGE = 100
 
     world.cost_func = cost_function
     return world

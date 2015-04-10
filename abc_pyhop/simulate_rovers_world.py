@@ -26,11 +26,11 @@ class Simulation():
 
     def make_logger(self, problem, AgentType):
         self.log = logging.getLogger('{}.{}'.format(AgentType.__name__, problem.name))
-        self.log.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler('logs/sim_{}.log'.format(AgentType.__name__))
-        formatter = logging.Formatter('%(asctime)s-%(name)s-(%(lineno)d):%(message)s')
-        file_handler.setFormatter(formatter)
-        self.log.addHandler(file_handler)
+        self.log.setLevel(logging.CRITICAL)
+        # file_handler = logging.FileHandler('logs/sim_{}.log'.format(AgentType.__name__))
+        # formatter = logging.Formatter('%(asctime)s-%(name)s-(%(lineno)d):%(message)s')
+        # file_handler.setFormatter(formatter)
+        # self.log.addHandler(file_handler)
 
 
     def __init__(self, world, AgentType, planner,
@@ -457,6 +457,9 @@ class Simulation():
             to_return.append(sum(action[2] for action in agent.get_histories()))
         return to_return
 
+    def get_total_cost(self):
+        return sum(self.cost_p_agent())
+
     def total_observations(self):
         return sum([len(agent.observations) for agent in self.agents.values()])
 
@@ -476,7 +479,7 @@ class Simulation():
         if planner:
             to_return += "\Planner: {}\n".format(self.planner_name)
         if cost:
-            to_return += "\tTotal Cost: {}\n".format(sum(self.cost_p_agent()))
+            to_return += "\tTotal Cost: {}\n".format(self.get_total_cost())
         if cost_bd:
             to_return += "\tCost Breakdown: {}\n".format(self.cost_p_agent())
         if obs:
@@ -517,8 +520,12 @@ class Simulation():
     def write_to_file(PROBLEM, simulations):
         file_name = "logs/PROBLEM_{}.sims".format(PROBLEM.name)
         f = open(file_name, 'w')
-        header = [str(sim.AgentType) for sim in simulations]
-        f.write(str(header) + "\n")
+
+        for sim in simulations:
+            f.write("{}\t\t".format(sim.AgentType))
+
+        f.write('\n')
+        
         for agent_name in PROBLEM.goals.keys():
             f.write(agent_name + '\n')
             idx = 0

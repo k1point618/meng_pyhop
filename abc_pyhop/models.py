@@ -18,11 +18,11 @@ class AgentMind(object):
 
     def make_logger(self):
         self.log = logging.getLogger('{}.{}.{}'.format(type(self).__name__, self.name, self.mental_world.name))
-        self.log.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
-        formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
-        file_handler.setFormatter(formatter)
-        self.log.addHandler(file_handler)
+        self.log.setLevel(logging.CRITICAL)
+        # file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
+        # formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
+        # file_handler.setFormatter(formatter)
+        # self.log.addHandler(file_handler)
 
     """
     All agent should have
@@ -320,6 +320,36 @@ class AgentFullComm(AgentMind):
 
         self.add_sent_msgs(to_return)        
         return (to_return, [])
+
+
+class AgentRandComm(AgentMind):
+    def __init__(self, name, world, args=[]):
+        super(AgentRandComm, self).__init__(name, world)
+        self.TYPE = 'RandComm'
+
+    # Given the set of differences observed from environment and communication, 
+    # Determine what and to-whom to communicate to.
+    # In this Agent Type, we communicate every difference to all other agents
+    # @Returns: (to-send, not-send), where to-send and not-send are lists of commMessages
+    def communicate(self, diffs):
+        super(AgentRandComm, self).communicate(diffs)
+
+        if len(diffs) == 0 or diffs == None:
+            return ([], [])
+
+        to_comm = []
+        void_comm = []
+        for receiver_name in self.mental_world.goals.keys():
+            if receiver_name == self.name:
+                continue
+            for diff in diffs:
+                commMsg = CommMessage(self.name, receiver_name, diff)
+                if random.random() < 0.5:
+                    to_comm.append(commMsg)
+                else:
+                    void_comm.append(commMsg)
+        self.add_sent_msgs(to_comm)        
+        return (to_comm, void_comm)
 
 
 

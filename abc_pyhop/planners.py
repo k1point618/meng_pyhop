@@ -12,6 +12,7 @@ class Planner():
 
 	def __init__(self):
 		self.planner = None
+		self.name = None
 
 	def plan(self, problem, agent):
 		return self.planner(problem, agent)
@@ -47,6 +48,7 @@ class Planner():
 			problem.rand = False
 			return pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0)
 		v13.planner = v13_plan
+		v13.name = "Det_HTN_OnePlan"
 		return v13
 
 	@staticmethod
@@ -63,7 +65,26 @@ class Planner():
 			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0, verbose=problem.verbose)
 			return solutions
 		v14.planner = v14_plan
+		v14.name = "Det_Astar_OnePlan"
 		return v14
+
+
+	@staticmethod
+	def get_HPlanner_v15(): # Modified version of original pyhop for sampling + A* for navigation
+		v15 = Planner()
+		def v15_plan(problem, agent):
+			problem.a_star = True
+			problem.rand = True # Only difference from v14
+			if not hasattr(problem, 'verbose'):
+				problem.verbose = 0
+			elif problem.verbose == 1:
+				print("Problem State: ")
+				pyhop.print_state(problem)
+			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0, verbose=problem.verbose)
+			return solutions
+		v15.planner = v15_plan
+		v15.name = "Rand_Astar_OnePlan"
+		return v15
 
 
 	@staticmethod
@@ -109,5 +130,6 @@ class Planner():
 			return pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose)
 
 		v20.planner = v20_plan
+		v20.name = "Det_HTN_BB"
 		return v20
 
