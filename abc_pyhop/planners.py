@@ -200,7 +200,7 @@ class Planner():
 			root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose, all_plans=True)
 			# if root.cost >= sys.maxint:
 			# 	return [False]
-			return [SolutionTree(root, agent)]
+			return [SolutionTree(root, agent, rand=True)]
 
 		v20.planner = v20_plan
 		v20.name = "Rand_HTN_BB"

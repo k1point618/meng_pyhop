@@ -30,11 +30,11 @@ class Solution(object):
 
 class SolutionTree(Solution):
 
-	def __init__(self, root, agent_name):
+	def __init__(self, root, agent_name, rand=False):
 		# root must of type Node
 		super(SolutionTree, self).__init__(root.state, agent_name, [], [])
 		self.root = root
-		self.actions, self.states = self.root.get_plan()
+		self.actions, self.states = self.root.get_plan(rand=rand)
 		self.cost = sum([self.problem.cost_func(self.problem, a) for a in self.actions])
 		# assert(self.cost == root.cost), "self.cost: {}; root.cost: {}".format(self.cost, root.cost)
 

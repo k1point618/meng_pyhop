@@ -67,16 +67,16 @@ COSTS = [1, 3, 5, 7]
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 20
+NUM_PROBLEMS = 3
     
 
 def SimulateVaryingCosts(BOARD_X, BOARD_Y):
     # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
         # name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
     
-    PROBLEMS = [rrw.make_rand_nav_problem(BOARD_X, BOARD_Y, \
-        name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
-    
+    # PROBLEMS = [rrw.make_rand_nav_problem(BOARD_X, BOARD_Y, \
+        # name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
+    PROBLEMS=[problem_bank.test_exp_cost()]
     simulations = {}
     plot_lines = {}
         
@@ -103,10 +103,10 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    # Temp
+                    # Temp*************
                     if PLANNER.name == Planner.get_HPlanner_v15().name:
                         num_repeat = 10
-                    else: num_repeat = 1
+                    else: num_repeat = 10
 
                     for i in range(num_repeat):
                         # Run

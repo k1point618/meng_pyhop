@@ -82,7 +82,7 @@ Cost of Communication
 """
 # COSTS = range(50)
 COSTS = [1, 3, 9, 12]
-COC = 1
+COC = 5
 
 """
 Choose any problem from problem bank
@@ -251,7 +251,7 @@ def TestOnProblemBank():
     # PROBLEMS.append(problem_bank.maze_3())
     # PROBLEMS.append(problem_bank.maze_4())
     # PROBLEMS.append(problem_bank.maze_5())
-    # PROBLEMS.append(problem_bank.test_exp_cost())
+    PROBLEMS.append(problem_bank.test_exp_cost())
     
     # PROBLEMS.append(problem_bank.navigate_replan_team_2())
     # PROBLEMS.append(problem_bank.navigate_replan_team_3())
@@ -260,8 +260,8 @@ def TestOnProblemBank():
     # PROBLEMS.append(problem_bank.navigate_replan_team_6())
     # PROBLEMS.append(problem_bank.navigate_replan_team_7())
 
-    PROBLEMS = [rrw.make_rand_nav_problem(4, 4, \
-        name=str(time.time()) + '.' + str(i)) for i in range(5)]
+    # PROBLEMS = [rrw.make_rand_nav_problem(4, 4, \
+        # name=str(time.time()) + '.' + str(i)) for i in range(5)]
 
     for PROBLEM in PROBLEMS:
         for AGENT_TYPE in MODELS:
@@ -271,7 +271,7 @@ def TestOnProblemBank():
                 PROBLEM.COST_REPLAN = 0
 
                 # Run
-                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
+                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False)
                 simulation.run()
                 
                 
