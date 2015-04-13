@@ -28,6 +28,16 @@ def make_random_problem(BOARD_X, BOARD_Y, name=None):
     return PROBLEM
 
 
+def make_rand_nav_problem(BOARD_X, BOARD_Y, name=None):
+    NUM_ROCKS = 0
+    NUM_SOILS = 0
+    PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name)
+    for key, value in PROBLEM.goals.items():
+        PROBLEM.goals[key] = [('navigate', key, random.choice(range(1, BOARD_X * BOARD_Y)))]
+    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=int(BOARD_X*BOARD_Y*0.25), a_prob=1)
+    PROBLEM.uncertainties = UNCERTAINTIES
+    return PROBLEM
+
 """
 Below is the new uncertainty generating method for running experiment that 
 simulates agents with different mental models. The method returns a function of the form
@@ -55,7 +65,7 @@ def get_uncertainty_fun(state, num_step, a_prob):
 
     def to_return(in_state, in_idx):
         # Get all the uncertainties at the first time step
-        if in_idx == 1:
+        if in_idx == 0:
             # Make all uncertainties
             for idx in range(len(sequence)):
                 if sequence[idx] != None:
@@ -299,8 +309,8 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.COST_OF_COMM = 1
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
-    world.MAX_COST = 100
-    world.RAND_RANGE = 100
+    world.MAX_COST = 10000
+    world.RAND_RANGE = 20
 
     world.cost_func = cost_function
     return world

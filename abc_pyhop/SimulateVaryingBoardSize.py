@@ -50,10 +50,11 @@ MODELS += [models.AgentFullComm]
 Pick which Planners to use
 """
 PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
+PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 
 """
 Cost of Communication

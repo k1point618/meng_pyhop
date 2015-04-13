@@ -97,7 +97,6 @@ Pyhop provides the following classes and functions:
 
 from __future__ import print_function
 import copy,sys, pprint, random
-
 ############################################################
 # States and goals
 
@@ -705,7 +704,8 @@ def seek_bb_r(state, tasks, parent, root=None):
 import heapq
 from plantree import *
 import random_rovers_world as rrw
-    
+from solution import Solution
+
 def seek_bb(state, tasks, verbose=0, all_plans=False):
 
     if verbose: 
@@ -751,6 +751,7 @@ def seek_bb(state, tasks, verbose=0, all_plans=False):
             # Basecase
             cur_node.success = True
             cur_node.completed = True
+            cur_node.cost = 0
             if verbose: print("right", cur_node.right)
             if verbose: print("parent-right", cur_node.parent.right)
             cur_node.parent.update(cur_node, openset)
@@ -791,19 +792,22 @@ def seek_bb(state, tasks, verbose=0, all_plans=False):
         if verbose: print("ACTIVESET: ", openset)
         # raw_input("...")
 
-    one_plan = root.get_plan()
 
-    if verbose:
-        plans = root.get_all_opt_plans()
-        print("root: ", root.get_string())
-        print("get_num_plans:", root.get_num_plans())
-        print("num_opt_plans:", root.get_num_opt_plans())
-        print("all opt plans: {}".format(plans))
-        # for p in plans:
-        #     print("opt p", p[0])
+    return root
+
+    # one_plan = root.get_plan()
+
+    # if verbose:
+    #     plans = root.get_all_opt_plans()
+    #     print("root: ", root.get_string())
+    #     print("get_num_plans:", root.get_num_plans())
+    #     print("num_opt_plans:", root.get_num_opt_plans())
+    #     print("all opt plans: {}".format(plans))
+    #     # for p in plans:
+    #     #     print("opt p", p[0])
     
     
-    return [one_plan]
+    # return [one_plan]
 
 
 

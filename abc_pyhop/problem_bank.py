@@ -210,7 +210,6 @@ def navigate_replan_team():
 	world.uncertainties = replan_1_rand
 	return world
 
-
 # Replan for navigation for comapring different agent mental models 
 def navigate_replan_team_2():
 	rrw.NUM_ROCKS=0
@@ -245,9 +244,6 @@ def navigate_replan_team_2():
 
 	world.uncertainties = replan_2_rand
 	return world
-
-
-
 
 def navigate_replan_team_3():
 	rrw.NUM_ROCKS=0
@@ -524,7 +520,31 @@ def dummy_world():
 
 	return world
 
-# Uncertainties Library
+def test_exp_cost():
+	rrw.NUM_ROCKS=0
+	rrw.NUM_SOILS=0
+	rrw.LANDER='X'
+	rrw.LAB = 'X'
+	world = rrw.get_random_world(3, 3, num_agent=2, name='test_exp_cost')
+
+	# Set Goal
+	world.goals['A1'] = [('navigate', 'A1', 2)]
+	world.goals['A2'] = [('navigate', 'A2', 1)]
+
+	# Set Rover Locations
+	world.at['A1'] = 9
+	world.visited['A1'] = set()
+	world.visited['A1'].add(9)
+	world.at['A2'] = 5
+	world.visited['A2'] = set()
+	world.visited['A2'].add(5)
+	
+	world.uncertainties = test_exp_cost_rand
+	return world
+
+"""
+Uncertainties Library
+"""
 def replan_1_rand(world, idx):
 	print("*** *** Calling replan_1_rand *** ")
 	if idx == 0:
@@ -585,8 +605,9 @@ def replan_decompose_1(world, idx):
 		world.cost[8] = sys.maxint
 		return
 
-
-
+def test_exp_cost_rand(world, idx):
+	if idx == 0:
+		world.cost[5] = 3
 
 
 

@@ -60,28 +60,29 @@ BOARD_SIDES = [7, 9, 11, 13]
 Pick which Models to compare
 """
 MODELS = []
-MODELS += [models.AgentNoComm]
+# MODELS += [models.AgentNoComm]
 MODELS += [models.AgentSmartComm]
-MODELS += [models.AgentSmartCommII]
-MODELS += [models.AgentRandComm]
-MODELS += [models.AgentFullComm]
+# MODELS += [models.AgentSmartCommII]
+# MODELS += [models.AgentRandComm]
+# MODELS += [models.AgentFullComm]
 
 
 """
 Pick which Planners to use
 """
 PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
+PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 
 """
 Cost of Communication
 """
 # COSTS = range(50)
 COSTS = [1, 3, 9, 12]
-COC = 3
+COC = 1
 
 """
 Choose any problem from problem bank
@@ -244,34 +245,39 @@ def SimulateVaryingBoard(COC):
 def TestOnProblemBank():
     PROBLEMS = []
     
-    PROBLEMS.append(problem_bank.maze_0())
-    PROBLEMS.append(problem_bank.maze_1())
-    PROBLEMS.append(problem_bank.maze_2())
-    PROBLEMS.append(problem_bank.maze_3())
-    PROBLEMS.append(problem_bank.maze_4())
-    PROBLEMS.append(problem_bank.maze_5())
-    PROBLEMS.append(problem_bank.navigate_replan_team_2())
-    PROBLEMS.append(problem_bank.navigate_replan_team_3())
-    # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
-    PROBLEMS.append(problem_bank.navigate_replan_team_5())
-    PROBLEMS.append(problem_bank.navigate_replan_team_6())
-    PROBLEMS.append(problem_bank.navigate_replan_team_7())
+    # PROBLEMS.append(problem_bank.maze_0())
+    # PROBLEMS.append(problem_bank.maze_1())
+    # PROBLEMS.append(problem_bank.maze_2())
+    # PROBLEMS.append(problem_bank.maze_3())
+    # PROBLEMS.append(problem_bank.maze_4())
+    # PROBLEMS.append(problem_bank.maze_5())
+    # PROBLEMS.append(problem_bank.test_exp_cost())
+    
+    # PROBLEMS.append(problem_bank.navigate_replan_team_2())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_3())
+    # # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
+    # PROBLEMS.append(problem_bank.navigate_replan_team_5())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_6())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_7())
 
-    for PLANNER in PLANNERS:
-        for PROBLEM in PROBLEMS:
-            for AGENT_TYPE in MODELS:
+    PROBLEMS = [rrw.make_rand_nav_problem(4, 4, \
+        name=str(time.time()) + '.' + str(i)) for i in range(5)]
+
+    for PROBLEM in PROBLEMS:
+        for AGENT_TYPE in MODELS:
+            for PLANNER in PLANNERS:
                 # Each point is the average over all problems
                 PROBLEM.COST_OF_COMM = COC
                 PROBLEM.COST_REPLAN = 0
 
                 # Run
-                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False)
+                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
                 simulation.run()
                 
                 
                 # Show result
-                logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
-
+                logger.info(simulation.get_summary(cost=True, cost_bd=True, obs=True, comm=True, void=True))
+                print([a.get_histories() for a in simulation.agents.values()])
 
 """
 This reproduces the baseline with parameters:

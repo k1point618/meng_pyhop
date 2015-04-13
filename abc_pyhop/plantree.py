@@ -193,12 +193,12 @@ class andNode(Node):
         if propagate_update and self.parent != None:
             self.parent.update(self, openset)
 
-    def get_plan(self):
+    def get_plan(self, rand=False):
         actions = []
         states = []
         if self.success:
             for child in self.children:
-                a, s = child.get_plan()
+                a, s = child.get_plan(rand)
                 actions += a
                 states += s
 
@@ -308,7 +308,7 @@ class orNode(Node):
             self.completed = True
 
             # Set Cost
-            self.cost = self.state.cost_func(self.state, self.task[0])
+            self.cost = self.state.cost_func(self.state, self.task)
             self.cost_lower_bound = self.cost
 
             # Continue depending on the lower-bound
@@ -403,7 +403,7 @@ class orNode(Node):
             elif child.completed and child.success:
                 # Found better plan
                 if child.cost < self.cost:
-                    print("FOUND BETTER PLAN for {} cost: {}".format(child, child.cost))
+                    if VERBOSE: print("FOUND BETTER PLAN for {} cost: {}".format(child, child.cost))
                     self.cost = child.cost
                     self.good_children = [child]
                 elif child.cost == self.cost:
@@ -431,7 +431,7 @@ class orNode(Node):
         if self.parent != None:
             self.parent.update(self, openset)
 
-    def get_plan(self):
+    def get_plan(self, rand=False):
         # print("get plan for {}".format(self))
         if len(self.children) == 0 and self.success:
             # print("... returning {}".format([self.task]))
@@ -442,8 +442,9 @@ class orNode(Node):
 
         to_return = []
         success_children = [c for c in self.good_children]
-        # return random.choice(success_children).get_plan()        
-        return success_children[0].get_plan()
+        if rand:
+            return random.choice(success_children).get_plan(rand)
+        return success_children[0].get_plan(rand)
 
     def get_num_plans(self):
         if self.success:

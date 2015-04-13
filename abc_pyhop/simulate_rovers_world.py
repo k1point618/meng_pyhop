@@ -45,7 +45,7 @@ class Simulation():
         self.log.info('Simulation Logger Created')
         self.AgentType = AgentType.__name__
         self.name = "{}_{}".format(world.name, self.AgentType)
-        self.planner_name = planner.planner.__name__
+        self.planner_name = planner.name
 
         # Simulation parameters: 
         self.PARAMS = {}
@@ -79,7 +79,6 @@ class Simulation():
             # results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
             results = planner.plan(world, agent_name)
             self.solutions[agent_name] = random.choice(results)
-
         # Create Agent and set solutions
         for agent_name in self.solutions.keys():
             agent = AgentType(agent_name, copy.deepcopy(world), args=[self.solutions])
@@ -92,7 +91,7 @@ class Simulation():
             app = rover_world_gui(None, self)
             app.title('Rovers World GUI')
             for (agent_name, agent) in self.agents.items():
-                print("agent: {}".format(agent))
+                # print("agent: {}".format(agent))
                 app.add_agent(agent)
             app.mainloop()
             self.gui = app
@@ -454,7 +453,10 @@ class Simulation():
     def cost_p_agent(self):
         to_return = []
         for (agent_name, agent) in self.agents.items():
-            to_return.append(sum(action[2] for action in agent.get_histories()))
+            if not agent.success:
+                to_return.append(sys.maxint)
+            else:
+                to_return.append(sum(action[2] for action in agent.get_histories()))
         return to_return
 
     def get_total_cost(self):
@@ -477,7 +479,7 @@ class Simulation():
         to_return = "\nSimulation Summary for Problem:{} with AgentType:{}\n".format(
             self.real_world.name, self.AgentType)
         if planner:
-            to_return += "\Planner: {}\n".format(self.planner_name)
+            to_return += "Planner: {}\n".format(self.planner_name)
         if cost:
             to_return += "\tTotal Cost: {}\n".format(self.get_total_cost())
         if cost_bd:

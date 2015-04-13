@@ -4,6 +4,7 @@ Mental Models for agents
 import copy, sys, logging
 from random_rovers_world import *
 from plantree import *
+from solution import *
 
 class CommMessage():
     def __init__(self, sd, rcv, msg):
@@ -244,7 +245,7 @@ class AgentMind(object):
             return False # Meaning, did not update the solution.
 
         # Look at potential Plans
-        potential_plan_cost = solution.get_cost(self.mental_world)
+        potential_plan_cost = solution.get_cost()
         self.log.info("Potential plan Cost: {}".format(potential_plan_cost))
         
         # Replace current plan if stuck or new plan is better
@@ -443,7 +444,7 @@ class AgentSmartComm(AgentMind):
         self.log.info("in COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
         
         # Pretend to re-plan with new info # no need to check for re-plan
-        new_cost_to_finish, sol = self.EX_COST(other.mental_world, other)
+        new_cost_to_finish, sol = self.EX_COST(other.mental_world, other, self.mental_world)
         self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan:\n{}"
             .format(other.name, other.goal, new_cost_to_finish, sol.get_actions()))
 
@@ -475,22 +476,26 @@ class AgentSmartComm(AgentMind):
         other.mental_world = other.get_next_state()
         other.cur_step += 1 
 
-        # Simulation?
+        # Simulation? What is the expected cost of original plan relative to new world
         other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
 
         self.log.info("in NO_COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
         self.log.info("... Other agent's State.visited: {}".format(other.mental_world.visited))
+        
         (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.get_rest_actions())
+
         self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.get_rest_actions(), cost))
 
         if simulated:
             # if simulated is True, then the cost of the cost for the rest of the plan
+            if isinstance(self.solution, SolutionTree):
+                cost = other.solution.get_exp_cost(self.mental_world)
             return cost
         else:
             # If simulated is False, then the cost is up to the point of failure 
             # Must re-plan
             replan_cost = self.mental_world.COST_REPLAN
-            newplan_cost = self.EX_COST(world, other)[0]
+            newplan_cost = self.EX_COST(world, other, self.mental_world)[0]
             total_cost = cost + replan_cost + newplan_cost
             self.log.info("\n\tlost-cost: {} + replan-cost: {} + newplan-cost: {} = {}"
                 .format(cost, replan_cost, newplan_cost, total_cost))
@@ -507,17 +512,26 @@ class AgentSmartComm(AgentMind):
         # TODO: This means that communication should also include "FROM" in addition to "TO"
 
 
-    def EX_COST(self, in_world, agent):
-        world = copy.deepcopy(in_world)
+    """
+    Compute the expected cost of an agent's plan (where the plan is constructed using agent's mental world
+        and then cost is computed relative to a given world)
+    If agent wants the expected cost of his/her own re-plan, then agent_world == rel_world
+    If agent1 is simulating agent2's plan, then agent_world == agent1.agent2 and rel_world == agent1
+        (where agent1.agent2 means agent1's belief of agent2's world)
+    """
+    def EX_COST(self, agent_world, agent, rel_world):
+        world = copy.deepcopy(agent_world)
         agent.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
         self.log.info("AgentSmartComm.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(world)))
 
+        # Construct plan using agent_world
         world.visited[agent.name] = set()
         sol = self.planner.plan(world, agent.name)[0]
         if sol == False:
             return (sys.maxint, 'None')
         
-        total_cost = sol.get_cost(agent.mental_world)
+        # Compute Cost using relative world
+        total_cost = sol.get_exp_cost(rel_world)
         agent.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, sol.get_actions()))
         self.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, sol.get_actions()))
         return (total_cost, sol)
@@ -566,8 +580,7 @@ class AgentSmartCommII(AgentSmartComm):
                 teammate.mental_world.cost[loc] = new_cost
 
             # update teammate's Plan, potentially
-            # TODO: Need to step first, and then append later-plan
-            (new_cost, solution) = self.EX_COST(copy.deepcopy(teammate.mental_world), teammate)
+            (new_cost, solution) = self.EX_COST(copy.deepcopy(teammate.mental_world), teammate, teammate.mental_world)
             teammate.set_solution(solution) # Setting cur_step = 0
             self.log.info("\n\n Updated teammate {}'s solution. New solution: \n\t{}".format(teammate.name, solution))
 
