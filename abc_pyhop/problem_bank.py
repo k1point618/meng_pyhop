@@ -577,9 +577,9 @@ def replan_5_rand(world, idx):
 
 def replan_6_rand(world, idx):
 	if idx == 1:
-		world.cost[14] = world.MAX_COST/2
-		world.cost[13] = world.MAX_COST/2
-		world.cost[15] = world.MAX_COST/2
+		world.cost[14] = 10
+		world.cost[13] = 10
+		world.cost[15] = 10
 
 def replan_7_rand(world, idx):
 	if idx == 0:

@@ -21,8 +21,11 @@ import rovers_world_methods
 """
 Make a Random World AND Random Uncertainties
 """
-def make_random_problem(BOARD_X, BOARD_Y, name=None):
+def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, name=None):
     PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name) # with default width and height (10 x 10)
+    if rand_range != None:
+        PROBLEM.RAND_RANGE = rand_range
+        PROBLEM.MAX_COST = 2 * rand_range
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=0.3)
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
@@ -309,8 +312,8 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1,
     world.COST_OF_COMM = 1
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
-    world.MAX_COST = 10000
-    world.RAND_RANGE = 20
+    world.MAX_COST = 100
+    world.RAND_RANGE = 100
 
     world.cost_func = cost_function
     return world

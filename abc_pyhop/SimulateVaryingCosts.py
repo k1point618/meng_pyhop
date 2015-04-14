@@ -41,22 +41,22 @@ GUI = False
 Pick which Models to compare
 """
 MODELS = []
-# MODELS += [models.AgentNoComm]
+MODELS += [models.AgentNoComm]
 MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentRandComm]
-# MODELS += [models.AgentFullComm]
+MODELS += [models.AgentFullComm]
 
 
 """
 Pick which Planners to use
 """
 PLANNERS = []
-# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
-PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
+# PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 """
 Cost of Communication
 """
@@ -67,22 +67,28 @@ COSTS = [1, 3, 5, 7]
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 3
+NUM_PROBLEMS = 10
     
 
 def SimulateVaryingCosts(BOARD_X, BOARD_Y):
-    # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
-        # name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
+    global COSTS
+    PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
+        name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
     
     # PROBLEMS = [rrw.make_rand_nav_problem(BOARD_X, BOARD_Y, \
         # name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
-    PROBLEMS=[problem_bank.test_exp_cost()]
+    # PROBLEMS=[problem_bank.test_exp_cost()]
     simulations = {}
     plot_lines = {}
         
     for PLANNER in PLANNERS:
         # Each planner result in a different plot
 
+        #Temp
+        if PLANNER.name == Planner.get_HPlanner_v15().name:
+            MODELS = [models.AgentSmartComm]
+        else: 
+            MODELS = [models.AgentSmartComm, models.AgentNoComm, models.AgentFullComm]
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
             line_name = AGENT_TYPE.__name__ + '_' + PLANNER.name
@@ -103,28 +109,22 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    # Temp*************
-                    if PLANNER.name == Planner.get_HPlanner_v15().name:
-                        num_repeat = 10
-                    else: num_repeat = 10
+                    # Run
+                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
+                    simulation.run()
+                    sys.stdout.write('>')
+                    
+                    # Do not include simulation if there is no solution
+                    if simulation.get_total_cost() > sys.maxint/2: 
+                        continue
 
-                    for i in range(num_repeat):
-                        # Run
-                        simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
-                        simulation.run()
-                        sys.stdout.write('>')
-                        
-                        # Do not include simulation if there is no solution
-                        if simulation.get_total_cost() > sys.maxint/2: 
-                            continue
+                    # Add
+                    simulations[line_name][COC].append(simulation)
+                    costs += simulation.get_total_cost()
+                    # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
 
-                        # Add
-                        simulations[line_name][COC].append(simulation)
-                        costs += simulation.get_total_cost()
-                        # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
-
-                        sys.stdout.write('>')
-                        sys.stdout.flush()
+                    sys.stdout.write('{}\t'.format(int(simulation.get_total_cost())))
+                    sys.stdout.flush()
 
                 avg_cost = costs * 1.0 / len(simulations[line_name][COC])
                 plot_lines[line_name][1].append(avg_cost)

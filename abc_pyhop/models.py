@@ -18,12 +18,12 @@ class CommMessage():
 class AgentMind(object):
 
     def make_logger(self):
-        self.log = logging.getLogger('{}.{}.{}'.format(type(self).__name__, self.name, self.mental_world.name))
-        self.log.setLevel(logging.CRITICAL)
-        # file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
-        # formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
-        # file_handler.setFormatter(formatter)
-        # self.log.addHandler(file_handler)
+        self.log = logging.getLogger('{}.{}.{}'.format(self.name, self.mental_world.name, int(random.random()*1000)))
+        self.log.setLevel(logging.INFO)
+        file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
+        formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
+        file_handler.setFormatter(formatter)
+        self.log.addHandler(file_handler)
 
     """
     All agent should have

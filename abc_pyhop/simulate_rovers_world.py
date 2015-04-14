@@ -304,7 +304,7 @@ class Simulation():
 
             # 3. REPLAN if needed
             replan = agent.replan_q()
-            if  replan or world_changed: # If we do not include world_changed, then does not seek for "better" plan
+            if  replan or world_changed or len(diffs) > 0: # If we do not include world_changed, then does not seek for "better" plan
                 verbose = 0
 
                 # Used for debugging re-planning

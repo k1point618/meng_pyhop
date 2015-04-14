@@ -33,28 +33,28 @@ GUI = False
 Board Size - Indicates length of the tasks
 """
 # BOARD_SIDES = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-BOARD_SIDES = [5, 6, 7]
+BOARD_SIDES = [3, 4, 5, 6, 7]
 
 """
 Pick which Models to compare
 """
 MODELS = []
-MODELS += [models.AgentNoComm]
-# MODELS += [models.AgentSmartComm]
+# MODELS += [models.AgentNoComm]
+MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentRandComm]
-MODELS += [models.AgentFullComm]
+# MODELS += [models.AgentFullComm]
 
 
 """
 Pick which Planners to use
 """
 PLANNERS = []
-# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
-PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
+# PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 
 """
 Cost of Communication
@@ -66,27 +66,28 @@ Choose any problem from problem bank
 """
 PROBLEMS = []
 # NUM_PROBLEMS = 100
-NUM_PROBLEMS = 3
+NUM_PROBLEMS = 1
     
 def SimulateVaryingBoard(COC):
     lines = []
     base_line = None
     base_line_name = None
+
+    # First make the same set of NUM_PROBLEMS for a given Board-size for all models
+    PROBLEMS_dict = {}
+    for SIDE in BOARD_SIDES:
+        PROBLEMS_dict[SIDE] = [rrw.make_random_problem(SIDE, SIDE, \
+            name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
+
+    simulations = {}
+    plot_lines = {}
+
     for PLANNER in PLANNERS:
         # Each planner result in a different plot
-        simulations = {}
-        plot_lines = {}
-
-        # First make the same set of NUM_PROBLEMS for a given Board-size for all models
-        PROBLEMS_dict = {}
-        for SIDE in BOARD_SIDES:
-            PROBLEMS_dict[SIDE] = [rrw.make_random_problem(SIDE, SIDE, \
-                name=str(time.time()) + '.' + str(i)) for i in range(NUM_PROBLEMS)]
-
-
+        
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
-            line_name = AGENT_TYPE.__name__ + PLANNER.name
+            line_name = PLANNER.name + '_' + AGENT_TYPE.__name__
             logger.info("*** Running simulations for [MODEL: {}]".format(line_name))
                     
             simulations[line_name] = {}
@@ -134,39 +135,38 @@ def SimulateVaryingBoard(COC):
             else:
                 plot_lines[line_name] = (cur_line[0], [x-y for x, y in zip(cur_line[1], base_line[1])])
 
-        # Renormalizing based on the no-comm baseline.
-        plot_lines[base_line_name] = ([x * x for x in BOARD_SIDES], [0]*len(BOARD_SIDES))  
-        
+    # Renormalizing based on the no-comm baseline.
+    plot_lines[base_line_name] = ([x * x for x in BOARD_SIDES], [0]*len(BOARD_SIDES))  
+    
+    # Plot lines
+    logger.info("Plot Lines: {}".format(plot_lines))
 
-        # Plot lines
-        logger.info("Plot Lines: {}".format(plot_lines))
 
+    # Adjust Plotting
+    fig = plt.figure()
+    ax = plt.subplot(111)
 
-        # Adjust Plotting
-        fig = plt.figure()
-        ax = plt.subplot(111)
+    for (name, line) in plot_lines.items():
+        lines.append(ax.plot(line[0], line[1], label=name))
 
-        for (name, line) in plot_lines.items():
-            lines.append(ax.plot(line[0], line[1], label=name))
+    # Locate Legend
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.2,
+             box.width, box.height * 0.8])
 
-        # Locate Legend
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0 + box.height * 0.2,
-                 box.width, box.height * 0.8])
+    legend = ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13),
+      fancybox=True, shadow=True, ncol=2, prop={'size':9})
+    for legobj in legend.legendHandles:
+        legobj.set_linewidth(2.0)
+    
+    # Labels
+    plt.xlabel("Board Size")
+    plt.ylabel("Average Costs over {} Random Problems".format(NUM_PROBLEMS))
+    plt.title('Planner:{} COC:{}'.format(PLANNER.planner.__name__, COC))
+    plt.setp(lines, linewidth=2.0)
 
-        legend = ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13),
-          fancybox=True, shadow=True, ncol=2, prop={'size':9})
-        for legobj in legend.legendHandles:
-            legobj.set_linewidth(2.0)
-        
-        # Labels
-        plt.xlabel("Board Size")
-        plt.ylabel("Average Costs over {} Random Problems".format(NUM_PROBLEMS))
-        plt.title('Planner:{} COC:{}'.format(PLANNER.planner.__name__, COC))
-        plt.setp(lines, linewidth=2.0)
-
-        plt.savefig("images/SimulateVaryingBoardSize_{}.png".format(time.time()%1000))
-        plt.show()
+    plt.savefig("images/SimulateVaryingBoardSize_{}.png".format(time.time()%1000))
+    plt.show()
 
 
 
