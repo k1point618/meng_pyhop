@@ -45,8 +45,8 @@ logger.addHandler(channel)
 Knobes to Turn
 """
 show_summary = True
-BOARD_X = 7
-BOARD_Y = 7
+BOARD_X = 5
+BOARD_Y = 5
 GUI = False
 
 
@@ -62,9 +62,10 @@ Pick which Models to compare
 MODELS = []
 MODELS += [models.AgentNoComm]
 MODELS += [models.AgentSmartComm]
-MODELS += [models.AgentSmartCommII]
+# MODELS += [models.AgentSmartEstimate]
+# MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentRandComm]
-MODELS += [models.AgentFullComm]
+# MODELS += [models.AgentFullComm]
 
 
 """
@@ -72,7 +73,7 @@ Pick which Planners to use
 """
 PLANNERS = []
 PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
 # PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
@@ -80,16 +81,16 @@ PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 """
 Cost of Communication
 """
-RAND_RANGE = 30 # DO NOT CHANGE
-# COSTS = range(50)
-COSTS = [1, 3, 5]
-# COC = 9
+RAND_RANGE = 10
+# COSTS = [i * 0.3 for i in range(RAND_RANGE)]
+# COC = 1
+COSTS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
 
 """
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 3
+NUM_PROBLEMS = 20
 
 
 """
@@ -100,7 +101,7 @@ def write_params_to_file(filename, simulations, plot_lines):
     # f.write(PLANNERS)
     pass
 
-def SimulateVaryingCosts(BOARD_X, BOARD_Y):
+def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
     global COSTS
     PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
                 name=str(time.time()) + '.' + str(i)) \
@@ -210,6 +211,114 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
 
     plt.show()
 
+"""
+For Non-Deterministic Planners (Includes the extra inner loop for repeating the same problem)
+"""
+def SimulateVaryingCosts(BOARD_X, BOARD_Y):
+    
+    # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
+    #             name=str(time.time()) + '.' + str(i)) \
+    #             for i in range(NUM_PROBLEMS)]
+
+    PROBLEMS = [rrw.make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
+                name=str(time.time()) + '.' + str(i)) \
+                for i in range(NUM_PROBLEMS)]
+    
+    lines = []
+    simulations = {}
+    plot_lines = {}
+    for PLANNER in PLANNERS:
+        # Each planner result in a different plot
+
+        for AGENT_TYPE in MODELS:
+            # Each agent is a line in the plot
+            line_name = AGENT_TYPE.__name__ + PLANNER.name
+            logger.info("*** Running simulations for [MODEL: {}]".format(line_name))
+            
+            simulations[line_name] = {}
+            plot_lines[line_name] = [COSTS, [0 for i in range(len(COSTS))]]
+
+            
+            for i in range(len(COSTS)):
+                COC = COSTS[i]
+                # Each cost is a data point
+                sys.stdout.write('COST : {}\t'.format(COC))
+                sys.stdout.flush()
+
+                simulations[line_name][COC] = []
+                costs = 0
+                for PROBLEM in PROBLEMS:
+                    # Each point is the average over all problems
+                    PROBLEM.COST_OF_COMM = COC
+                    PROBLEM.COST_REPLAN = 0
+
+                    if 'Det' in PLANNER.name and 'Rand' not in PLANNER.name:
+                        num_iter = 1
+                    elif 'Rand' in PLANNER.name and 'Det' not in PLANNER.name:
+                        num_iter = 20
+                    else:
+                        assert(False), "PlannerName: {}".format(PLANNER.name)
+
+                    for j in range(num_iter):
+                        # Run
+                        simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
+                        simulation.run()
+                        
+                        # Do not include simulation if there is no solution
+                        if simulation.get_total_cost() > sys.maxint/2: 
+                            continue
+
+                        # Add
+                        simulations[line_name][COC].append(simulation)
+                        costs += simulation.get_total_cost()
+                        # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
+
+                        sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
+                        sys.stdout.flush()
+
+                
+                avg_cost = costs * 1.0 / len(simulations[line_name][COC])
+                plot_lines[line_name][1][i] = avg_cost
+                
+                sys.stdout.write('Avg: {}\n'.format(avg_cost))
+                sys.stdout.flush()
+
+
+    logger.info("Plot Lines: {}".format(plot_lines))
+    lines = []
+    
+    # Adjust Plotting
+    fig = plt.figure()
+    ax = plt.subplot(111)
+
+    for (name, line) in plot_lines.items():
+        lines.append(ax.plot(line[0], line[1], label=name))
+
+    # Locate Legend
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.2,
+             box.width, box.height * 0.8])
+    legend = ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13),
+      fancybox=True, shadow=True, ncol=2, prop={'size':9})
+    
+    # Set Line Width
+    for legobj in legend.legendHandles:
+        legobj.set_linewidth(2.0)
+    plt.setp(lines, linewidth=2.0)
+
+    # Labels
+    plt.xlabel("Cost of Communication")
+    plt.ylabel("Average Costs over {} Random Problems".format(NUM_PROBLEMS))
+    plt.title('Planner:{} Board-Size:{}'.format(PLANNER.name, BOARD_X*BOARD_Y))
+    
+    # write simulation parameters to file.
+    filename = "images/SimulateVaryingCosts_{}".format(time.time()%1000)
+    plt.savefig(filename+".png")
+
+    plt.show()
+
+def SimulatePlannerAndModel():
+    pass
 
 def SimulateVaryingBoard(COC):
     for PLANNER in PLANNERS:
@@ -281,7 +390,6 @@ def SimulateVaryingBoard(COC):
         plt.savefig("images/SimulateVaryingBoardSize_{}.png".format(time.time()%1000))
         plt.show()
 
-
 def TestOnProblemBank():
     PROBLEMS = []
     
@@ -320,10 +428,14 @@ def TestOnProblemBank():
                 # print([a.get_histories() for a in simulation.agents.values()])
 
 def TestOneRandomProb():
-    PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
+    # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
+    #     name=str(time.time()) + '.' + str(i)) for i in range(10)]
+
+    PROBLEMS = [rrw.make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
         name=str(time.time()) + '.' + str(i)) for i in range(10)]
 
     for PROBLEM in PROBLEMS:
+
         for AGENT_TYPE in MODELS:
             for PLANNER in PLANNERS:
                 # Each point is the average over all problems
@@ -332,17 +444,17 @@ def TestOneRandomProb():
 
 
                 # Run
-                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False)
+                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
                 simulation.run()
                 
                 logger.info(simulation.get_summary(cost=True, cost_bd=True, obs=True, comm=True, void=True))
                 # print([a.get_histories() for a in simulation.agents.values()])
 
-                if AGENT_TYPE.__name__ == 'AgentNoComm':
-                    print('setting baseline: ')
-                    baseline = simulation
-                if simulation.get_total_cost() > baseline.get_total_cost() and AGENT_TYPE.__name__ != 'AgentFullComm':
-                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
+                # if AGENT_TYPE.__name__ == 'AgentNoComm':
+                #     print('setting baseline: ')
+                #     baseline = simulation
+                # if simulation.get_total_cost() > baseline.get_total_cost() and AGENT_TYPE.__name__ != 'AgentFullComm':
+                #     simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
 
 """
 This reproduces the baseline with parameters:
@@ -352,8 +464,9 @@ This reproduces the baseline with parameters:
     COC: range(50)
     Input: Fix Board-Size
 """
-SimulateVaryingCosts(BOARD_X, BOARD_Y)
+# SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y)
 
+SimulateVaryingCosts(BOARD_X, BOARD_Y)
 """
 Input: Fix COC
 """

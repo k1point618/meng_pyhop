@@ -19,11 +19,11 @@ class AgentMind(object):
 
     def make_logger(self):
         self.log = logging.getLogger('{}.{}.{}'.format(self.name, self.mental_world.name, int(random.random()*1000)))
-        self.log.setLevel(logging.INFO)
-        file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
-        formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
-        file_handler.setFormatter(formatter)
-        self.log.addHandler(file_handler)
+        self.log.setLevel(logging.CRITICAL)
+        # file_handler = logging.FileHandler('logs/AgentMind_{}.log'.format(self.name))
+        # formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s(%(lineno)d):%(message)s')
+        # file_handler.setFormatter(formatter)
+        # self.log.addHandler(file_handler)
 
     """
     All agent should have
@@ -585,5 +585,187 @@ class AgentSmartCommII(AgentSmartComm):
             self.log.info("\n\n Updated teammate {}'s solution. New solution: \n\t{}".format(teammate.name, solution))
 
         return hist
+
+"""
+ONLY To be used with Non-Deterministic planners
+"""
+class AgentSmartEstimate(AgentMind):
+    def __init__(self, name, world, args=[]):
+        super(AgentSmartEstimate, self).__init__(name, world)
+        self.TYPE = 'SmartEstimate'
+        solutions_by_agent = args[0] # Assuming that the only input is solutions
+        self.teammates = {}
+        self.num_samples = 10
+        for a in world.goals.keys():
+            if a != self.name:
+                teammate = AgentMind(a, copy.deepcopy(world))
+                teammate.set_solution(solutions_by_agent[a]) # <-- The type of solution is the same as the agent's solution type (PlanTree or Linear)
+                self.teammates[a] = teammate
+                # We want to keep track of each teammate's plan and the relative cost of each plan. 
+                # (Later, we might want to add a distribution of solutions?)
+                
+    # Given the set of differences observed from environment and communication
+    # Determine what and to-whome to communicate to.
+    # We do not change self.teammates
+    def communicate(self, diffs):
+        super(AgentSmartEstimate, self).communicate(diffs)
+
+        # For each teammte, compare the expected cost of communicating with not-communicating
+        if len(diffs) == 0:
+            self.log.info("Agent {} observed no diff, so have nothing to communicate".format(self.name))
+            return ([], [])
+
+        to_comm = []
+        void_comm = []
+        for (teammate_name, teammate) in self.teammates.items():
+            for diff in diffs:
+            
+                self.log.info("AgentSmartEstimate.communicate ... Should Agent {} communicate <{}> to teammate: {}?"
+                    .format(self.name, diff, teammate_name))
+                commMsg = CommMessage(self.name, teammate_name, diff)
+                
+                # Assuming that the teammate has already completed the current step
+                # because the message doesn't get delivered until the next timestep.
+                self.log.info("teammate world:\n{}".format(print_board_str(teammate.mental_world)))
+                
+                # If we communicate
+                copyA = teammate.simple_copy()
+                cost_comm = self.comm_cost(copyA, diff)
+                
+                # If we don't communicate
+                copyB = teammate.simple_copy()
+                cost_no_comm = self.no_comm_cost(copyB, diff)
+                
+                if cost_comm <= cost_no_comm:
+                    # Send message
+                    to_comm.append(commMsg)
+
+                    self.log.warning("Agent {} decided to COMMUNICATE {} given cost of comm: {} and no-comm: {}..."
+                        .format(self.name, diff, cost_comm, cost_no_comm))
+
+                else:
+                    self.log.info("Agent {} decided to NOT COMMUNICATE {} given cost of comm: {} and no-comm: {}..."
+                        .format(self.name, diff, cost_comm, cost_no_comm))
+                    # Do not send
+                    void_comm.append(commMsg)
+
+        self.add_sent_msgs(to_comm)
+        self.add_voided_msgs(void_comm)
+        return (to_comm, void_comm)
+
+
+
+    # Process communication by updating agent's mental_world
+    # Return the set of differences
+    # In this agent type, we also perform plan recognition and update our belief of 
+    # our teammate's world.
+    # def incoming_comm(self, communication):
+    #     diffs = super(AgentSmartEstimate, self).incoming_comm(communication)
+        # Update belief about Teammate's world
+        # TODO: This means that communication should also include "FROM" in addition to "TO"
+
+    def comm_cost(self, other, diff):
+        self.log.info("Evaluating the cost IF we were to communicate {} to {}".format(diff, other))
+        to_return = self.mental_world.COST_OF_COMM # Cost of comm
+
+        # By the time other receives message
+        if other.is_done():
+            self.log.info("... the other agent should be done by the time msg sent. no need for simulation")
+            return to_return
+        other.mental_world = other.get_next_state()
+        other.cur_step += 1 
+
+        # Pretend to send message and update teammate's world
+        other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
+
+        self.log.info("in COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
+        
+        # Pretend to re-plan with new info # no need to check for re-plan
+        new_cost_to_finish, sol = self.EX_COST(other.mental_world, other, self.mental_world, num_tries=self.num_samples)
+        self.log.info("The expected cost for agent {} to accomplish {} is: {} with plan:\n{}"
+            .format(other.name, other.goal, new_cost_to_finish, sol.get_actions()))
+
+        to_return += new_cost_to_finish
+        self.log.info("Agent {}: The cost of communicating is {} + {} = {}"
+            .format(self.name, self.mental_world.COST_OF_COMM, new_cost_to_finish, to_return))
+        return to_return
+
+
+    def no_comm_cost(self, other, diff):
+
+        self.log.info("Agent {} is simulating agent {}'s world \n{}\n\
+            ...for no-comm,\n\
+            ...regarding on diffs: {}\n\
+            ... with actions: {}"
+            .format(self.name, other.name, print_board_str(other.mental_world),
+                diff, other.get_rest_actions()))
+
+        # projected_other_world = act(copy.deepcopy(self.mental_world), other.actions[self.cur_step])
+        # self.log.info("Other agent's mental world: \n{}".format(print_board_str(projected_other_world)))
+        
+        # (simulated, world, cost) = self.simulate(other.name, projected_other_world, other.actions[self.cur_step+1:])
+        # self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.actions[self.cur_step+1:], cost))
+
+        # By the time other receives message
+        if other.is_done():
+            self.log.info("... the other agent should be done by the time msg sent. no need for simulation")
+            return 0
+        other.mental_world = other.get_next_state()
+        other.cur_step += 1 
+
+        # Simulation? What is the expected cost of original plan relative to new world
+        other.incoming_comm([CommMessage(self.name, other.name, diff)], sim=True)
+
+        self.log.info("in NO_COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
+        self.log.info("... Other agent's State.visited: {}".format(other.mental_world.visited))
+        
+        costs = 0
+        for i in range(self.num_samples):
+            (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.get_rest_actions())
+            costs += cost
+            self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.get_rest_actions(), cost))
+
+        avg_cost = costs * 1.0 /self.num_samples
+        if simulated:
+            # if simulated is True, then the cost of the cost for the rest of the plan
+            if isinstance(self.solution, SolutionTree):
+                avg_cost = other.solution.get_exp_cost(self.mental_world)
+            return avg_cost
+        else:
+            # If simulated is False, then the cost is up to the point of failure 
+            # Must re-plan
+            replan_cost = self.mental_world.COST_REPLAN
+            newplan_cost = self.EX_COST(world, other, self.mental_world, num_tries=self.num_samples)[0]
+            total_cost = cost + replan_cost + newplan_cost
+            self.log.info("\n\tlost-cost: {} + replan-cost: {} + newplan-cost: {} = {}"
+                .format(cost, replan_cost, newplan_cost, total_cost))
+            return total_cost
+    
+    """
+    Compute the expected cost of an agent's plan (where the plan is constructed using agent's mental world
+        and then cost is computed relative to a given world)
+    If agent wants the expected cost of his/her own re-plan, then agent_world == rel_world
+    If agent1 is simulating agent2's plan, then agent_world == agent1.agent2 and rel_world == agent1
+        (where agent1.agent2 means agent1's belief of agent2's world)
+    """
+    def EX_COST(self, agent_world, agent, rel_world, num_tries=1):
+        agent.log.info("AgentSmartEstimate.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(agent_world)))
+        self.log.info("AgentSmartEstimate.EX_COST: computing expected cost of agent {} with goal {} in world \n{}".format(agent.name, agent.goal, print_board_str(agent_world)))
+        costs = 0
+        for i in range(num_tries):
+            world = copy.deepcopy(agent_world)
+
+            # Construct plan using agent_world
+            world.visited[agent.name] = set()
+            sol = self.planner.plan(world, agent.name)[0]
+            if sol == False:
+                return (sys.maxint, 'None')
+            costs += sol.get_exp_cost(rel_world)
+
+        # Compute Cost using relative world
+        avg_cost = costs * 1.0 /num_tries
+        # agent.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, sol.get_actions()))
+        # self.log.info("AgentSmartComm.EX_COST: expected cost cost is {} for actions {}".format(total_cost, sol.get_actions()))
+        return (avg_cost, sol)
 
 

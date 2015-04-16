@@ -14,7 +14,7 @@ from __future__ import print_function
 from pyhop import *
 import random
 import time
-
+import math
 import rovers_world_operators
 import rovers_world_methods
 
@@ -30,7 +30,151 @@ def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, name=None):
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
 
+"""
+Make a Semi-Random World AND Random Uncertainties
+"""
+def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, name=None):
+    PROBLEM = get_semi_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, name=name) # with default width and height (10 x 10)
+    if rand_range != None:
+        PROBLEM.RAND_RANGE = rand_range
+        PROBLEM.MAX_COST = 2 * rand_range
+    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=0.3)
+    PROBLEM.uncertainties = UNCERTAINTIES
+    return PROBLEM
 
+"""
+Make World where agents starts in the middle of the world and soils and distributed equal-distance from
+the agents. Lab and Lander are distributed randomly in the world
+"""
+def get_semi_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, name=None):
+    if name == None:
+        name = str(time.time())
+
+    ##############################
+    # Below, we generate the world with pre-defined randomness.
+
+    # General and Miscellaneous World info
+    world = State("InitialWorld")
+    world.name = name
+    world.prop = {"num_col":BOARD_Y, "num_row":BOARD_X}
+    available_spaces = range(1,(BOARD_X*BOARD_Y+1))
+    world.at = {}
+    world.store_has = {}
+    world.has_soil_sample = {}
+    world.soil_sample = {}
+    world.has_rock_sample = {}
+    world.rock_sample = {}
+    world.has_soil_analysis = {}
+    world.soil_analysis = {}
+    world.has_rock_analysis = {}
+    world.rock_analysis = {}
+
+
+    # Agents
+    world.is_agent = {}
+    world.visited = {}
+    world.available = {}
+    world.stores = {}
+    world.store_has = {}
+    world.empty = {}
+    world.equipped_for_imaging = {}
+    world.equipped_for_rock_analysis = {}
+    world.equipped_for_soil_analysis = {}
+    for agent_id in range(num_agent):
+
+        agent = "A" + str(agent_id+1)
+
+        world.is_agent[agent] = True
+        # Put agent somewhere in the center of the board.
+        x = random.choice(range(int(BOARD_X*0.25), int(math.ceil(BOARD_X*0.75))))
+        y = random.choice(range(int(BOARD_Y*0.25), int(math.ceil(BOARD_Y*0.75))))
+        loc = (x)*BOARD_X + (y+1)
+        world.at[agent] = loc
+        if loc in available_spaces:
+            available_spaces.remove(loc)
+        world.visited[agent] = set()
+        world.visited[agent].add(loc)
+
+        # Agent's capabilities
+        world.equipped_for_imaging[agent] = True
+        world.equipped_for_rock_analysis[agent] = True
+        world.equipped_for_soil_analysis[agent] = True
+
+        world.available[agent] = True
+
+        # Agent's Storage
+        store = agent + "store"
+        world.stores[agent] = store
+        world.empty[store] = True
+
+        world.has_rock_analysis[agent] = False
+        world.has_soil_analysis[agent] = False
+        world.has_soil_sample[agent] = False
+        world.has_rock_sample[agent] = False
+        # Agent's Camera? TODO
+
+    # Lander
+    world.is_lander = {LANDER:True}
+    loc = random.choice(available_spaces)
+    available_spaces.remove(loc)
+    world.at[LANDER] = loc
+    world.channel_free = {LANDER:True}
+
+    # Lab
+    world.is_lab = {LAB:True}
+    loc = random.choice(available_spaces)
+    available_spaces.remove(loc)
+    world.at[LAB] = loc
+    world.lab_ready = {LAB:[]}
+
+    # Rocks and Soils
+    world.soils = set()
+    for i in range(NUM_SOILS):
+        soil = "S" + str(i+1)
+        world.soils.add(soil)
+        loc = random.choice(available_spaces)
+        available_spaces.remove(loc)
+        world.at[soil] = loc
+
+    world.rocks = set()
+    for i in range(NUM_ROCKS):
+        rock = "R" + str(i+1)
+        world.rocks.add(rock)
+        loc = random.choice(available_spaces)
+        available_spaces.remove(loc)
+        world.at[rock] = loc
+
+    # World's Location definition
+    world.loc = {}
+    world.loc_available = {}
+    world.cost = {}
+    idx = 1
+    for i in range(BOARD_X):
+        for j in range(BOARD_Y):
+            world.loc[idx] = (i, j)
+            world.loc_available[idx] = True
+            world.cost[idx] = 1
+            idx += 1
+
+    world.goals = {}
+    for agent_id in range(num_agent):
+        agent_name = "A" + str(agent_id+1)
+        world.goals[agent_name] = [('get_sample_data', agent_name)]
+
+    world.cost_func = cost_function
+    return world
+
+
+
+
+
+
+
+
+"""
+Goals are purily navigation from one point to another.
+If A* is true, then the planner simply runs A* and makes no decision on decomposing the task
+"""
 def make_rand_nav_problem(BOARD_X, BOARD_Y, name=None):
     NUM_ROCKS = 0
     NUM_SOILS = 0
@@ -186,8 +330,7 @@ def print_board_str(state): # Makes the string output
 """
 Main funciton for generating random world
 """
-def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, 
-                    a_star=True, name=None):
+def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None):
 
     if name == None:
         name = str(time.time())
