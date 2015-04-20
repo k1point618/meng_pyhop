@@ -79,6 +79,7 @@ class Simulation():
             # results = pyhop(world, agent_name, plantree=use_tree, verbose=verbose)
             results = planner.plan(world, agent_name)
             self.solutions[agent_name] = random.choice(results)
+            
         # Create Agent and set solutions
         for agent_name in self.solutions.keys():
             agent = AgentType(agent_name, copy.deepcopy(world), args=[self.solutions])

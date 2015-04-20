@@ -706,7 +706,7 @@ from plantree import *
 import random_rovers_world as rrw
 from solution import Solution
 
-def seek_bb(state, tasks, verbose=0, all_plans=False):
+def seek_bb(state, tasks, verbose=0, all_plans=True):
 
     if verbose: 
         print("SEEK_BB: solving problem for task {} and state:".format(tasks))
@@ -793,22 +793,22 @@ def seek_bb(state, tasks, verbose=0, all_plans=False):
         # raw_input("...")
 
 
-    return root
+    
 
     # one_plan = root.get_plan()
 
-    # if verbose:
-    #     plans = root.get_all_opt_plans()
-    #     print("root: ", root.get_string())
-    #     print("get_num_plans:", root.get_num_plans())
-    #     print("num_opt_plans:", root.get_num_opt_plans())
-    #     print("all opt plans: {}".format(plans))
-    #     # for p in plans:
-    #     #     print("opt p", p[0])
+    if verbose:
+        plans = root.get_all_opt_plans()
+        print("root: ", root.get_string())
+        print("get_num_plans:", root.get_num_plans())
+        print("num_opt_plans:", root.get_num_opt_plans())
+        print("all opt plans: {}".format(plans))
+        # for p in plans:
+        #     print("opt p", p[0])
     
     
     # return [one_plan]
-
+    return root
 
 
 

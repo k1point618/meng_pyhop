@@ -121,7 +121,15 @@ class AgentMind(object):
     # Given the set of differences observed from environment and communications, 
     # Determine whether or not to re-plan
     def replan_q(self):
+
         self.log.info("Agent: {} replan?".format(self.name))
+        # If agent solution is SolutionTree, then we evaluate cost relative to new world. 
+        # If new cost is greater than old, then re-plan
+        # if isinstance(self.solution, SolutionTree):
+        #     new_exp_cost = self.solution.get_exp_cost(self.mental_world)
+        #     self.log.info("Agent has SolutionTree: checking if self.cost {} == new expected cost {}".format(self.solution.cost, new_exp_cost))
+        #     return self.solution.cost == new_exp_cost
+
         cur_world = copy.deepcopy(self.mental_world)
         (simulated, end_world, accum_cost) = self.simulate(self.name, cur_world, self.actions[self.cur_step:])
         if simulated:
@@ -481,15 +489,18 @@ class AgentSmartComm(AgentMind):
 
         self.log.info("in NO_COMM_COST: Other agent's ({}) mental world: \n{}".format(other.name, print_board_str(other.mental_world)))
         self.log.info("... Other agent's State.visited: {}".format(other.mental_world.visited))
-        
+
+        # if simulated is True, then the cost of the cost for the rest of the plan
+        # if isinstance(self.solution, SolutionTree):
+        #     self.log.info("Agent's solution is a solution Tree. Getting expected cost of tree relative to new world")
+        #     cost = other.solution.get_exp_cost(self.mental_world)
+        #     return cost
+
         (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.get_rest_actions())
 
         self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.get_rest_actions(), cost))
 
         if simulated:
-            # if simulated is True, then the cost of the cost for the rest of the plan
-            if isinstance(self.solution, SolutionTree):
-                cost = other.solution.get_exp_cost(self.mental_world)
             return cost
         else:
             # If simulated is False, then the cost is up to the point of failure 

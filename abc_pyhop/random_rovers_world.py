@@ -21,11 +21,14 @@ import rovers_world_methods
 """
 Make a Random World AND Random Uncertainties
 """
-def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, name=None):
+def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None):
     PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
-        PROBLEM.MAX_COST = 2 * rand_range
+        if max_cost == None:
+            PROBLEM.MAX_COST = 2 * rand_range
+    if max_cost != None:
+        PROBLEM.MAX_COST = max_cost
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=0.3)
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
@@ -33,11 +36,14 @@ def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, name=None):
 """
 Make a Semi-Random World AND Random Uncertainties
 """
-def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, name=None):
+def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None):
     PROBLEM = get_semi_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
-        PROBLEM.MAX_COST = 2 * rand_range
+        if max_cost == None:
+            PROBLEM.MAX_COST = 2 * rand_range
+    if max_cost != None:
+        PROBLEM.MAX_COST = max_cost
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=0.3)
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
@@ -437,11 +443,9 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
             world.loc[idx] = (i, j)
             world.loc_available[idx] = True
             world.cost[idx] = 1
-            # world.cost[idx] = int(random.random() * world.MAX_COST) #of the location
             idx += 1
 
 
-    # TODO: For now, we manually allocate the goals
     world.goals = {}
     for agent_id in range(num_agent):
         agent_name = "A" + str(agent_id+1)

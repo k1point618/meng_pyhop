@@ -62,17 +62,17 @@ Pick which Models to compare
 MODELS = []
 MODELS += [models.AgentNoComm]
 MODELS += [models.AgentSmartComm]
-# MODELS += [models.AgentSmartEstimate]
 # MODELS += [models.AgentSmartCommII]
-# MODELS += [models.AgentRandComm]
-# MODELS += [models.AgentFullComm]
+# MODELS += [models.AgentSmartEstimate]
+MODELS += [models.AgentRandComm]
+MODELS += [models.AgentFullComm]
 
 
 """
 Pick which Planners to use
 """
 PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
@@ -82,15 +82,17 @@ PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 Cost of Communication
 """
 RAND_RANGE = 10
-# COSTS = [i * 0.3 for i in range(RAND_RANGE)]
+MAX_COST = 20
+COSTS = [i * 0.25 for i in range(21)]
+# COSTS = [0, 1, 2, 3]
 # COC = 1
-COSTS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
+# COSTS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
 
 """
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 20
+NUM_PROBLEMS = 50
 
 
 """
@@ -103,7 +105,7 @@ def write_params_to_file(filename, simulations, plot_lines):
 
 def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
     global COSTS
-    PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
+    PROBLEMS = [rrw.make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, max_cost=MAX_COST,\
                 name=str(time.time()) + '.' + str(i)) \
                 for i in range(NUM_PROBLEMS)]
     
@@ -115,7 +117,7 @@ def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
         plot_lines = {}
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
-            line_name = AGENT_TYPE.__name__ + PLANNER.name
+            line_name = AGENT_TYPE.__name__ + '_' + PLANNER.name
             logger.info("*** Running simulations for [MODEL: {}]".format(line_name))
             
             simulations[line_name] = {}
@@ -159,10 +161,10 @@ def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
 
                     if AGENT_TYPE.__name__ == 'AgentNoComm':
                         baseline_costs[PROBLEM.name] = simulation.get_total_cost()
-                        sys.stdout.write('{}\t'.format(int(simulation.get_total_cost())))
+                        sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
                     else:
                         diff = int(simulation.get_total_cost() - baseline_costs[PROBLEM.name])
-                        sys.stdout.write('{}\t'.format(diff))
+                        sys.stdout.write('{}, '.format(diff))
                         # if diff > 1 and ('Smart' in AGENT_TYPE.__name__):
                         #     Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
 
@@ -203,7 +205,7 @@ def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
     # Labels
     plt.xlabel("Cost of Communication")
     plt.ylabel("Average Costs over {} Random Problems".format(NUM_PROBLEMS))
-    plt.title('Planner:{} Board-Size:{}'.format(PLANNER.planner.__name__, BOARD_X*BOARD_Y))
+    plt.title('Planner:{} Board-Size:{}'.format(PLANNER.name, BOARD_X*BOARD_Y))
     
     # write simulation parameters to file.
     filename = "images/SimulateVaryingCosts_{}".format(time.time()%1000)
@@ -220,7 +222,7 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
     #             name=str(time.time()) + '.' + str(i)) \
     #             for i in range(NUM_PROBLEMS)]
 
-    PROBLEMS = [rrw.make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
+    PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
                 name=str(time.time()) + '.' + str(i)) \
                 for i in range(NUM_PROBLEMS)]
     
@@ -403,10 +405,10 @@ def TestOnProblemBank():
     
     # PROBLEMS.append(problem_bank.navigate_replan_team_2())
     # PROBLEMS.append(problem_bank.navigate_replan_team_3())
-    # # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
+    # PROBLEMS.append(problem_bank.navigate_replan_team_4()) # Two observations that have joint-effect that is greate than the effect of each
     # PROBLEMS.append(problem_bank.navigate_replan_team_5())
     # PROBLEMS.append(problem_bank.navigate_replan_team_6())
-    PROBLEMS.append(problem_bank.navigate_replan_team_7())
+    # PROBLEMS.append(problem_bank.navigate_replan_team_7())
 
     # PROBLEMS = [rrw.make_rand_nav_problem(4, 4, \
         # name=str(time.time()) + '.' + str(i)) for i in range(5)]
@@ -431,22 +433,22 @@ def TestOneRandomProb():
     # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
     #     name=str(time.time()) + '.' + str(i)) for i in range(10)]
 
-    PROBLEMS = [rrw.make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, \
-        name=str(time.time()) + '.' + str(i)) for i in range(10)]
+    PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, max_cost=MAX_COST,\
+        name=str(time.time()) + '.' + str(i)) for i in range(50)]
 
     for PROBLEM in PROBLEMS:
 
+        costs = {}
         for AGENT_TYPE in MODELS:
             for PLANNER in PLANNERS:
                 # Each point is the average over all problems
                 PROBLEM.COST_OF_COMM = COC
                 PROBLEM.COST_REPLAN = 0
 
-
                 # Run
-                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
+                simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False)
                 simulation.run()
-                
+                costs[AGENT_TYPE.__name__] = simulation.get_total_cost()
                 logger.info(simulation.get_summary(cost=True, cost_bd=True, obs=True, comm=True, void=True))
                 # print([a.get_histories() for a in simulation.agents.values()])
 
@@ -455,6 +457,13 @@ def TestOneRandomProb():
                 #     baseline = simulation
                 # if simulation.get_total_cost() > baseline.get_total_cost() and AGENT_TYPE.__name__ != 'AgentFullComm':
                 #     simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
+
+        if costs['AgentSmartComm'] > costs['AgentNoComm']:
+            Simulation(PROBLEM, models.AgentNoComm, PLANNER, gui=True)
+            Simulation(PROBLEM, models.AgentSmartComm, PLANNER, gui=True)
+                
+
+
 
 """
 This reproduces the baseline with parameters:

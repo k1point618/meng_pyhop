@@ -144,47 +144,26 @@ class Planner():
 
 	@staticmethod
 	def get_HPlanner_bb():		
-		# Returns ALL possible plans
-		# - No Explanation
+		# Returns the first result found
 		v20 = Planner()
 		def v20_plan(problem, agent):
-			problem.a_star = False
+			problem.a_star = True
 			problem.rand = False
 			if not hasattr(problem, 'verbose'):
 				problem.verbose = 0
-			root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose)
-
-			# Even though we get the root, this planner imitates the result of a linear planner.
-			solutions = [root.get_plan()]
-			if solutions[0] == False:
-				return solutions
-			return Planner.make_sol_obj(solutions, problem, agent)
+			root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose, all_plans=False)
+			return [SolutionTree(root, agent, rand=True)]
+			
+			# # Even though we get the root, this planner imitates the result of a linear planner.
+			# solutions = [root.get_plan()]
+			# if solutions[0] == False:
+			# 	return solutions
+			# return Planner.make_sol_obj(solutions, problem, agent)
 
 		v20.planner = v20_plan
 		v20.name = "Det_HTN_BB"
 		return v20
 
-	# @staticmethod
-	# def get_HPlanner_bb_rand():		
-	# 	# Returns ALL possible plans
-	# 	# - No Explanation
-	# 	v20 = Planner()
-	# 	def v20_plan(problem, agent):
-	# 		problem.a_star = False
-	# 		problem.rand = True
-	# 		if not hasattr(problem, 'verbose'):
-	# 			problem.verbose = 0
-	# 		root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose)
-
-	# 		# Even though we get the root, this planner imitates the result of a linear planner.
-	# 		solutions = [root.get_plan(rand=True)]
-	# 		if solutions[0] == False:
-	# 			return solutions
-	# 		return Planner.make_sol_obj(solutions, problem, agent)
-
-	# 	v20.planner = v20_plan
-	# 	v20.name = "Rand_HTN_BB_OnePlan"
-	# 	return v20
 
 	# Is able to reason expected cost over different decompositions.
 	@staticmethod
@@ -193,13 +172,11 @@ class Planner():
 		# - No Explanation
 		v20 = Planner()
 		def v20_plan(problem, agent):
-			problem.a_star = False
+			problem.a_star = True
 			problem.rand = True
 			if not hasattr(problem, 'verbose'):
 				problem.verbose = 0
 			root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose, all_plans=True)
-			# if root.cost >= sys.maxint:
-			# 	return [False]
 			return [SolutionTree(root, agent, rand=True)]
 
 		v20.planner = v20_plan
