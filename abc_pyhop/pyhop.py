@@ -662,7 +662,7 @@ def seek_bb_r(state, tasks, parent, root=None):
 
         cur_state = state
         for task in tasks:
-            cur_state = seek_bb(copy.deepcopy(cur_state), [task], cur_node, root)
+            cur_state = seek_bb_r(copy.deepcopy(cur_state), [task], cur_node, root)
         to_return = cur_state
 
     elif len(tasks) == 1 and tasks[0][0] in methods:
@@ -678,7 +678,7 @@ def seek_bb_r(state, tasks, parent, root=None):
             decompositions = method(state, *task[1:]) # retruns the set of possible decomps
             for sequence in decompositions:
                 print("... decomposed into sequence {}".format(sequence))
-                after_state = seek_bb(state, sequence, cur_node, root)
+                after_state = seek_bb_r(state, sequence, cur_node, root)
         to_return = after_state
 
     elif len(tasks) == 1 and tasks[0][0] in operators:

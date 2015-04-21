@@ -44,6 +44,10 @@ class SolutionTree(Solution):
 		to_return += "\nroot: {}".format(self.root)
 		return to_return
 
+	def set_actions_states(self, rand=True):
+		self.actions, self.states = self.root.get_plan(rand=rand)
+		self.cost = sum([self.problem.cost_func(self.problem, a) for a in self.actions])
+		return (self.actions, self.states)
 	def get_cost(self):
 		return self.root.cost
 

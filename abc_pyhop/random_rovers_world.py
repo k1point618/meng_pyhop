@@ -159,7 +159,7 @@ def get_semi_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, name=None):
         for j in range(BOARD_Y):
             world.loc[idx] = (i, j)
             world.loc_available[idx] = True
-            world.cost[idx] = 1
+            world.cost[idx] = 0
             idx += 1
 
     world.goals = {}
@@ -442,7 +442,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
         for j in range(BOARD_Y):
             world.loc[idx] = (i, j)
             world.loc_available[idx] = True
-            world.cost[idx] = 1
+            world.cost[idx] = 0
             idx += 1
 
 

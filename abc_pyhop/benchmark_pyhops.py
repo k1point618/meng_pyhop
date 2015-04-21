@@ -153,7 +153,7 @@ def benchmark_a_star(verbose=0):
 def benchmark(planner1, planner2):
 
     # Set the number of problems
-    NUM_RUNS = 10
+    NUM_RUNS = 1
     planner1_time = []
     planner2_time = []
     for i in range(NUM_RUNS):
@@ -224,7 +224,7 @@ from planners import *
 # Comparing using A* vs not for the simply-modified of the original
 # benchmark(Planner.get_HPlanner_v13(), Planner.get_HPlanner_v14())
 
-benchmark(Planner.get_HPlanner_v14(), Planner.get_HPlanner_bb_prob())
+benchmark(Planner.get_HPlanner_bb(), Planner.get_HPlanner_bb_prob())
 
 
 # test_planner(Planner.get_HPlanner_v13())

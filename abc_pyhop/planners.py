@@ -152,7 +152,7 @@ class Planner():
 			if not hasattr(problem, 'verbose'):
 				problem.verbose = 0
 			root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose, all_plans=False)
-			return [SolutionTree(root, agent, rand=True)]
+			return [SolutionTree(root, agent, rand=False)]
 			
 			# # Even though we get the root, this planner imitates the result of a linear planner.
 			# solutions = [root.get_plan()]
