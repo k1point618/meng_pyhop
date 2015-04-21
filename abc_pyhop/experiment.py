@@ -45,8 +45,8 @@ logger.addHandler(channel)
 Knobes to Turn
 """
 show_summary = True
-BOARD_X = 7
-BOARD_Y = 7
+BOARD_X = 6
+BOARD_Y = 6
 GUI = False
 
 
@@ -74,36 +74,29 @@ Pick which Planners to use
 """
 PLANNERS = []
 PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
-PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
+# PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 
 """
 Cost of Communication
 """
 RAND_RANGE = 10
 MAX_COST = 20
-# COSTS = [i * 0.25 for i in range(21)]
+# COSTS = [i * 0.5 for i in range(11)]
 # COSTS = range(5)
 COSTS = [0, 1, 2, 3]
 # COSTS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
-COC = 1
+# COC = 1.5
 
 """
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 5
+NUM_PROBLEMS = 10
 
-
-"""
-Simulation Functions
-"""
-def write_params_to_file(filename, simulations, plot_lines):
-    # f = open(filename)
-    # f.write(PLANNERS)
-    pass
 
 def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
     global COSTS
@@ -334,9 +327,6 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
 
     plt.show()
 
-def SimulatePlannerAndModel():
-    pass
-
 def SimulateVaryingBoard(COC):
     for PLANNER in PLANNERS:
         # Each planner result in a different plot
@@ -499,6 +489,12 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
         # Each planner result in a different plot
         if PLANNER.name == Planner.get_HPlanner_bb().name:
             MODELS = [models.AgentNoComm, models.AgentSmartPlanRec]
+        elif PLANNER.name == Planner.get_HPlanner_v15().name:
+            MODELS = [models.AgentNoComm, models.AgentSmartEstimate]
+        elif PLANNER.name == Planner.get_HPlanner_v17().name:
+            MODELS = [models.AgentNoComm, models.AgentSmartCommII]
+        else:
+            MODELS = [models.AgentNoComm, models.AgentSmartComm]
 
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
@@ -507,8 +503,11 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
             
             simulations[line_name] = {}
             plot_lines[line_name] = [COSTS, [0 for i in range(len(COSTS))]]
-            relative_to_noComm[PLANNER.name] = [COSTS, [0 for i in range(len(COSTS))]]
-            percent_improv[PLANNER.name] = [COSTS, [0 for i in range(len(COSTS))]]
+
+            if AGENT_TYPE.__name__ != 'AgentNoComm':
+                relative_to_noComm[line_name] = [COSTS, [0 for i in range(len(COSTS))]]
+                percent_improv[line_name] = [COSTS, [0 for i in range(len(COSTS))]]
+
             if AGENT_TYPE.__name__ == 'AgentNoComm':
                 USE_COSTS = [0]
                 baseline_costs = {}
@@ -526,7 +525,24 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
 
                 simulations[line_name][COC] = []
                 costs = 0
-                for PROBLEM in PROBLEMS:
+                for P in PROBLEMS:
+                    
+                    PROBLEM = copy.deepcopy(P)
+
+                    """
+                    Pretending to have elimited the other possible decompositions. Lowering the amount of uncertainty
+                    """
+                    if PLANNER.name == Planner.get_HPlanner_v17().name:
+                        PROBLEM = copy.deepcopy(P)
+                        PROBLEM.soils.remove('S1')
+                        PROBLEM.rocks.remove('R1')
+                    """
+                    Similarly, removing uncertainties
+                    """
+                    # if PLANNER.name == Planner.get_HPlanner_v15().name and AGENT_TYPE.__name__ == models.AgentSmartCommII.__name__:
+                    #     PROBLEM = copy.deepcopy(P)
+                    #     PROBLEM.soils = []
+
                     # Each point is the average over all problems
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
@@ -534,7 +550,7 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
                     if 'Det' in PLANNER.name and 'Rand' not in PLANNER.name:
                         num_iter = 1
                     elif 'Rand' in PLANNER.name and 'Det' not in PLANNER.name:
-                        num_iter = 4
+                        num_iter = 5
                     else:
                         assert(False), "PlannerName: {}".format(PLANNER.name)
 
@@ -567,8 +583,8 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
                     baseline_avg[PLANNER.name] = avg_cost
                     plot_lines[line_name][1] = [avg_cost for i in range(len(COSTS))]
                 else:
-                    relative_to_noComm[PLANNER.name][1][i] = (baseline_avg[PLANNER.name]-avg_cost) 
-                    percent_improv[PLANNER.name][1][i] = (baseline_avg[PLANNER.name]-avg_cost)/baseline_avg[PLANNER.name]
+                    relative_to_noComm[line_name][1][i] = (baseline_avg[PLANNER.name]-avg_cost) 
+                    percent_improv[line_name][1][i] = (baseline_avg[PLANNER.name]-avg_cost)/baseline_avg[PLANNER.name]
                 sys.stdout.write('Avg: {}\n'.format(avg_cost))
                 sys.stdout.flush()
 

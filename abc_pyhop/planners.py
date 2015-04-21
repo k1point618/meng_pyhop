@@ -113,6 +113,27 @@ class Planner():
 
 
 	@staticmethod
+	def get_HPlanner_v17(): # Modified version of original pyhop for sampling + A* for navigation
+		v17 = Planner()
+		def v17_plan(problem, agent):
+			problem.a_star = True
+			problem.rand = True # Only difference from v14
+			if not hasattr(problem, 'verbose'):
+				problem.verbose = 0
+			elif problem.verbose == 1:
+				print("Problem State: ")
+				pyhop.print_state(problem)
+			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0, verbose=problem.verbose)
+			# If there is no solution
+			if solutions[0] == False:
+				return solutions
+			return Planner.make_sol_obj(solutions, problem, agent)
+		v17.planner = v17_plan
+		v17.name = "Rand_Astar_OnePlan"
+		return v17
+
+
+	@staticmethod
 	def get_HPlanner_v12():		
 		# - Probablistic: if there are multiple ways to achieve the same cost, then random;
 		# 				returns a single plan
