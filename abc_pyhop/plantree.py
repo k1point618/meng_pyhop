@@ -260,6 +260,9 @@ class andNode(Node):
                             (qa, qs) = q
                             sol = (pa + qa, ps + qs)
                             to_return.append(sol)
+
+                if cplan == []:
+                    to_return = prev
             return to_return
         else:
             return None
@@ -341,7 +344,6 @@ class orNode(Node):
             self.completed = True
             self.cost = sys.maxint
             # No point in adding "right" node
-
 
     def report_lb_cost(self, child):
         if self.success: 
@@ -440,7 +442,6 @@ class orNode(Node):
         if self.success == False:
             return [False]
 
-        to_return = []
         success_children = [c for c in self.good_children]
         if rand:
             return random.choice(success_children).get_plan(rand)

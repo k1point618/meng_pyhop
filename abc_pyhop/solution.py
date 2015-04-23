@@ -27,6 +27,12 @@ class Solution(object):
 	def get_states(self):
 		return self.states
 
+	def get_cur_plan(self):
+		return (self.actions, self.states)
+
+	# Linear Solution has only 1 plan
+	def get_all_plans(self):
+		return [(self.actions, self.states)]
 
 class SolutionTree(Solution):
 
@@ -36,18 +42,16 @@ class SolutionTree(Solution):
 		self.root = root
 		self.actions, self.states = self.root.get_plan(rand=rand)
 		self.cost = sum([self.problem.cost_func(self.problem, a) for a in self.actions])
-		# assert(self.cost == root.cost), "self.cost: {}; root.cost: {}".format(self.cost, root.cost)
-
+		
 
 	def __repr__(self):
 		to_return = super(SolutionTree, self).__repr__()
 		to_return += "\nroot: {}".format(self.root)
 		return to_return
 
-	def set_actions_states(self, rand=True):
-		self.actions, self.states = self.root.get_plan(rand=rand)
-		self.cost = sum([self.problem.cost_func(self.problem, a) for a in self.actions])
-		return (self.actions, self.states)
+	def get_all_plans(self):
+		return self.root.get_all_opt_plans()
+
 	def get_cost(self):
 		return self.root.cost
 

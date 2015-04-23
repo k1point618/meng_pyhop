@@ -129,7 +129,7 @@ class Planner():
 				return solutions
 			return Planner.make_sol_obj(solutions, problem, agent)
 		v17.planner = v17_plan
-		v17.name = "Rand_Astar_OnePlan"
+		v17.name = "Rand_Astar_OnePlan2"
 		return v17
 
 

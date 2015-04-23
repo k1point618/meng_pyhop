@@ -5,6 +5,7 @@ import copy, sys, logging
 from random_rovers_world import *
 from plantree import *
 from solution import *
+from ToM import *
 
 class CommMessage():
     def __init__(self, sd, rcv, msg):
@@ -15,7 +16,7 @@ class CommMessage():
     def __repr__(self):
         return "{}\t--->\t{}:\t{}".format(self.sender, self.receiver, self.msg)
 
-
+# Every Agent has an AgentMind (generic)
 class AgentMind(object):
 
     def make_logger(self):
@@ -298,11 +299,7 @@ class AgentMind(object):
         return hist
 
 
-# class ProbAgentMind(AgentMind):
-#     def __init__(self, name, world, makeLog=True):
-#         super(ProbAgentMind, self).__init__(name, world, makeLog)
-        
-
+# Baseline Agent Comm Models        
 class AgentFullComm(AgentMind):
     def __init__(self, name, world, args=[]):
         super(AgentFullComm, self).__init__(name, world)
@@ -328,7 +325,6 @@ class AgentFullComm(AgentMind):
 
         self.add_sent_msgs(to_return)        
         return (to_return, [])
-
 
 
 class AgentRandComm(AgentMind):
@@ -361,7 +357,6 @@ class AgentRandComm(AgentMind):
         return (to_comm, void_comm)
 
 
-
 class AgentNoComm(AgentMind):
     def __init__(self, name, world, args=[]):
         super(AgentNoComm, self).__init__(name, world)
@@ -374,12 +369,32 @@ class AgentNoComm(AgentMind):
         super(AgentNoComm, self).communicate(diffs)
         self.log.info("Agent {} communicates ... None".format(self.name))
         return ([], []) # No comm # TODO: the second-return should indicate messages Not sent
+   
 
-
-
-class AgentSmartComm(AgentMind):
+# Agents with ToM Capabilities
+class AgentToM(AgentMind):
     def __init__(self, name, world, args=[]):
-        super(AgentSmartComm, self).__init__(name, world)
+        super(AgentToM, self).__init__(name, world)
+        self.ToMs = {}
+        solutions_by_agent = args[0]
+        for a in world.goals.keys():
+            if a != self.name:
+                tom = ToM(self.name, a, solutions_by_agent[a])
+                tom.make_agent_models(world)
+                self.ToMs[a] = tom
+
+    def step(self, real_world, commMsgs=None):
+        hist = super(AgentToM, self).step(real_world)
+        
+        # Simulate teammate's step
+        for (teammate, tom) in self.ToMs.items():
+            tom.step()
+
+        return hist
+
+class AgentSmartComm(AgentToM):
+    def __init__(self, name, world, args=[]):
+        super(AgentSmartComm, self).__init__(name, world, args)
         self.TYPE = 'SmartComm'
         solutions_by_agent = args[0] # Assuming that the only input is solutions
         self.teammates = {}
@@ -609,7 +624,7 @@ class AgentSmartCommII(AgentSmartComm):
 """
 Plan Recognition
 """
-class AgentSmartPlanRec(AgentMind):
+class AgentSmartPlanRec(AgentToM):
     def __init__(self, name, world, args=[]):
         super(AgentSmartPlanRec, self).__init__(name, world, args)
         self.TYPE = 'SmartPlanRec'
@@ -640,19 +655,6 @@ class AgentSmartPlanRec(AgentMind):
                 mental_sender_loc = sender.mental_world.at[sender.name]
                 # print("receved loc, mental loc: ({}, {})".format(received_loc, mental_sender_loc))
                 
-                count_down = 10
-                while not AgentMind.visible(received_loc, mental_sender_loc, self.mental_world, range=2):
-                    # This means mental model out of sync, likely
-                    sender.actions, sender.states = sender.get_solution().set_actions_states()
-                    if self.cur_step < len(sender.states):
-                        sender.mental_world = sender.states[self.cur_step]
-                        mental_sender_loc = sender.mental_world.at[sender.name]
-                        # print("Updated actions and states... num plans:{}".format(sender.solution.root.get_num_opt_plans()))
-                        # print("receved loc, mental loc: ({}, {})".format(received_loc, mental_sender_loc))
-                
-                    count_down += -1
-                    if count_down <= 0:
-                        break
 
             self.log.info("self.received_messages: {}".format(self.received_messages))
 
@@ -862,13 +864,13 @@ class AgentSmartPlanRec(AgentMind):
 """
 ONLY To be used with Non-Deterministic planners
 """
-class AgentSmartEstimate(AgentMind):
+class AgentSmartEstimate(AgentToM):
     def __init__(self, name, world, args=[]):
-        super(AgentSmartEstimate, self).__init__(name, world)
+        super(AgentSmartEstimate, self).__init__(name, world, args)
         self.TYPE = 'SmartEstimate'
         solutions_by_agent = args[0] # Assuming that the only input is solutions
         self.teammates = {}
-        self.num_samples = 10
+        self.num_samples = 1
         for a in world.goals.keys():
             if a != self.name:
                 teammate = AgentMind(a, copy.deepcopy(world))
@@ -876,6 +878,7 @@ class AgentSmartEstimate(AgentMind):
                 self.teammates[a] = teammate
                 # We want to keep track of each teammate's plan and the relative cost of each plan. 
                 # (Later, we might want to add a distribution of solutions?)
+                
                 
     # Given the set of differences observed from environment and communication
     # Determine what and to-whome to communicate to.
@@ -890,24 +893,29 @@ class AgentSmartEstimate(AgentMind):
 
         to_comm = []
         void_comm = []
-        for (teammate_name, teammate) in self.teammates.items():
+        for (teammate_name, other_ToM) in self.ToMs.items():
+
             for diff in diffs:
             
                 self.log.info("AgentSmartEstimate.communicate ... Should Agent {} communicate <{}> to teammate: {}?"
                     .format(self.name, diff, teammate_name))
                 commMsg = CommMessage(self.name, teammate_name, diff)
                 
-                # Assuming that the teammate has already completed the current step
-                # because the message doesn't get delivered until the next timestep.
-                self.log.info("teammate world:\n{}".format(print_board_str(teammate.mental_world)))
+                cost_comm = 0
+                cost_no_comm = 0
+                for (teammate, plan) in other_ToM.get_agent_minds():
                 
-                # If we communicate
-                copyA = teammate.simple_copy()
-                cost_comm = self.comm_cost(copyA, diff)
-                
-                # If we don't communicate
-                copyB = teammate.simple_copy()
-                cost_no_comm = self.no_comm_cost(copyB, diff)
+                    # Assuming that the teammate has already completed the current step
+                    # because the message doesn't get delivered until the next timestep.
+                    self.log.info("teammate world:\n{}".format(print_board_str(teammate.mental_world)))
+                    
+                    # If we communicate
+                    copyA = teammate.simple_copy()
+                    cost_comm += self.comm_cost(copyA, diff) * plan.likelihood
+                    
+                    # If we don't communicate
+                    copyB = teammate.simple_copy()
+                    cost_no_comm += self.no_comm_cost(copyB, diff) * plan.likelihood
                 
                 if cost_comm <= cost_no_comm:
                     # Send message
@@ -993,17 +1001,16 @@ class AgentSmartEstimate(AgentMind):
         self.log.info("... Other agent's State.visited: {}".format(other.mental_world.visited))
         
         costs = 0
-        for i in range(self.num_samples):
-            (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.get_rest_actions())
-            costs += cost
-            self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.get_rest_actions(), cost))
+        (simulated, world, cost) = self.simulate(other.name, copy.deepcopy(other.mental_world), other.get_rest_actions())
+        costs += cost
+        self.log.info("... result -- Simulated: {} with actions: {}; Cost: {}".format(simulated, other.get_rest_actions(), cost))
 
-        avg_cost = costs * 1.0 /self.num_samples
+
         if simulated:
             # if simulated is True, then the cost of the cost for the rest of the plan
             if isinstance(self.solution, SolutionTree):
-                avg_cost = other.solution.get_exp_cost(self.mental_world)
-            return avg_cost
+                costs = other.solution.get_exp_cost(self.mental_world)
+            return costs
         else:
             # If simulated is False, then the cost is up to the point of failure 
             # Must re-plan

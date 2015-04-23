@@ -798,10 +798,10 @@ def seek_bb(state, tasks, verbose=0, all_plans=True):
     # one_plan = root.get_plan()
 
     if verbose:
-        plans = root.get_all_opt_plans()
         print("root: ", root.get_string())
         print("get_num_plans:", root.get_num_plans())
         print("num_opt_plans:", root.get_num_opt_plans())
+        plans = root.get_all_opt_plans()
         print("all opt plans: {}".format(plans))
         # for p in plans:
         #     print("opt p", p[0])

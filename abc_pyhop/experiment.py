@@ -45,8 +45,8 @@ logger.addHandler(channel)
 Knobes to Turn
 """
 show_summary = True
-BOARD_X = 6
-BOARD_Y = 6
+BOARD_X = 5
+BOARD_Y = 5
 GUI = False
 
 
@@ -60,11 +60,11 @@ GUI = False
 Pick which Models to compare
 """
 MODELS = []
-MODELS += [models.AgentNoComm]
-MODELS += [models.AgentSmartComm]
-# MODELS += [models.AgentSmartPlanRec]
+MODELS += [models.AgentSmartPlanRec]
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentSmartEstimate]
+# MODELS += [models.AgentNoComm]
+# MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentRandComm]
 # MODELS += [models.AgentFullComm]
 
@@ -73,23 +73,22 @@ MODELS += [models.AgentSmartComm]
 Pick which Planners to use
 """
 PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
-PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
+# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+# PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
-# PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
+PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 
 """
 Cost of Communication
 """
 RAND_RANGE = 10
 MAX_COST = 20
-# COSTS = [i * 0.5 for i in range(11)]
-# COSTS = range(5)
-COSTS = [0, 1, 2, 3]
-# COSTS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
-# COC = 1.5
+# COSTS = [i * 0.25 for i in range(21)]
+# COSTS = [0.5, 2.5, 4.5]
+COSTS = [0.1]
+COC = 1
 
 """
 Choose any problem from problem bank
@@ -450,23 +449,13 @@ def TestOneRandomProb():
                 PROBLEM.COST_OF_COMM = COC
                 PROBLEM.COST_REPLAN = 0
 
-                for i in range(10):
+                num_iter = 1
+                for i in range(num_iter):
                     # Run
                     simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
                     simulation.run()
                     costs[AGENT_TYPE.__name__] = simulation.get_total_cost()
                     logger.info(simulation.get_summary(cost=True, cost_bd=True, obs=True, comm=True, void=True))
-                    # print([a.get_histories() for a in simulation.agents.values()])
-
-                    # if AGENT_TYPE.__name__ == 'AgentNoComm':
-                    #     print('setting baseline: ')
-                    #     baseline = simulation
-                    # if simulation.get_total_cost() > baseline.get_total_cost() and AGENT_TYPE.__name__ != 'AgentFullComm':
-                    #     simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
-
-        if costs['AgentSmartComm'] > costs['AgentNoComm']:
-            Simulation(PROBLEM, models.AgentNoComm, PLANNER, gui=True)
-            Simulation(PROBLEM, models.AgentSmartComm, PLANNER, gui=True)
     
 """
 Assume there are two planners, one det and one rand
@@ -485,14 +474,18 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
     relative_to_noComm = {}
     baseline_avg = {}
     percent_improv = {}
+
     for PLANNER in PLANNERS:
         # Each planner result in a different plot
+        num_iter = 1
         if PLANNER.name == Planner.get_HPlanner_bb().name:
             MODELS = [models.AgentNoComm, models.AgentSmartPlanRec]
         elif PLANNER.name == Planner.get_HPlanner_v15().name:
             MODELS = [models.AgentNoComm, models.AgentSmartEstimate]
+            num_iter = 5
         elif PLANNER.name == Planner.get_HPlanner_v17().name:
-            MODELS = [models.AgentNoComm, models.AgentSmartCommII]
+            MODELS = [models.AgentNoComm, models.AgentSmartEstimate]
+            num_iter = 5
         else:
             MODELS = [models.AgentNoComm, models.AgentSmartComm]
 
@@ -532,27 +525,28 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
                     """
                     Pretending to have elimited the other possible decompositions. Lowering the amount of uncertainty
                     """
-                    if PLANNER.name == Planner.get_HPlanner_v17().name:
-                        PROBLEM = copy.deepcopy(P)
-                        PROBLEM.soils.remove('S1')
-                        PROBLEM.rocks.remove('R1')
+                    # if PLANNER.name == Planner.get_HPlanner_v17().name:
+                    #     PROBLEM = copy.deepcopy(P)
+                    #     PROBLEM.soils.remove('S1')
+                    #     PROBLEM.rocks.remove('R1')
+
                     """
                     Similarly, removing uncertainties
                     """
-                    # if PLANNER.name == Planner.get_HPlanner_v15().name and AGENT_TYPE.__name__ == models.AgentSmartCommII.__name__:
-                    #     PROBLEM = copy.deepcopy(P)
-                    #     PROBLEM.soils = []
+                    if PLANNER.name == Planner.get_HPlanner_v17().name:
+                        PROBLEM = copy.deepcopy(P)
+                        PROBLEM.soils = []
 
                     # Each point is the average over all problems
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    if 'Det' in PLANNER.name and 'Rand' not in PLANNER.name:
-                        num_iter = 1
-                    elif 'Rand' in PLANNER.name and 'Det' not in PLANNER.name:
-                        num_iter = 5
-                    else:
-                        assert(False), "PlannerName: {}".format(PLANNER.name)
+                    # if 'Det' in PLANNER.name and 'Rand' not in PLANNER.name:
+                    #     num_iter = 1
+                    # elif 'Rand' in PLANNER.name and 'Det' not in PLANNER.name:
+                    #     num_iter = 10
+                    # else:
+                    #     assert(False), "PlannerName: {}".format(PLANNER.name)
 
                     for j in range(num_iter):
                         # Run
@@ -574,6 +568,12 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
                         else:
                             diff = int(simulation.get_total_cost() - baseline_costs[PROBLEM.name])
                             sys.stdout.write('{}, '.format(diff))
+
+                            # if PLANNER.name == Planner.get_HPlanner_v14().name \
+                            #     and AGENT_TYPE.__name__ == 'AgentSmartComm' \
+                            #     and diff > 2 and COC < 1:
+                            #     PROBLEMS.remove(P)
+
                         sys.stdout.flush()
 
                 
@@ -628,8 +628,15 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
     fig = plt.figure()
     ax = plt.subplot(111)
 
+
     for (name, line) in relative_to_noComm.items():
-        lines.append(ax.plot(line[0], line[1], label=name, marker='o'))
+        if 'Estimate' in name:
+            c = 'green'
+        elif 'SmartCommII' in name:
+            c = 'orange'
+        elif 'SmartComm' in name:
+            c = 'blue'
+        lines.append(ax.plot(line[0], line[1], label=name, marker='o', color=c))
 
     # Locate Legend
     box = ax.get_position()
@@ -659,8 +666,15 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
     fig = plt.figure()
     ax = plt.subplot(111)
 
+
     for (name, line) in percent_improv.items():
-        lines.append(ax.plot(line[0], line[1], label=name, marker='o'))
+        if 'Estimate' in name:
+            c = 'green'
+        elif 'SmartCommII' in name:
+            c = 'orange'
+        elif 'SmartComm' in name:
+            c = 'blue'
+        lines.append(ax.plot(line[0], line[1], label=name, marker='o', color=c))
 
     # Locate Legend
     box = ax.get_position()
@@ -687,8 +701,16 @@ def CompareDetVsRand_Cost(BOARD_X, BOARD_Y):
 
 
 """
+DELAY for overnight runs
+"""
+# for i in range(120):
+#     time.sleep(60)
+#     print('starting in {} minutes ... ...'.format(119-i))
+
+
+"""
 This reproduces the baseline with parameters:
-    PLANNER: Any planner
+    PLANNER: Deterministic
     MODEL: no-comm, full-comm, smart-comm, or more
     MAX_COST: 100
     COC: range(50)
@@ -696,9 +718,17 @@ This reproduces the baseline with parameters:
 """
 # SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y)
 
+"""
+Varying costs for non-deterministic planner
+Note: Should set num_iter to indicate how many times a problem-planner pair should be repeated
+"""
 # SimulateVaryingCosts(BOARD_X, BOARD_Y)
 
-CompareDetVsRand_Cost(BOARD_X, BOARD_Y)
+"""
+Comparing Planner-Model pairs relative to Planner-NoComm. 
+Showing improvements relative to no-communication
+"""
+# CompareDetVsRand_Cost(BOARD_X, BOARD_Y)
 
 # CompareDetVsRand_BoardSize(COC)
 
@@ -709,7 +739,7 @@ Input: Fix COC
 
 
 # TestOnProblemBank()
-# TestOneRandomProb()
+TestOneRandomProb()
 
 
 

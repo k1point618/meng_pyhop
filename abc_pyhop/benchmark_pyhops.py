@@ -224,12 +224,12 @@ from planners import *
 # Comparing using A* vs not for the simply-modified of the original
 # benchmark(Planner.get_HPlanner_v13(), Planner.get_HPlanner_v14())
 
-benchmark(Planner.get_HPlanner_bb(), Planner.get_HPlanner_bb_prob())
+# benchmark(Planner.get_HPlanner_bb(), Planner.get_HPlanner_bb_prob())
 
 
 # test_planner(Planner.get_HPlanner_v13())
 # test_planner(Planner.get_HPlanner_v14())
-# test_planner(Planner.get_HPlanner_bb_prob())
+test_planner(Planner.get_HPlanner_bb_prob())
 # test_planner(Planner.get_HPlanner_v13())
 
 # benchmark_amortized(verbose=0)
