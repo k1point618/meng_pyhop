@@ -108,37 +108,46 @@ def benchmark_a_star(verbose=0):
     
     num_worlds = 1
     num_problems = 1
-    num_repeat = 3
+    num_repeat = 5
     problem_bank = {}
+    
+    planner = Planner.get_HPlanner_v14()
 
     for i in range(num_worlds):
-        world = get_random_world(10, 10) # Defaut to 10 x 10
+        # world = get_random_world(10, 10) # Defaut to 10 x 10
+        # world.uncertainties = get_uncertainty_fun(world, num_step=100, a_prob=0.5)
+        # world.uncertainties(world, 0)
+
+        world = make_rand_nav_problem(10, 10)
+        world.uncertainties(world, 0)
+
+        # Get all solutions using A-star for navigating
         print_board(world)
         if verbose: 
             print_board(world)
             print_state(world)
-        # Get all solutions using A-star for navigating
-        world.settings['a-star'] = True
-        world.settings['sample'] = True
+        
+        world.a_star = True
 
         for j in range(num_problems):
             # Make a navigation problem
             random_loc = random.choice(world.loc_available.keys())
-            world.goals['agent1'] = [('navigate', 'agent1', random_loc)]
+            world.goals['A1'] = [('navigate', 'A1', random_loc)]
             world.settings['verbose'] = 0
+            
+            print("Goal: {}".format(world.goals['A1']))
 
             for k in range(num_repeat):
                 start = time.time()
-                solutions_b = pyhop(world, 'agent1', verbose) # only one solution
+                sol = planner.plan(world, 'A1')[0]
                 end = time.time()
                 
                 print ('time:', end-start)
                 print ('problem: ', world.goals)
-                (plans, states) = solutions_b[0]
-                print ('plans', plans)
-                print ('solution length', len(plans))
-                print ('num_recurse calls', get_num_recurse_calls())
-                problem_bank[world.goals['agent1'][0]] = end-start
+                print ('solutiON; ', sol)
+                
+                print ('solution length', len(sol.get_actions()))
+                problem_bank[world.goals['A1'][0]] = end-start
 
                 if (end-start) > 1:
                     print_board(world)
@@ -229,7 +238,7 @@ from planners import *
 
 # test_planner(Planner.get_HPlanner_v13())
 # test_planner(Planner.get_HPlanner_v14())
-test_planner(Planner.get_HPlanner_bb_prob())
+# test_planner(Planner.get_HPlanner_bb_prob())
 # test_planner(Planner.get_HPlanner_v13())
 
 # benchmark_amortized(verbose=0)
@@ -238,7 +247,7 @@ test_planner(Planner.get_HPlanner_bb_prob())
 
 # benchmark_compare_a_star()
 
-# benchmark_a_star(verbose=0)
+benchmark_a_star(verbose=0)
 
 
 

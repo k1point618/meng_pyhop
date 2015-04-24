@@ -9,11 +9,9 @@ from __future__ import print_function
 import pprint, pyhop, random, math, heapq, time
 import random_rovers_world
 
-def a_star(state, agent, sink):
+def a_star(state, agent, sink, SAMPLE=True):
 	VERBOSE = False
-	# SAMPLE = state.rand
-	SAMPLE = False
-	
+
 	source = state.at[agent] # Navigates to sink from wherever the agent currently is.
 	if VERBOSE > 1: 
 		print('*** A* from {} to {} ***'.format(source, sink))
@@ -128,12 +126,14 @@ def get_neighbors(state, current):
 		neighbors.append(current+1)
 	return neighbors
 
+# def heuristic(state, source, sink):
+# 	(source_x, source_y) = state.loc[source]
+# 	(sink_x, sink_y) = state.loc[sink]
+
+	# return abs((source_x - sink_x)) + abs((source_y - sink_y)) + state.cost[source] + state.cost[sink]
+
 def heuristic(state, source, sink):
-	(source_x, source_y) = state.loc[source]
-	(sink_x, sink_y) = state.loc[sink]
-
-	return abs((source_x - sink_x)) + abs((source_y - sink_y)) + state.cost[source] + state.cost[sink]
-
+	return 0
 
 def reconstruct_path(came_from, current):
 	to_return = [current]

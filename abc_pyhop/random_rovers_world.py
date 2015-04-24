@@ -21,7 +21,7 @@ import rovers_world_methods
 """
 Make a Random World AND Random Uncertainties
 """
-def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None):
+def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.6):
     PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
@@ -29,14 +29,14 @@ def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=N
             PROBLEM.MAX_COST = 2 * rand_range
     if max_cost != None:
         PROBLEM.MAX_COST = max_cost
-    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=0.3)
+    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=a_prob)
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
 
 """
 Make a Semi-Random World AND Random Uncertainties
 """
-def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None):
+def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.6):
     PROBLEM = get_semi_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
@@ -44,7 +44,7 @@ def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, n
             PROBLEM.MAX_COST = 2 * rand_range
     if max_cost != None:
         PROBLEM.MAX_COST = max_cost
-    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=0.3)
+    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=a_prob)
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
 
@@ -172,11 +172,6 @@ def get_semi_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, name=None):
 
 
 
-
-
-
-
-
 """
 Goals are purily navigation from one point to another.
 If A* is true, then the planner simply runs A* and makes no decision on decomposing the task
@@ -187,7 +182,7 @@ def make_rand_nav_problem(BOARD_X, BOARD_Y, name=None):
     PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name)
     for key, value in PROBLEM.goals.items():
         PROBLEM.goals[key] = [('navigate', key, random.choice(range(1, BOARD_X * BOARD_Y)))]
-    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=int(BOARD_X*BOARD_Y*0.25), a_prob=1)
+    UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=int(BOARD_X*BOARD_Y), a_prob=0.8)
     PROBLEM.uncertainties = UNCERTAINTIES
     return PROBLEM
 
@@ -223,17 +218,6 @@ def get_uncertainty_fun(state, num_step, a_prob):
             for idx in range(len(sequence)):
                 if sequence[idx] != None:
                     in_state.cost[sequence[idx]] += randoms[idx]
-        else:
-            pass # Do nothing
-
-        # Generates uncerties for a constantly-changing world.
-        # if in_idx >= len(sequence):
-        #     return
-        # rand_loc = sequence[in_idx]
-        # if rand_loc != None:
-        #     # in_state.loc_available[rand_loc] = not in_state.loc_available[rand_loc] # This allows flipping
-        #     in_state.loc_available[rand_loc] = False # This means if a location turns into a trap, it will stay as a trap
-        #     in_state.cost[rand_loc] += randoms[in_idx]
 
     return to_return
 
@@ -326,7 +310,7 @@ def print_board_str(state): # Makes the string output
             if (i, j) in occupied:
                 to_print += str(occupied[(i, j)]) + "\t"
             else:
-                to_print += "[{}]\t".format(state.cost[idx])
+                to_print += "[{0:.2f}]\t".format(state.cost[idx])
 
             idx += 1
         to_print += "\n"
@@ -442,7 +426,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
         for j in range(BOARD_Y):
             world.loc[idx] = (i, j)
             world.loc_available[idx] = True
-            world.cost[idx] = 0
+            world.cost[idx] = 1
             idx += 1
 
 
@@ -459,8 +443,8 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
     world.COST_OF_COMM = 1
     world.COST_REPLAN = 1
     world.COST_ACTION = 1
-    world.MAX_COST = 100
-    world.RAND_RANGE = 100
+    world.MAX_COST = 20
+    world.RAND_RANGE = 10
 
     world.cost_func = cost_function
     return world
