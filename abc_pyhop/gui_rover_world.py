@@ -360,9 +360,9 @@ class AgentToMFrame(Tkinter.Frame):
 
     # Set the content for a given agent 
     def setContent(self, agent_name, agent_obj):
-        # Check if frame already displays the correct info
-        if self.cur_agent_name == agent_name:
-            return
+        # # Check if frame already displays the correct info
+        # if self.cur_agent_name == agent_name:
+        #     return
 
         # TODO: Should probably Clear current frame
         if self.plansFrame != None:
@@ -402,7 +402,7 @@ class AgentToMFrame(Tkinter.Frame):
             return
 
         self.setContent(self.cur_agent_name, simulation.agents[self.cur_agent_name])
-        self.plansFrame.updateSelection(simulation)
+        # self.plansFrame.updateSelection(simulation)
 
 
 # Plans Frame are the parallel plans in a ToMFrame
@@ -428,12 +428,12 @@ class PlansFrame(Tkinter.Frame):
             for a in actions:
                 lb.insert(Tkinter.END, a)
 
-    def updateSelection(self, simulation):
-        teammateMind = simulation.agents[self.agent_name].ToMs[self.teammate_name]
-        for i in range(self.num_plans):
-            if len(self.listBoxes[i].curselection()) != 0:
-                self.listBoxes[i].selection_clear(self.listBoxes[i].curselection())
-            self.listBoxes[i].selection_set(teammateMind.plans[i].idx)
+    # def updateSelection(self, simulation):
+    #     teammateMind = simulation.agents[self.agent_name].ToMs[self.teammate_name]
+    #     for i in range(self.num_plans):
+    #         if len(self.listBoxes[i].curselection()) != 0:
+    #             self.listBoxes[i].selection_clear(self.listBoxes[i].curselection())
+    #         self.listBoxes[i].selection_set(teammateMind.plans[i].idx)
 
 
 

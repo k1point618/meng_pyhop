@@ -9,7 +9,7 @@ from __future__ import print_function
 import pprint, pyhop, random, math, heapq, time
 import random_rovers_world
 
-def a_star(state, agent, sink, SAMPLE=True):
+def a_star(state, agent, sink, SAMPLE=False):
 	VERBOSE = False
 
 	source = state.at[agent] # Navigates to sink from wherever the agent currently is.

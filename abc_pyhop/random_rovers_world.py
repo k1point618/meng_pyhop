@@ -21,7 +21,7 @@ import rovers_world_methods
 """
 Make a Random World AND Random Uncertainties
 """
-def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.6):
+def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.5):
     PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
@@ -36,7 +36,7 @@ def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=N
 """
 Make a Semi-Random World AND Random Uncertainties
 """
-def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.6):
+def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.5):
     PROBLEM = get_semi_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
@@ -426,7 +426,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
         for j in range(BOARD_Y):
             world.loc[idx] = (i, j)
             world.loc_available[idx] = True
-            world.cost[idx] = 1
+            world.cost[idx] = 0
             idx += 1
 
 
@@ -468,8 +468,8 @@ CAPABILITIES = ["equipped_for_imaging", "equipped_for_rock_analysis", "equipped_
 AGENTS = ['A1', 'A2']
 LANDER = "G"
 LAB = "L"
-NUM_ROCKS = 2
-NUM_SOILS = 2
+NUM_ROCKS = 1
+NUM_SOILS = 1
 NUM_OBJECTIVES = 0
 
 

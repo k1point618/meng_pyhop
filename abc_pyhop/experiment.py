@@ -60,9 +60,10 @@ GUI = False
 Pick which Models to compare
 """
 MODELS = []
-MODELS += [models.AgentSmartPlanRec]
+# MODELS += [models.AgentSmartPlanRec]
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentSmartEstimate]
+MODELS += [models.AgentSmartEstimateII]
 # MODELS += [models.AgentNoComm]
 # MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentRandComm]
@@ -73,28 +74,28 @@ MODELS += [models.AgentSmartPlanRec]
 Pick which Planners to use
 """
 PLANNERS = []
-# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
+PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 # PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
-PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 
 """
 Cost of Communication
 """
 RAND_RANGE = 10
 MAX_COST = 20
-# COSTS = [i * 0.25 for i in range(21)]
+COSTS = [i * 0.05 for i in range(30)]
 # COSTS = [0.5, 2.5, 4.5]
-COSTS = [0.1]
+# COSTS = [0, 0.2, 0.5, 1]
 COC = 1
 
 """
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 10
+NUM_PROBLEMS = 100
 
 
 def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
@@ -237,7 +238,13 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
     simulations = {}
     plot_lines = {}
     for PLANNER in PLANNERS:
-        # Each planner result in a different plot
+
+        if PLANNER.name == Planner.get_HPlanner_bb_prob().name:
+            MODELS = [models.AgentSmartEstimate, models.AgentSmartEstimateII]
+        if PLANNER.name == Planner.get_HPlanner_v15().name:
+            MODELS = [models.AgentSmartComm, models.AgentFullComm]
+        if PLANNER.name == Planner.get_HPlanner_v14().name:
+            MODELS = [models.AgentNoComm, models.AgentFullComm]
 
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
@@ -261,29 +268,21 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    if 'Det' in PLANNER.name and 'Rand' not in PLANNER.name:
-                        num_iter = 1
-                    elif 'Rand' in PLANNER.name and 'Det' not in PLANNER.name:
-                        num_iter = 1
-                    else:
-                        assert(False), "PlannerName: {}".format(PLANNER.name)
+                    # Run
+                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
+                    simulation.run()
+                    
+                    # Do not include simulation if there is no solution
+                    if simulation.get_total_cost() > sys.maxint/2: 
+                        continue
 
-                    for j in range(num_iter):
-                        # Run
-                        simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
-                        simulation.run()
-                        
-                        # Do not include simulation if there is no solution
-                        if simulation.get_total_cost() > sys.maxint/2: 
-                            continue
+                    # Add
+                    simulations[line_name][COC].append(simulation)
+                    costs += simulation.get_total_cost()
+                    # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
 
-                        # Add
-                        simulations[line_name][COC].append(simulation)
-                        costs += simulation.get_total_cost()
-                        # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
-
-                        sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
-                        sys.stdout.flush()
+                    sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
+                    sys.stdout.flush()
 
                 
                 avg_cost = costs * 1.0 / len(simulations[line_name][COC])
@@ -722,7 +721,7 @@ This reproduces the baseline with parameters:
 Varying costs for non-deterministic planner
 Note: Should set num_iter to indicate how many times a problem-planner pair should be repeated
 """
-# SimulateVaryingCosts(BOARD_X, BOARD_Y)
+SimulateVaryingCosts(BOARD_X, BOARD_Y)
 
 """
 Comparing Planner-Model pairs relative to Planner-NoComm. 
@@ -739,7 +738,7 @@ Input: Fix COC
 
 
 # TestOnProblemBank()
-TestOneRandomProb()
+# TestOneRandomProb()
 
 
 

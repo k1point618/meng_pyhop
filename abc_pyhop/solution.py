@@ -82,3 +82,6 @@ class SolutionTree(Solution):
 	def get_exp_cost(self, world):
 		return self.get_exp_cost_helper(self.root, world)
 
+	def get_num_opt_plans(self):
+		return self.root.get_num_opt_plans()
+
