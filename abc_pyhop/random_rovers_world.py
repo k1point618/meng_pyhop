@@ -192,32 +192,37 @@ simulates agents with different mental models. The method returns a function of 
 func(world, idx), where world is the current state (of the real-world) and the idx is 
 the global time-step of the simulation.
 """
-def get_uncertainty_fun(state, num_step, a_prob):
+def get_uncertainty_fun(state, num_step, a_prob, sequence=None, randoms=None):
 
-    sequence = [] # Locations of interest
-    randoms = [random.random() * state.RAND_RANGE for i in range(num_step)]
+    if sequence == None and randoms == None:
+        sequence = [] # Locations of interest
+        randoms = [random.random() * state.RAND_RANGE for i in range(num_step)]
 
-    for idx in range(num_step):
-        toggle = (random.random() < a_prob)
-        if toggle:
-            available_spaces = state.loc.keys()
-            occupied = set()
-            for (obj, loc) in state.at.items(): 
-                if loc != None:
-                    occupied.add(loc)
-            for loc in occupied: 
-                available_spaces.remove(loc)
+        for idx in range(num_step):
+            toggle = (random.random() < a_prob)
+            if toggle:
+                available_spaces = state.loc.keys()
+                occupied = set()
+                for (obj, loc) in state.at.items(): 
+                    if loc != None:
+                        occupied.add(loc)
+                for loc in occupied: 
+                    available_spaces.remove(loc)
 
-            sequence.append(random.choice(available_spaces))
-        else: sequence.append(None)
+                sequence.append(random.choice(available_spaces))
+            else: sequence.append(None)
 
+        state.RAND_PROB = a_prob
+
+    state.sequence = sequence
+    state.randoms = randoms
     def to_return(in_state, in_idx):
         # Get all the uncertainties at the first time step
         if in_idx == 0:
             # Make all uncertainties
-            for idx in range(len(sequence)):
-                if sequence[idx] != None:
-                    in_state.cost[sequence[idx]] += randoms[idx]
+            for idx in range(len(state.sequence)):
+                if state.sequence[idx] != None:
+                    in_state.cost[state.sequence[idx]] += state.randoms[idx]
 
     return to_return
 
@@ -319,6 +324,7 @@ def print_board_str(state): # Makes the string output
 
 """
 Main funciton for generating random world
+Randomly allocate objects onto the world
 """
 def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None):
 
@@ -331,6 +337,10 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
     # General and Miscellaneous World info
     world = State("InitialWorld")
     world.name = name
+    world.BOARD_Y = BOARD_Y
+    world.BOARD_X = BOARD_X
+    world.NUM_SOILS = NUM_SOILS
+    world.NUM_ROCKS = NUM_ROCKS
     world.prop = {"num_col":BOARD_Y, "num_row":BOARD_X}
     available_spaces = range(1,(BOARD_X*BOARD_Y+1))
     world.at = {}
@@ -445,6 +455,7 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
     world.COST_ACTION = 1
     world.MAX_COST = 20
     world.RAND_RANGE = 10
+    world.RAND_PROB = 0
 
     world.cost_func = cost_function
     return world
@@ -462,6 +473,126 @@ def cost_function(state, task):
 
 ######## End for Generating world
 
+# Make non-random world
+def make_world(name, BOARD_X, BOARD_Y, NUM_S, NUM_R, \
+    MAX_COST, RAND_RANGE, RAND_PROB, AT, GOALS, SEQ=None, RANDs=None):
+
+
+    # General and Miscellaneous World info
+    world = State("InitialWorld")
+    world.name = name
+    world.BOARD_Y = BOARD_Y
+    world.BOARD_X = BOARD_X
+    world.NUM_SOILS = NUM_S
+    world.NUM_ROCKS = NUM_R
+
+    world.prop = {"num_col":BOARD_Y, "num_row":BOARD_X}
+    world.at = {}
+    world.store_has = {}
+    world.has_soil_sample = {}
+    world.soil_sample = {}
+    world.has_rock_sample = {}
+    world.rock_sample = {}
+    world.has_soil_analysis = {}
+    world.soil_analysis = {}
+    world.has_rock_analysis = {}
+    world.rock_analysis = {}
+
+
+    # Agents
+    world.is_agent = {}
+    world.visited = {}
+    world.available = {}
+    world.stores = {}
+    world.store_has = {}
+    world.empty = {}
+    world.equipped_for_imaging = {}
+    world.equipped_for_rock_analysis = {}
+    world.equipped_for_soil_analysis = {}
+    world.soils = set()
+    world.rocks = set()
+
+    # World's Location definition
+    world.loc = {}
+    world.loc_available = {}
+    world.cost = {}
+    idx = 1
+    for i in range(BOARD_X):
+        for j in range(BOARD_Y):
+            world.loc[idx] = (i, j)
+            world.loc_available[idx] = True
+            world.cost[idx] = 0
+            idx += 1
+    
+    # Set Locations
+    for obj, loc in AT.items():
+        world.at[obj] = loc
+
+        if 'A' in obj:
+            # Add Agent
+            world.is_agent[obj] = True
+            world.visited[obj] = set()
+            world.visited[obj].add(loc)
+
+            # Agent's capabilities
+            world.equipped_for_imaging[obj] = True
+            world.equipped_for_rock_analysis[obj] = True
+            world.equipped_for_soil_analysis[obj] = True
+
+            world.available[obj] = True
+
+            # Agent's Storage
+            store = obj + "store"
+            world.stores[obj] = store
+            world.empty[store] = True
+
+            world.has_rock_analysis[obj] = False
+            world.has_soil_analysis[obj] = False
+            world.has_soil_sample[obj] = False
+            world.has_rock_sample[obj] = False
+        elif LANDER == obj:
+            # Add Lander
+            world.is_lander = {obj:True}
+            world.channel_free = {obj:True}
+
+        elif LAB == obj:
+            # Add Lab
+            world.is_lab = {obj:True}
+            world.lab_ready = {obj:[]}
+
+        elif 'R' in obj:
+            # Add Rover
+            world.rocks.add(obj)
+        elif 'S' in obj:
+            # Add Soil
+            world.soils.add(obj)
+
+
+    world.goals = {}
+    for agent, goal in GOALS.items():
+        if goal != str([('get_sample_data', agent)]):
+            assert False, "Cannot read problems with different goals: {}".format(goal)
+        else:
+            world.goals[agent] = [('get_sample_data', agent)]
+
+    # For other miscellaneous settings
+    world.settings = {}
+    # world.settings['a-star'] = a_star
+
+    # Default costs
+    world.COST_OF_COMM = 1
+    world.COST_REPLAN = 1
+    world.COST_ACTION = 1
+    world.MAX_COST = MAX_COST
+    world.RAND_RANGE = RAND_RANGE
+    world.RAND_PROB = RAND_PROB
+
+    world.cost_func = cost_function
+
+    # Set uncertainty
+    world.uncertainties = get_uncertainty_fun(world, None, None, 
+        sequence=SEQ, randoms=RANDs)
+    return world
 
 # Here, we set the parameters necesary for generating a world. 
 CAPABILITIES = ["equipped_for_imaging", "equipped_for_rock_analysis", "equipped_for_soil_analysis"]

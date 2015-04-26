@@ -34,8 +34,8 @@ GUI = False
 """
 Board Size - Indicates length of the tasks
 """
-BOARD_SIDES = [0.5 * x for x in range(8,22)]
-# BOARD_SIDES = [4, 6, 8]
+# BOARD_SIDES = [0.5 * x for x in range(8,22)]
+BOARD_SIDES = [4, 6, 8]
 
 
 """
@@ -44,10 +44,10 @@ Pick which Models to compare
 MODELS = []
 MODELS += [models.AgentNoComm]
 MODELS += [models.AgentSmartComm]
-# MODELS += [models.AgentSmartCommII]
+MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentSmartEstimate]
 # MODELS += [models.AgentRandComm]
-# MODELS += [models.AgentFullComm]
+MODELS += [models.AgentFullComm]
 
 
 """
@@ -55,7 +55,7 @@ Pick which Planners to use
 """
 PLANNERS = []
 PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
 # PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
@@ -73,7 +73,7 @@ COC = 1.5
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 50
+NUM_PROBLEMS = 5
     
 def SimulateVaryingBoard(COC):
     lines = []
@@ -508,6 +508,6 @@ def CompareDetVsRand_BoardSize(COC):
 #     time.sleep(60)
 #     print('starting in {} minutes ... ...'.format(119-i))
 
-# SimulateVaryingBoard(COC)
-CompareDetVsRand_BoardSize(COC)
+SimulateVaryingBoard(COC)
+# CompareDetVsRand_BoardSize(COC)
 
