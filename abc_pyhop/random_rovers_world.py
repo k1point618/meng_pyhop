@@ -26,7 +26,7 @@ def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=N
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
         if max_cost == None:
-            PROBLEM.MAX_COST = 2 * rand_range
+            PROBLEM.MAX_COST = 3 * rand_range
     if max_cost != None:
         PROBLEM.MAX_COST = max_cost
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=a_prob)
@@ -41,7 +41,7 @@ def make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, n
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
         if max_cost == None:
-            PROBLEM.MAX_COST = 2 * rand_range
+            PROBLEM.MAX_COST = 3 * rand_range
     if max_cost != None:
         PROBLEM.MAX_COST = max_cost
     UNCERTAINTIES = get_uncertainty_fun(PROBLEM, num_step=BOARD_X*BOARD_Y, a_prob=a_prob)

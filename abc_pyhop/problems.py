@@ -2,12 +2,30 @@
 Write a set of problems to file;
 Given a problem id or set of attributes, fetch problem from file. 
 """
-import time
+import time, math
 import random_rovers_world as rrw
 
-def write_problem_to_file(problem, file_name="problems.txt"):
+def write_problems_to_file(problems, file_name=None, file_obj=None):
+	if file_name == None and file_obj == None:
+		assert False, "Must specify file_name OR file_obj"
+		return
 
-	problem_file = open(file_name, 'a')
+	if file_obj == None:
+		file_obj = open(file_name, 'a')
+
+	for p in problems:
+		write_problem_to_file(p, file_obj=file_obj)
+		print("wrote problem {} to file {}".format(p.name, file_obj.name))
+
+# Write ONE problem to file
+def write_problem_to_file(problem, file_name=None, file_obj=None):
+
+	if file_obj == None and file_name == None:
+		assert False, "Must specify file_name OR file_obj"
+		return
+
+	if file_obj == None:
+		file_obj = open(file_name, 'a')
 
 	# Problem name
 	to_write = problem.name
@@ -39,26 +57,22 @@ def write_problem_to_file(problem, file_name="problems.txt"):
 	num_sequence = len(problem.sequence)
 	to_write += '\t' + str(num_sequence)
 
-	print("sequence: ", problem.sequence)
-	print("randoms: ", problem.randoms)
 	for i in range(len(problem.sequence)):
 		if i == None:
 			to_write += '\tNone\tNone'
 		else:
 			to_write += '\t{}\t{}'.format(problem.sequence[i], problem.randoms[i])
 
-	print("to_write: {}".format(to_write))
-	problem_file.write(to_write + '\n')
+	file_obj.write(to_write + '\n')
 
 
-def read_problems_from_file(file_name='problems.txt', problem_name=None, \
+def read_problems_from_file(file_name, problem_name=None, \
 	BOARD_X=None, BOARD_Y=None, NUM_ROCKS=None, NUM_SOILS=None):
 
 	to_return = []
 	problem_file = open(file_name)
 	for line in problem_file:
 		problem_array = line.split('\t')
-		print("problem_array: {}".format(problem_array))
 
 		# pase basic parameters
 		p_name = problem_array[0]
@@ -98,15 +112,52 @@ def read_problems_from_file(file_name='problems.txt', problem_name=None, \
 
 	return to_return
 
-# Test read and write
-p = rrw.make_random_problem(5, 5, rand_range=10, name=str(time.time()))
-write_problem_to_file(p, file_name="problems/problems_test.txt")
+# output files are organized by Board-size / dimensions (per file)
+# Within a file (board-dimension), problems vary by rand_rang, and a-prob (uncertainty params)
+def write_problems(x, y, rand_range, max_cost, a_prob, num_repeat, file_name=None, file_obj=None):
+	if file_obj == None:
+		file_obj = open("problems/problem_X{}_Y{}.txt".format(x, y), 'a')
+
+	problems = []
+	for i in range(num_repeat):
+		p_name = "{}_{}_{}_{}_{}".format(x, y, i, rand_range, a_prob) + "_%.0f" % (time.time()*100000%1000)
+		problems.append(rrw.make_random_problem(x, y, rand_range=rand_range, max_cost=max_cost, a_prob=a_prob, name=p_name))
+
+	write_problems_to_file(problems, file_obj=file_obj)
 
 
-new_p = read_problems_from_file(file_name="problems/problems_test.txt", problem_name=p.name)[0]
-write_problem_to_file(new_p, file_name="problems/problems_test.txt")
+# Make and write-problems by bulk
+def bulk_write():
+	RAND_RANGE = [10]
+	MAX_COST = 30
+	A_PROBS = [0.3, 0,5, 0.7]
+	num_repeat = 100
+	BOARD_SIDES = [0.5 * x for x in range(8, 27)]
 
-new_p = read_problems_from_file(file_name="problems/problems_test.txt", problem_name=p.name)[0]
-write_problem_to_file(new_p, file_name="problems/problems_test.txt")
+	for SIDE in BOARD_SIDES:
+		x = int(math.floor(SIDE))
+		y = int(math.ceil(SIDE))
+		file_obj = open("problems/problem_X{}_Y{}.txt".format(x, y), 'a')
+		for rand_range in RAND_RANGE:
+			for a_prob in A_PROBS:
+				write_problems(x, y, rand_range, rand_range*3, a_prob, num_repeat, file_obj=file_obj)
+
+bulk_write()
+# write_problems(5, 5, rand_range=10, a_prob=0.5, num_repeat=10)
+
+# # Test read and write
+# p = rrw.make_random_problem(5, 5, rand_range=10, name=str(time.time()))
+# # write_problem_to_file(p, file_name="problems/problems_test.txt")
+# write_problems_to_file([p], file_name="problems/problems_test.txt")
+
+# new_p = read_problems_from_file(file_name="problems/problems_test.txt", problem_name=p.name)[0]
+
+
+
+
+
+
+
+
 
 
