@@ -37,7 +37,7 @@ class Simulation():
                 uncertainty=0, 
                 verbose=0, 
                 a_star=True, 
-                gui=True, 
+                gui=False, 
                 re_plan=True,
                 use_tree=False):
         
@@ -475,6 +475,8 @@ class Simulation():
     def total_replans(self):
         return sum([agent.times_replanned for agent in self.agents.values()])
     
+    def total_steps(self):
+        return sum([len(agent.get_histories()) for agent in self.agents.values()])
 
     def get_summary(self, cost=True, cost_bd=False, obs=True, comm=True, void=True, planner=True):
         to_return = "\nSimulation Summary for Problem:{} with AgentType:{}\n".format(

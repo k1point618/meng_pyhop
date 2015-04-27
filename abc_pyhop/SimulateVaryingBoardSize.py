@@ -11,7 +11,7 @@ import random_rovers_world as rrw
 from planners import * 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import problems as ProblemLib
 """
 Logging
 """
@@ -65,9 +65,8 @@ Cost of Communication
 """
 RAND_RANGE = 10
 MAX_COST = 20
-# COSTS = [i * 0.25 for i in range(20)]
+RAND_PROB = 0.5
 COC = 1.5
-# COSTS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
 
 """
 Choose any problem from problem bank
@@ -83,10 +82,8 @@ def SimulateVaryingBoard(COC):
     # First make the same set of NUM_PROBLEMS for a given Board-size for all models
     PROBLEMS_dict = {}
     for SIDE in BOARD_SIDES:
-
-        PROBLEMS_dict[SIDE] = [rrw.make_random_problem(int(math.floor(SIDE)), int(math.ceil(SIDE)), rand_range=RAND_RANGE, \
-                name=str(time.time()) + '.' + str(i)) \
-                for i in range(NUM_PROBLEMS)]
+        PROBLEMS_dict[SIDE] = ProblemLib.find_problems(int(math.floor(SIDE)), int(math.ceil(SIDE)),\
+            RAND_RANGE=RAND_RANGE, RAND_PROB=RAND_PROB, limit=NUM_PROBLEMS)
 
 
     simulations = {}
@@ -117,22 +114,21 @@ def SimulateVaryingBoard(COC):
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    for j in range(2):
-                        # Run
-                        simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
-                        simulation.run()
-                        
-                        # Do not include simulation if there is no solution
-                        if simulation.get_total_cost() > sys.maxint/2: 
-                            continue
+                    # Run
+                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
+                    simulation.run()
+                    
+                    # Do not include simulation if there is no solution
+                    if simulation.get_total_cost() > sys.maxint/2: 
+                        continue
 
-                        # Add
-                        simulations[line_name][SIDE].append(simulation)
-                        costs += simulation.get_total_cost()
-                        # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
+                    # Add
+                    simulations[line_name][SIDE].append(simulation)
+                    costs += simulation.get_total_cost()
+                    # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
 
-                        sys.stdout.write('>')
-                        sys.stdout.flush()
+                    sys.stdout.write('>')
+                    sys.stdout.flush()
 
                 avg_cost = costs * 1.0 / len(simulations[line_name][SIDE])
                 cur_line[1].append(avg_cost)

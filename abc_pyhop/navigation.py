@@ -126,14 +126,14 @@ def get_neighbors(state, current):
 		neighbors.append(current+1)
 	return neighbors
 
-# def heuristic(state, source, sink):
-# 	(source_x, source_y) = state.loc[source]
-# 	(sink_x, sink_y) = state.loc[sink]
-
-	# return abs((source_x - sink_x)) + abs((source_y - sink_y)) + state.cost[source] + state.cost[sink]
-
 def heuristic(state, source, sink):
-	return 0
+	(source_x, source_y) = state.loc[source]
+	(sink_x, sink_y) = state.loc[sink]
+
+	return abs((source_x - sink_x)) + abs((source_y - sink_y)) + state.cost[source] + state.cost[sink]
+
+# def heuristic(state, source, sink):
+# 	return 0
 
 def reconstruct_path(came_from, current):
 	to_return = [current]

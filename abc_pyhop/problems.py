@@ -2,7 +2,7 @@
 Write a set of problems to file;
 Given a problem id or set of attributes, fetch problem from file. 
 """
-import time, math
+import time, math, sys
 import random_rovers_world as rrw
 
 def write_problems_to_file(problems, file_name=None, file_obj=None):
@@ -65,52 +65,65 @@ def write_problem_to_file(problem, file_name=None, file_obj=None):
 
 	file_obj.write(to_write + '\n')
 
+def parse_problem(problem_array):
 
-def read_problems_from_file(file_name, problem_name=None, \
-	BOARD_X=None, BOARD_Y=None, NUM_ROCKS=None, NUM_SOILS=None):
+	# parse basic parameters
+	p_name = problem_array[0]
+	board_x, board_y, num_soils, num_rocks = [int(s) for s in problem_array[1:5]]
+	max_cost, rand_range, rand_prob = [float(s) for s in problem_array[5:8]]
+	problem_array = problem_array[8:]
+
+	# parse AT
+	AT = {}
+	num_at = int(problem_array.pop(0))
+	for i in range(num_at):
+		obj, loc = problem_array[2*i:2*i+2]
+		AT[obj] = int(loc)
+	problem_array = problem_array[2*num_at:]
+
+	# parse GOALS
+	GOALS = {}
+	num_goals = int(problem_array.pop(0))
+	for i in range(num_goals):
+		agent, goal = problem_array[2*i:2*i+2]
+		GOALS[agent] = goal
+	problem_array = problem_array[2*num_goals:]
+
+	# parse UNCERT
+	SEQ = []
+	RANDs = []
+	num_rand = int(problem_array.pop(0))
+	for i in range(num_rand):
+		s, r = problem_array[2*i:2*i+2]
+		if s != 'None':
+			SEQ.append(int(s))
+		else:
+			SEQ.append(None)
+		RANDs.append(float(r))
+
+	return rrw.make_world(p_name, board_x, board_y, num_soils, num_rocks, max_cost, rand_range, rand_prob, AT, GOALS, SEQ, RANDs)
+
+
+def find_problems(BOARD_X, BOARD_Y, problem_name=None, MAX_COST=None, \
+	RAND_RANGE=None, RAND_PROB=None, NUM_ROCKS=None, NUM_SOILS=None, limit=sys.maxint):
 
 	to_return = []
-	problem_file = open(file_name)
+	num_p_found = 0
+
+	problem_file = open("problems/problem_X{}_Y{}.txt".format(BOARD_X, BOARD_Y), 'r')
 	for line in problem_file:
 		problem_array = line.split('\t')
-
-		# pase basic parameters
-		p_name = problem_array[0]
-		board_x, board_y, num_soils, num_rocks = [int(s) for s in problem_array[1:5]]
-		max_cost, rand_range, rand_prob = [float(s) for s in problem_array[5:8]]
-		problem_array = problem_array[8:]
-
-		# parse AT
-		AT = {}
-		num_at = int(problem_array.pop(0))
-		for i in range(num_at):
-			obj, loc = problem_array[2*i:2*i+2]
-			AT[obj] = int(loc)
-		problem_array = problem_array[2*num_at:]
-
-		# parse GOALS
-		GOALS = {}
-		num_goals = int(problem_array.pop(0))
-		for i in range(num_goals):
-			agent, goal = problem_array[2*i:2*i+2]
-			GOALS[agent] = goal
-		problem_array = problem_array[2*num_goals:]
-
-		# parse UNCERT
-		SEQ = []
-		RANDs = []
-		num_rand = int(problem_array.pop(0))
-		for i in range(num_rand):
-			s, r = problem_array[2*i:2*i+2]
-			if s != 'None':
-				SEQ.append(int(s))
-			else:
-				SEQ.append(None)
-			RANDs.append(float(r))
-
-		to_return.append(rrw.make_world(p_name, board_x, board_y, num_soils, num_rocks, max_cost, rand_range, rand_prob, AT, GOALS, SEQ, RANDs))
-
+		filter_vars = [problem_name, BOARD_X, BOARD_Y, NUM_SOILS, NUM_ROCKS, MAX_COST, RAND_RANGE, RAND_PROB]
+		if any([f_var != None and str(f_var) != l_var for (f_var, l_var) in zip(filter_vars, problem_array[0:8])]):
+			continue
+			
+		to_return.append(parse_problem(problem_array))
+		num_p_found += 1
+		if num_p_found >= limit:
+			break
+	print("returning {} problems".format(len(to_return)))
 	return to_return
+
 
 # output files are organized by Board-size / dimensions (per file)
 # Within a file (board-dimension), problems vary by rand_rang, and a-prob (uncertainty params)
@@ -130,7 +143,7 @@ def write_problems(x, y, rand_range, max_cost, a_prob, num_repeat, file_name=Non
 def bulk_write():
 	RAND_RANGE = [10]
 	MAX_COST = 30
-	A_PROBS = [0.3, 0,5, 0.7]
+	A_PROBS = [0.3, 0.5, 0.7]
 	num_repeat = 100
 	BOARD_SIDES = [0.5 * x for x in range(8, 27)]
 
@@ -142,15 +155,13 @@ def bulk_write():
 			for a_prob in A_PROBS:
 				write_problems(x, y, rand_range, rand_range*3, a_prob, num_repeat, file_obj=file_obj)
 
-bulk_write()
-# write_problems(5, 5, rand_range=10, a_prob=0.5, num_repeat=10)
 
-# # Test read and write
-# p = rrw.make_random_problem(5, 5, rand_range=10, name=str(time.time()))
-# # write_problem_to_file(p, file_name="problems/problems_test.txt")
-# write_problems_to_file([p], file_name="problems/problems_test.txt")
 
-# new_p = read_problems_from_file(file_name="problems/problems_test.txt", problem_name=p.name)[0]
+# bulk_write()
+
+# Find problems from Library
+# find_problems(10, 10, NUM_ROCKS=1, NUM_SOILS=1, RAND_PROB=0.5, limit=57)
+
 
 
 

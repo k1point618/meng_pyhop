@@ -1,0 +1,16 @@
+Det_Astar_OnePlan	AgentNoComm	0	79.3018467686	5
+Det_Astar_OnePlan	AgentNoComm	1	79.3018467686	5
+Det_Astar_OnePlan	AgentNoComm	2	79.3018467686	5
+Det_Astar_OnePlan	AgentNoComm	3	79.3018467686	5
+Det_Astar_OnePlan	AgentSmartComm	0	61.1799932544	5
+Det_Astar_OnePlan	AgentSmartComm	1	64.9411389273	5
+Det_Astar_OnePlan	AgentSmartComm	2	65.7411389273	5
+Det_Astar_OnePlan	AgentSmartComm	3	66.5411389273	5
+Det_Astar_OnePlan	AgentSmartCommII	0	57.2503712284	5
+Det_Astar_OnePlan	AgentSmartCommII	1	63.8656235076	5
+Det_Astar_OnePlan	AgentSmartCommII	2	65.6656235076	5
+Det_Astar_OnePlan	AgentSmartCommII	3	67.8656235075	5
+Det_Astar_OnePlan	AgentFullComm	0	55.2347422583	5
+Det_Astar_OnePlan	AgentFullComm	1	61.2347422583	5
+Det_Astar_OnePlan	AgentFullComm	2	67.2347422583	5
+Det_Astar_OnePlan	AgentFullComm	3	73.2347422583	5
