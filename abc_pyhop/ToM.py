@@ -21,6 +21,13 @@ class Plan(object):
     def set_likelihood(self, prob):
         self.likelihood = prob
 
+    def step_back(self):
+        self.idx -= 1
+        if self.idx < 0:
+            self.idx = 0
+        self.done = False
+        return
+
     def step(self):
         if self.done:
             return
@@ -31,8 +38,18 @@ class Plan(object):
             self.done = True
         
     def get_projected_cost(self, world):
-        print("Computing projected cost for agent {}: over actions:{}".format(self.name, self.actions[self.idx:]))
         return sum([world.cost_func(world, a) for a in self.actions[self.idx:]])
+
+    # Return the probability of observing loc at idx
+    def get_obs_prob(self, loc, idx):
+        if idx <= 0:
+            return 0.5
+        if idx > len(self.states):
+            idx = len(self.states)
+        print("Get_obs_prob for loc:{} and idx:{}".format(loc, idx))
+        print(self.states[idx-1].at)
+        return int(self.states[idx-1].at[self.name] == loc)
+
 
 # A distribution of minds
 class ToM(object):
@@ -68,12 +85,21 @@ class ToM(object):
         for plan, teammate in self.agent_minds.items():
             plan.step()
             if not teammate.is_done():
-                teammate_action = teammate.get_cur_action()
-                teammate.mental_world = teammate.get_next_state()
+                teammate.mental_world = teammate.states[teammate.cur_step]
                 teammate.cur_step += 1
                 if teammate.cur_step >= len(teammate.actions):
                     teammate.done = True
 
+    def step_back(self):
+        for plan, teammate in self.agent_minds.items():
+            plan.step_back()
+            teammate.cur_step -= 1
+            if teammate.cur_step <= 0:
+                teammate.mental_world = teammate.solution.problem
+            else:
+                teammate.mental_world = teammate.states[teammate.cur_step]
+            teammate.done = False
+            
     def update_plan_dist(self, old_plan, replacement_sol):
         del self.agent_minds[old_plan]
         self.add_solutions(replacement_sol, p_factor=old_plan.likelihood)

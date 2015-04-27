@@ -11,47 +11,59 @@ from planners import *
 import problems as ProblemLib
 
 class SimulationParameters(object):
-    def __init__(self, planner, model, coc):
+    def __init__(self, planner, model, coc, num_repeat=1):
         self.planner = planner
         self.model = model
         self.coc = coc
-    def __repr__(self):
-        return str([self.planner.name, self.model.__name__, self.coc])
+        self.num_repeat = num_repeat
 
+    def __repr__(self):
+        return str([self.planner.name, self.model.__name__, self.coc, self.num_repeat])
+
+class ProblemParameters(object):
+    def __init__(self, BOARD_X, BOARD_Y, NUM_ROCKS, NUM_SOILS, RAND_RANGE, A_PROB):
+        self.BOARD_X = BOARD_X
+        self.BOARD_Y = BOARD_Y
+        self.NUM_ROCKS = NUM_ROCKS
+        self.NUM_SOILS = NUM_SOILS
+        self.RAND_RANGE = RAND_RANGE
+        self.A_PROB = A_PROB
+
+    def get_params(self):
+        return [self.BOARD_X, self.BOARD_Y, self.NUM_SOILS, self.NUM_ROCKS, self.RAND_RANGE, self.A_PROB]
+
+    def __repr__(self):
+        return str(self.get_params())
 
 # WIth a given Planner and model and CoC
-def log_problems(SIM_PARAMS, PROBLEMS, file_obj_sim, file_obj_avg):
+def log_problems(SIM_PARAMS, PROBLEMS_DICT, file_obj_sim, file_obj_problem, file_obj_avg=None):
+
     for j, params in enumerate(SIM_PARAMS):
-        simulations = []
-        for i, PROBLEM in enumerate(PROBLEMS):
-            
-            print("Running problem: {} with parameters: {} Problem {}/{}; Param {}/{}".format(PROBLEM.name, params, i, len(PROBLEMS), j, len(SIM_PARAMS)))
-            PROBLEM.COST_OF_COMM = params.coc
-            PROBLEM.COST_REPLAN = 0
-            simulation = Simulation(PROBLEM, params.model, params.planner)
-            simulation.run()
+        k = 0
+        for problem_params, PROBLEMS in PROBLEMS_DICT.items():
+            simulations = []
+            k += 1
+            for i, PROBLEM in enumerate(PROBLEMS):
+                
+                repeated_sims = []
+                for l in range(params.num_repeat):
+                    print("Running problem: {} with parameters: {}\n\tnum_repeat {}/{}; Problem {}/{}; ProblemParams: {}/{}; Param {}/{}".format(\
+                            PROBLEM.name, params, l, params.num_repeat, i, len(PROBLEMS), k, len(PROBLEMS_DICT), j, len(SIM_PARAMS)))
 
-            simulations.append(simulation)
-            # Write result to file
-            write_result_by_simulation(PROBLEM, params, simulation, file_obj_sim)
+                    PROBLEM.COST_OF_COMM = params.coc
+                    PROBLEM.COST_REPLAN = 0
+                    simulation = Simulation(PROBLEM, params.model, params.planner)
+                    simulation.run()
 
-        write_result_by_sim_params(params, PROBLEMS, simulations, file_obj_avg)
+                    simulations.append(simulation)
+                    repeated_sims.append(simulation)
+                    # Write result to file
+                    write_result_by_simulation(PROBLEM, params, simulation, file_obj_sim)
 
+                if file_obj_avg != None and params.num_repeat > 1:
+                    write_result_avg_rand_planner(PROBLEM, params, repeated_sims, file_obj_avg)
 
-# Write averaged simulation results over n-problems
-def write_result_by_sim_params(params, PROBLEMS, simulations, file_obj):
-
-    # Planner   Model   CoC
-    to_write = "{}\t{}\t{}".format(params.planner.name, params.model.__name__, params.coc)
-
-    # Avg Cost
-    avg_cost = sum([sim.get_total_cost() for sim in simulations])/len(simulations)
-    to_write += '\t' + str(avg_cost)
-
-    # Num Problems Avged
-    to_write += '\t' + str(len(simulations))
-
-    file_obj.write(to_write + '\n')
+            write_result_by_sim_params(params, problem_params, simulations, file_obj_problem)
 
 
 # Write simulation results in results directory
@@ -71,27 +83,47 @@ def write_result_by_simulation(problem, params, simulation, file_obj):
     file_obj.write(to_write + '\n')
 
 
-"""
-Pick which Models to compare
-"""
-MODELS = []
-MODELS += [models.AgentNoComm]
-MODELS += [models.AgentSmartComm]
-MODELS += [models.AgentSmartCommII]
-# MODELS += [models.AgentSmartEstimate]
-MODELS += [models.AgentRandComm]
-MODELS += [models.AgentFullComm]
+#For random planners, this is for when num_repeat > 1
+def write_result_avg_rand_planner(problem, params, simulations, file_obj_avg):
 
+    # About this simulation
+    to_write = problem.name
+    to_write += "\t{}\t{}\t{}".format(params.planner.name, params.model.__name__, params.coc)
 
-"""
-Pick which Planners to use
-"""
-PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
-# PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
-# PLANNERS += [Planner.get_HPlanner_bb()]
-# PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
+    # Results
+    avg_cost = sum([s.get_total_cost() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_cost)
+    avg_obs = sum([s.total_observations() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_obs)
+    avg_msg_sent = sum([s.total_messages_sent() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_msg_sent)
+    avg_msg_void = sum([s.total_messages_voided() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_msg_void)
+    avg_steps = sum([s.total_steps() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_steps)
+
+    to_write += '\t' + str(len(simulations))
+
+    file_obj_avg.write(to_write + '\n')
+
+# Write AVERAGED simulation results over n-problems with problem_param
+def write_result_by_sim_params(sim_params, problem_params, simulations, file_obj):
+
+    # Planner   Model   CoC
+    to_write = "{}\t{}\t{}".format(sim_params.planner.name, sim_params.model.__name__, sim_params.coc)
+
+    # Problem Params: boardx, y, num_soil, num_rocks, rand_range, a_prob
+    for p in problem_params.get_params():
+        to_write += '\t{}'.format(p)
+
+    # Avg Cost
+    avg_cost = sum([sim.get_total_cost() for sim in simulations])/len(simulations)
+    to_write += '\t' + str(avg_cost)
+
+    # Num Problems Avged
+    to_write += '\t' + str(len(simulations))
+
+    file_obj.write(to_write + '\n')
 
 
 
@@ -112,16 +144,18 @@ def get_params_for_costs():
     PARAMETERS += [SimulationParameters(p, m, c) for p in PLANNERS for m in MODELS for c in COCs]
     return PARAMETERS
 
-def get_problems_for_costs():
+def get_problems_for_costs(num_repeat=1):
     NUM_PROBLEMS = 100
-    BOARD_X = 5
-    BOARD_Y = 5
-    return ProblemLib.find_problems(BOARD_X, BOARD_Y, NUM_ROCKS=1, NUM_SOILS=1,\
-            RAND_RANGE=10, RAND_PROB=0.5, limit=NUM_PROBLEMS)
+    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5, num_repeat=num_repeat)
+
+    to_return = {}
+    to_return[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
+            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
+    return to_return
 
 # log_problems(get_params_for_costs(), get_problems_for_costs(), \
-#     open("results/DetPlanner_over_cost_per_simulation.txt", 'a'), \
-#     open("results/DetPlanner_over_cost_averaged.txt", 'a'))
+#     open("results/test_DetPlanner_over_cost_per_simulation.txt", 'a'), \
+#     open("results/test_DetPlanner_over_cost_averaged.txt", 'a'))
 
 
 
@@ -144,22 +178,97 @@ def get_params_for_board_sizes():
 def get_problems_for_board_sizes():
     NUM_PROBLEMS = 30
     BOARD_SIDES = [0.5 * x for x in range(10,27)]
-    problems = []
+    problems = {}
     for SIDE in BOARD_SIDES:
-        problems += ProblemLib.find_problems(int(math.floor(SIDE)), int(math.ceil(SIDE)),\
-            RAND_RANGE=10, RAND_PROB=0.5, limit=NUM_PROBLEMS)
+        param = ProblemParameters(BOARD_X=int(math.floor(SIDE)), BOARD_Y=int(math.ceil(SIDE)),\
+            NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5)
+        problems[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
+            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
     return problems
 
-import sys
-sys.stdout = open('04262102.log', 'w')
+# log_problems(get_params_for_board_sizes(), get_problems_for_board_sizes(), \
+#     open("results/TestDetPlanner_over_board_per_simulation.txt", 'a'), \
+#     open("results/TestDetPlanner_over_board_averaged.txt", 'a'))
 
-# DELAY for overnight runs
-for i in range(240*12):
-    time.sleep(5)
-    print('starting in {} minutes ... ...'.format(239-i))
 
-log_problems(get_params_for_board_sizes(), get_problems_for_board_sizes(), \
-    open("results/DetPlanner_over_board_per_simulation.txt", 'a'), \
-    open("results/DetPlanner_over_board_averaged.txt", 'a'))
+"""
+Testing Smart Estimate + bb_prob against SmartComm + v15 (while using averaged(noComm + v15) 
+    and averaged(fullComm+v15) as basline
+4 Base Simulation parameters: 
+    v15+noComm, v15+smartComm, v15+FullComm, bb_prob+smartEst
+35 CoC values 
+1 fixed board-size: 5
+50 problems per simulation parameter
+5 repeatitions per problem
+35,000 Total problems
+"""
+def get_params_for_smartEstimate():
+    NUM_REPEAT = 5 # THis is for random planners
+    # Part 1: Current
+    # COCs = [0, 1, 2, 3, 4, 5]
+    # Part 2: TOOD
+    COCs = [0.5, 1.5, 2.5, 3.5, 4.5]
+    # # Part 3
+    # COCs = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
+    # # Part 4
+    # COCs = [1.1, 1.2, 1.3, 1.4, 1.6, 1.7, 1.8, 1.9]
+    # # Part 5
+    # COCs = [2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 2.8, 2.9]
 
+    PLANNERS = []
+    PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* NOT Random
+    MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
+    PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
+    PARAMETERS += [SimulationParameters(Planner.get_HPlanner_bb_prob(), models.AgentSmartEstimate, c, num_repeat=NUM_REPEAT) for c in COCs]
+    
+    return PARAMETERS
+
+def get_problems_for_smartEstimate():
+    NUM_PROBLEMS = 50
+    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5)
+
+    to_return = {}
+    to_return[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
+            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
+    return to_return
+
+
+# log_problems(get_params_for_smartEstimate(), get_problems_for_smartEstimate(),\
+#     open("results/RandPlanner_over_cost_per_simulation_raw.txt", 'a'), \
+#     open("results/RandPlanner_over_cost_avg_per_problem.txt", 'a'), \
+#     open("results/RandPlanner_over_cost_per_simulation_avg.txt", 'a'))
+
+
+
+"""
+Testing Smart Estimate + bb_prob against Smart Estimate II + bb_prob over large 
+2 Simulation Parameters: SmartEstimate, SmartEstimateII
+12 Problem Parameters: Boardsize = 5, 5.5, ..., 10.5
+30 Problems per (Sim + Problem parameter)
+10 repeatitions per problem
+720 Total Problems
+"""
+
+def get_params_for_smartEstimateII():
+    CoC = 1.5
+    NUM_REPEAT = 10
+    MODELS = [models.AgentSmartEstimateII, models.AgentSmartEstimate]
+    PARAMETERS = [SimulationParameters(Planner.get_HPlanner_bb_prob(), m, CoC, num_repeat=NUM_REPEAT) for m in MODELS]
+    return PARAMETERS
+
+def get_problems_for_smartEstimateII():
+    NUM_PROBLEMS = 30
+    BOARD_SIDES = [0.5 * x for x in range(10,22)]
+    problems = {}
+    for SIDE in BOARD_SIDES:
+        param = ProblemParameters(BOARD_X=int(math.floor(SIDE)), BOARD_Y=int(math.ceil(SIDE)),\
+            NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5)
+        problems[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
+            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
+    return problems
+
+log_problems(get_params_for_smartEstimateII(), get_problems_for_smartEstimateII(),\
+    open("results/SmartEstimateII_over_board_per_simulation_raw.txt", 'a'), \
+    open("results/SmartEstimateII_over_board_avg_per_problem.txt", 'a'), \
+    open("results/SmartEstimateII_over_board_per_simulation_avg.txt", 'a'))
 

@@ -14,6 +14,7 @@ import random_rovers_world as rrw
 from planners import * 
 import numpy as np
 import matplotlib.pyplot as plt
+import problems as ProblemLib
 
 """ *************** Simple simulaiton for 1 agent-type, 1 problem ****************
 Navigation: maze_1, ... maze_5
@@ -63,7 +64,8 @@ MODELS = []
 # MODELS += [models.AgentSmartPlanRec]
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentSmartEstimate]
-MODELS += [models.AgentSmartEstimateII]
+# MODELS += [models.AgentSmartEstimateII]
+MODELS += [models.AgentSmartBPR]
 # MODELS += [models.AgentNoComm]
 # MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentRandComm]
@@ -75,8 +77,8 @@ Pick which Planners to use
 """
 PLANNERS = []
 PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
-PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 # PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
@@ -436,9 +438,8 @@ def TestOneRandomProb():
     # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
     #     name=str(time.time()) + '.' + str(i)) for i in range(10)]
 
-    PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, max_cost=MAX_COST,\
-        name=str(time.time()) + '.' + str(i)) for i in range(1)]
-
+    PROBLEMS = ProblemLib.find_problems(BOARD_X, BOARD_Y, RAND_PROB=0.7, limit=1)
+    print PROBLEMS
     for PROBLEM in PROBLEMS:
 
         costs = {}
@@ -721,7 +722,7 @@ This reproduces the baseline with parameters:
 Varying costs for non-deterministic planner
 Note: Should set num_iter to indicate how many times a problem-planner pair should be repeated
 """
-SimulateVaryingCosts(BOARD_X, BOARD_Y)
+# SimulateVaryingCosts(BOARD_X, BOARD_Y)
 
 """
 Comparing Planner-Model pairs relative to Planner-NoComm. 
@@ -738,7 +739,7 @@ Input: Fix COC
 
 
 # TestOnProblemBank()
-# TestOneRandomProb()
+TestOneRandomProb()
 
 
 
