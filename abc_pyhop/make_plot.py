@@ -19,6 +19,10 @@ class SimResult(object):
 		return str([self.problem_name, self.planner, self.model, self.CoC,\
 			self.final_cost, self.num_obs, self.num_comm, self.num_void, self.num_steps])
 
+class SimAvgResult(object):
+	def __init__(self, planner, model, CoC, avgCost):
+		pass
+		
 class Line(object):
 	def __init__(self, planner, model):
 		self.planner = planner
@@ -40,9 +44,9 @@ def parse_simulation_raw(filename):
 def parse_simulation_avg(filename):
 	f = open(filename, 'r')
 	plot_lines = {}
-	
+
 	for line in f:
-		
+
 
 
 def plot(x, y):

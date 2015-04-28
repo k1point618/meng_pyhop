@@ -67,18 +67,18 @@ MODELS = []
 # MODELS += [models.AgentSmartEstimateII]
 # MODELS += [models.AgentSmartBPR]
 MODELS += [models.AgentNoComm]
-# MODELS += [models.AgentSmartComm]
+MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentRandComm]
-# MODELS += [models.AgentFullComm]
+MODELS += [models.AgentFullComm]
 
 
 """
 Pick which Planners to use
 """
 PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
+# PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 # PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
-# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 # PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
@@ -88,21 +88,21 @@ Cost of Communication
 """
 RAND_RANGE = 10
 MAX_COST = 20
-COSTS = [i * 0.05 for i in range(30)]
+# COSTS = [i * 0.05 for i in range(30)]
 # COSTS = [0.5, 2.5, 4.5]
-# COSTS = [0, 0.2, 0.5, 1]
+COSTS = [0, 0.4, 0.8, 1.2, 1.5, 1.8]
 COC = 0.1
 
 """
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 100
+NUM_PROBLEMS = 30
 
 
 def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
     global COSTS
-    PROBLEMS = [rrw.make_semi_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, max_cost=MAX_COST,\
+    PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, max_cost=MAX_COST,\
                 name=str(time.time()) + '.' + str(i)) \
                 for i in range(NUM_PROBLEMS)]
     
@@ -241,12 +241,12 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
     plot_lines = {}
     for PLANNER in PLANNERS:
 
-        if PLANNER.name == Planner.get_HPlanner_bb_prob().name:
-            MODELS = [models.AgentSmartEstimate, models.AgentSmartEstimateII]
-        if PLANNER.name == Planner.get_HPlanner_v15().name:
-            MODELS = [models.AgentSmartComm, models.AgentFullComm]
-        if PLANNER.name == Planner.get_HPlanner_v14().name:
-            MODELS = [models.AgentNoComm, models.AgentFullComm]
+        # if PLANNER.name == Planner.get_HPlanner_bb_prob().name:
+        #     MODELS = [models.AgentSmartEstimate, models.AgentSmartEstimateII]
+        # if PLANNER.name == Planner.get_HPlanner_v15().name:
+        #     MODELS = [models.AgentSmartComm, models.AgentFullComm]
+        # if PLANNER.name == Planner.get_HPlanner_v14().name:
+        #     MODELS = [models.AgentNoComm, models.AgentFullComm]
 
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
@@ -256,7 +256,6 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
             simulations[line_name] = {}
             plot_lines[line_name] = [COSTS, [0 for i in range(len(COSTS))]]
 
-            
             for i in range(len(COSTS)):
                 COC = COSTS[i]
                 # Each cost is a data point
@@ -717,7 +716,7 @@ This reproduces the baseline with parameters:
     COC: range(50)
     Input: Fix Board-Size
 """
-# SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y)
+SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y)
 
 """
 Varying costs for non-deterministic planner
@@ -740,7 +739,7 @@ Input: Fix COC
 
 
 # TestOnProblemBank()
-TestOneRandomProb()
+# TestOneRandomProb()
 
 
 

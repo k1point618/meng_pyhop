@@ -207,15 +207,15 @@ Testing Smart Estimate + bb_prob against SmartComm + v15 (while using averaged(n
 
 """
 def get_params_for_smartEstimate():
-    NUM_REPEAT = 20 # THis is for random planners
+    NUM_REPEAT = 20 # This is for random planners
     # Part 1: DONE
     # COCs = [0, 1, 2, 3, 4, 5]
     # Part 2: TOOD
-    COCs = [0.5, 1.5, 2.5, 3.5, 4.5]
+    # COCs = [0.5, 1.5, 2.5, 3.5, 4.5]
     # # Part 3 CURRENT
-    # COCs = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
+    COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
     # # Part 4 TODO
-    COCs = [1.1, 1.2, 1.3, 1.4, 1.6, 1.7, 1.8, 1.9]
+    COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.6, 1.7, 1.8, 1.9]
     # # Part 5 TODO
     # COCs = [2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 2.8, 2.9]
 
@@ -253,7 +253,7 @@ Testing Smart Estimate + bb_prob against Smart Estimate II + bb_prob over large
 12 Problem Parameters: Boardsize = 5, 5.5, ..., 10.5
 30 Problems per (Sim + Problem parameter)
 10 repeatitions per problem
-720 Total Problems (range over large board sizes: hence slow)
+7200 Total Problems (range over large board sizes: hence slow)
 """
 
 def get_params_for_smartEstimateII():
@@ -291,8 +291,8 @@ Testing BPR against SmartEstimate and SmartEstimateII (Over small values of cost
 def get_params_for_BPR_over_costs():
     NUM_REPEAT = 10
     COCs = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
-    # MODELS = [models.AgentSmartEstimateII, models.AgentSmartBPR]
-    MODELS = [models.AgentSmartBPRII]
+    MODELS = [models.AgentSmartEstimateII, models.AgentSmartBPR]
+    # MODELS = [models.AgentSmartBPRII]
     PLANNERS = []
     PLANNERS += [Planner.get_HPlanner_bb_prob()] # Quick sampling using A* NOT Random
     PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
@@ -307,10 +307,10 @@ def get_problems_for_BPR_over_costs():
             RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
 
 
-    # Pick every other problem for speed
-    skip = 10
-    new_ps = [problems[i*3] for i in range(NUM_PROBLEMS/skip)]
-    to_return[param] = new_ps
+    # # Pick every other problem for speed
+    # skip = 10
+    # new_ps = [problems[i*3] for i in range(NUM_PROBLEMS/skip)]
+    # to_return[param] = new_ps
     return to_return
     
 
