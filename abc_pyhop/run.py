@@ -236,14 +236,14 @@ def get_problems_for_smartEstimate():
             RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
     return to_return
 
-for i in range(300):
-    time.sleep(60)
-    print('starting in {} minutes ... ...'.format(239-i))
+# for i in range(300):
+#     time.sleep(60)
+#     print('starting in {} minutes ... ...'.format(239-i))
 
-log_problems(get_params_for_smartEstimate(), get_problems_for_smartEstimate(),\
-    open("results/RandPlanner_over_cost_per_simulation_raw.txt", 'a'), \
-    open("results/RandPlanner_over_cost_avg_per_problem.txt", 'a'), \
-    open("results/RandPlanner_over_cost_per_simulation_avg.txt", 'a'))
+# log_problems(get_params_for_smartEstimate(), get_problems_for_smartEstimate(),\
+#     open("results/RandPlanner_over_cost_per_simulation_raw.txt", 'a'), \
+#     open("results/RandPlanner_over_cost_avg_per_problem.txt", 'a'), \
+#     open("results/RandPlanner_over_cost_per_simulation_avg.txt", 'a'))
 
 
 
@@ -289,9 +289,10 @@ Testing BPR against SmartEstimate and SmartEstimateII (Over small values of cost
 16,000 total problems
 """
 def get_params_for_BPR_over_costs():
-    NUM_REPEAT = 20
+    NUM_REPEAT = 10
     COCs = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
-    MODELS = [models.AgentSmartEstimateII, models.AgentSmartBPR]
+    # MODELS = [models.AgentSmartEstimateII, models.AgentSmartBPR]
+    MODELS = [models.AgentSmartBPRII]
     PLANNERS = []
     PLANNERS += [Planner.get_HPlanner_bb_prob()] # Quick sampling using A* NOT Random
     PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
@@ -302,8 +303,14 @@ def get_problems_for_BPR_over_costs():
     param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5)
 
     to_return = {}
-    to_return[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
+    problems = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
             RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
+
+
+    # Pick every other problem for speed
+    skip = 10
+    new_ps = [problems[i*3] for i in range(NUM_PROBLEMS/skip)]
+    to_return[param] = new_ps
     return to_return
     
 
@@ -318,6 +325,10 @@ def get_problems_for_BPR_over_costs():
 #     open("results/SmartEstimateII_BPR_over_cost_per_simulation_avg.txt", 'a'))
 
 
+log_problems(get_params_for_BPR_over_costs(), get_problems_for_BPR_over_costs(),\
+    open("results/SmartBPRII_over_cost_per_simulation_raw.txt", 'a'), \
+    open("results/SmartBPRII_over_cost_avg_per_problem.txt", 'a'), \
+    open("results/SmartBPRII_over_cost_per_simulation_avg.txt", 'a'))
 
 
 

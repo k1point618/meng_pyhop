@@ -857,10 +857,35 @@ class AgentSmartBPR(AgentSmartEstimate):
         return to_return
 
 
+class AgentSmartBPRII(AgentSmartBPR):
+    def __init__(self, name, world, args=[]):
+        super(AgentSmartBPRII, self).__init__(name, world, args)
+        self.TYPE = 'SmartBPRII'
+
+    def step(self, real_world, commMsgs):
+        hist = super(AgentSmartBPRII, self).step(real_world)
+
+        # Given the messages to be communicated, we update our belief of teammate's plan.
+        self.log.info("Gven the messages to be communicated: \n\t{}\nWe update our belief of teammates plan.".format(commMsgs))
+        for commMsg in commMsgs:
+            # Update teammate's World
+            teammate_ToM = self.ToMs[commMsg.receiver]
+            (loc, new_cost) = commMsg.msg
+            
+            for (plan, teammate) in teammate_ToM.get_agent_minds().items():
+                teammate.mental_world.cost[loc] = new_cost
 
 
+                # update teammate's Plan, potentially
+                (replan_cost, solution) = self.EX_COST(copy.deepcopy(teammate.mental_world), teammate, teammate.mental_world)
+                if (replan_cost < plan.get_projected_cost(teammate.mental_world)):
+                    # Update
+                    # print("Update teammate ToM Model({}-->{})".format(self.name, teammate.name))
+                    # print("turning current plan into {} new plans".format(solution.get_num_opt_plans()))
+                    teammate_ToM.update_plan_dist(plan, solution)
+                    # teammate.set_solution(solution)
 
-
+        return hist
 
 
 
