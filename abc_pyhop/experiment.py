@@ -65,8 +65,8 @@ MODELS = []
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentSmartEstimate]
 # MODELS += [models.AgentSmartEstimateII]
-MODELS += [models.AgentSmartBPR]
-# MODELS += [models.AgentNoComm]
+# MODELS += [models.AgentSmartBPR]
+MODELS += [models.AgentNoComm]
 # MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentRandComm]
 # MODELS += [models.AgentFullComm]
@@ -91,7 +91,7 @@ MAX_COST = 20
 COSTS = [i * 0.05 for i in range(30)]
 # COSTS = [0.5, 2.5, 4.5]
 # COSTS = [0, 0.2, 0.5, 1]
-COC = 1
+COC = 0.1
 
 """
 Choose any problem from problem bank
@@ -439,24 +439,25 @@ def TestOneRandomProb():
     #     name=str(time.time()) + '.' + str(i)) for i in range(10)]
 
     PROBLEMS = ProblemLib.find_problems(BOARD_X, BOARD_Y, RAND_PROB=0.7, limit=1)
-    print PROBLEMS
     for PROBLEM in PROBLEMS:
 
-        costs = {}
+
         for AGENT_TYPE in MODELS:
             for PLANNER in PLANNERS:
                 # Each point is the average over all problems
                 PROBLEM.COST_OF_COMM = COC
                 PROBLEM.COST_REPLAN = 0
 
-                num_iter = 1
+                num_iter = 30
+                costs = 0
                 for i in range(num_iter):
                     # Run
-                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
+                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False)
                     simulation.run()
-                    costs[AGENT_TYPE.__name__] = simulation.get_total_cost()
-                    logger.info(simulation.get_summary(cost=True, cost_bd=True, obs=True, comm=True, void=True))
-    
+                    costs += simulation.get_total_cost()
+                    logger.info(simulation.get_summary(cost=True, cost_bd=True))
+                print("avg: {}".format(costs*1.0/num_iter))    
+
 """
 Assume there are two planners, one det and one rand
 Assume comapring NoComm and SmartComm

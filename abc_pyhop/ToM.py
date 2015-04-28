@@ -46,8 +46,8 @@ class Plan(object):
             return 0.5
         if idx > len(self.states):
             idx = len(self.states)
-        print("Get_obs_prob for loc:{} and idx:{}".format(loc, idx))
-        print(self.states[idx-1].at)
+        # print("Get_obs_prob for loc:{} and idx:{}".format(loc, idx))
+        # print(self.states[idx-1].at)
         return int(self.states[idx-1].at[self.name] == loc)
 
 

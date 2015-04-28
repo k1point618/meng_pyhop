@@ -814,7 +814,7 @@ class AgentSmartBPR(AgentSmartEstimate):
                 (loc, new_cost) = incomingMsg.msg
                 sender = incomingMsg.sender
 
-                print("processing incoming message from {} regarding locaiton: {}".format(sender, loc))
+                # print("processing incoming message from {} regarding locaiton: {}".format(sender, loc))
 
                 # Check loc against self's ToM model of sender
                 sender_ToM = self.ToMs[sender]
@@ -825,13 +825,13 @@ class AgentSmartBPR(AgentSmartEstimate):
                     cur_likelihood = plan.likelihood
                     # Compute P(obs|plan), this is currently 1 or 0
                     p_obs_plan = plan.get_obs_prob(loc, plan.idx-1)
-                    print("cur_likelihood: {}".format(cur_likelihood))
-                    print("p_obs_plan: {}".format(p_obs_plan))
+                    # print("cur_likelihood: {}".format(cur_likelihood))
+                    # print("p_obs_plan: {}".format(p_obs_plan))
                     plan.set_likelihood(cur_likelihood * p_obs_plan)
 
-                    print("plan: {}; likelihood: {}".format(plan, plan.likelihood))
+                    # print("plan: {}; likelihood: {}".format(plan, plan.likelihood))
 
-                print("normalizing...")
+                # print("normalizing...")
                 # Normalize
                 denum = sum([p.likelihood for p in sender_ToM.get_plans()])
                 for plan in sender_ToM.get_plans():
@@ -840,7 +840,7 @@ class AgentSmartBPR(AgentSmartEstimate):
                     else:
                         plan.set_likelihood(plan.likelihood/denum)
 
-                    print("plan: {}; likelihood: {}".format(plan, plan.likelihood))
+                    # print("plan: {}; likelihood: {}".format(plan, plan.likelihood))
 
 
                 # Take 1 step back
