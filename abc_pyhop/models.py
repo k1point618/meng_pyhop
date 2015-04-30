@@ -888,6 +888,12 @@ class AgentSmartBPRII(AgentSmartBPR):
         return hist
 
 
+# class AgentSmartBPRII_w(AgentSmartBPRII):
+#     def __init__(self, name, world, args=[]):
+#         sumper(AgentSmartBPRII, self).__init__(name, world, args)
+#         self.TYPE = 'SmartBPRII_w'
+
+
 
 
 

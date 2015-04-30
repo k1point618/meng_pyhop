@@ -91,15 +91,15 @@ def write_result_avg_rand_planner(problem, params, simulations, file_obj_avg):
     to_write += "\t{}\t{}\t{}".format(params.planner.name, params.model.__name__, params.coc)
 
     # Results
-    avg_cost = sum([s.get_total_cost() for s in simulations])/len(simulations)
+    avg_cost = 1.0 * sum([s.get_total_cost() for s in simulations]) /len(simulations)
     to_write += '\t' + str(avg_cost)
-    avg_obs = sum([s.total_observations() for s in simulations])/len(simulations)
+    avg_obs = 1.0 * sum([s.total_observations() for s in simulations])/len(simulations)
     to_write += '\t' + str(avg_obs)
-    avg_msg_sent = sum([s.total_messages_sent() for s in simulations])/len(simulations)
+    avg_msg_sent = 1.0 * sum([s.total_messages_sent() for s in simulations])/len(simulations)
     to_write += '\t' + str(avg_msg_sent)
-    avg_msg_void = sum([s.total_messages_voided() for s in simulations])/len(simulations)
+    avg_msg_void = 1.0 * sum([s.total_messages_voided() for s in simulations])/len(simulations)
     to_write += '\t' + str(avg_msg_void)
-    avg_steps = sum([s.total_steps() for s in simulations])/len(simulations)
+    avg_steps = 1.0 * sum([s.total_steps() for s in simulations])/len(simulations)
     to_write += '\t' + str(avg_steps)
 
     to_write += '\t' + str(len(simulations))
@@ -123,6 +123,19 @@ def write_result_by_sim_params(sim_params, problem_params, simulations, file_obj
     # Num Problems Avged
     to_write += '\t' + str(len(simulations))
 
+    # Other misc: average observations made; avg messages sent; avg steps take; useful for comparing board-sizes
+    avg_obs = 1.0 * sum([s.total_observations() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_obs)
+    
+    avg_msg_sent = 1.0 * sum([s.total_messages_sent() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_msg_sent)
+    
+    avg_msg_void = 1.0 * sum([s.total_messages_voided() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_msg_void)
+    
+    avg_steps = 1.0 * sum([s.total_steps() for s in simulations])/len(simulations)
+    to_write += '\t' + str(avg_steps)
+    
     file_obj.write(to_write + '\n')
 
 
@@ -176,19 +189,19 @@ def get_params_for_board_sizes():
 
 
 def get_problems_for_board_sizes():
-    NUM_PROBLEMS = 30
+    NUM_PROBLEMS = 50
     BOARD_SIDES = [0.5 * x for x in range(10,27)]
     problems = {}
     for SIDE in BOARD_SIDES:
         param = ProblemParameters(BOARD_X=int(math.floor(SIDE)), BOARD_Y=int(math.ceil(SIDE)),\
-            NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5)
+            NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.3)
         problems[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
             RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
     return problems
 
 # log_problems(get_params_for_board_sizes(), get_problems_for_board_sizes(), \
-#     open("results/TestDetPlanner_over_board_per_simulation.txt", 'a'), \
-#     open("results/TestDetPlanner_over_board_averaged.txt", 'a'))
+#     open("results/DetPlanner0p3_over_board_per_simulation.txt", 'a'), \
+#     open("results/DetPlanner0p3_over_board_averaged.txt", 'a'))
 
 
 """
@@ -205,6 +218,7 @@ Testing Smart Estimate + bb_prob against SmartComm + v15 (while using averaged(n
 4 base simulation; 8 CoC Values; 50 problems; 20 repeatitions = 32,000 total problems
 4 base simulation; 13 CoC Values; 50 problems; 20 repeatitions = 32,000 total problems
 
+5 base simulations; 20 CoC Values; 50 problems; 20 repetitions = 100,000
 """
 def get_params_for_smartEstimate():
     NUM_REPEAT = 20 # This is for random planners
@@ -213,9 +227,9 @@ def get_params_for_smartEstimate():
     # Part 2: TOOD
     # COCs = [0.5, 1.5, 2.5, 3.5, 4.5]
     # # Part 3 CURRENT
-    COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
+    COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     # # Part 4 TODO
-    COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.6, 1.7, 1.8, 1.9]
+    COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
     # # Part 5 TODO
     # COCs = [2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 2.8, 2.9]
 
@@ -224,12 +238,13 @@ def get_params_for_smartEstimate():
     MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
     PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
     PARAMETERS += [SimulationParameters(Planner.get_HPlanner_bb_prob(), models.AgentSmartEstimate, c, num_repeat=NUM_REPEAT) for c in COCs]
+    PARAMETERS += [SimulationParameters(Planner.get_HPlanner_bb_prob(), models.AgentSmartEstimateII, c, num_repeat=NUM_REPEAT) for c in COCs]
     
     return PARAMETERS
 
 def get_problems_for_smartEstimate():
     NUM_PROBLEMS = 50
-    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5)
+    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.3)
 
     to_return = {}
     to_return[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
@@ -241,9 +256,9 @@ def get_problems_for_smartEstimate():
 #     print('starting in {} minutes ... ...'.format(239-i))
 
 # log_problems(get_params_for_smartEstimate(), get_problems_for_smartEstimate(),\
-#     open("results/RandPlanner_over_cost_per_simulation_raw.txt", 'a'), \
-#     open("results/RandPlanner_over_cost_avg_per_problem.txt", 'a'), \
-#     open("results/RandPlanner_over_cost_per_simulation_avg.txt", 'a'))
+#     open("results/RandPlanner0o3_over_cost_per_simulation_raw.txt", 'a'), \
+#     open("results/RandPlanner0p3_over_cost_avg_per_problem.txt", 'a'), \
+#     open("results/RandPlanner0p3_over_cost_per_simulation_avg.txt", 'a'))
 
 
 
@@ -287,12 +302,14 @@ Testing BPR against SmartEstimate and SmartEstimateII (Over small values of cost
 50 problems of 5x5 BOARD
 20 repeatitions per problem
 16,000 total problems
+
+2 Sim Param; 20 cost values; 50 problems; 20 repetitions --> 40,000
 """
 def get_params_for_BPR_over_costs():
     NUM_REPEAT = 10
-    COCs = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
-    MODELS = [models.AgentSmartEstimateII, models.AgentSmartBPR]
-    # MODELS = [models.AgentSmartBPRII]
+    COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
+    MODELS = [models.AgentSmartBPR, models.AgentSmartBPRII]
     PLANNERS = []
     PLANNERS += [Planner.get_HPlanner_bb_prob()] # Quick sampling using A* NOT Random
     PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
@@ -300,24 +317,20 @@ def get_params_for_BPR_over_costs():
 
 def get_problems_for_BPR_over_costs():
     NUM_PROBLEMS = 50
-    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5)
+    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.3)
 
     to_return = {}
     problems = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
             RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
 
-
-    # # Pick every other problem for speed
-    # skip = 10
-    # new_ps = [problems[i*3] for i in range(NUM_PROBLEMS/skip)]
-    # to_return[param] = new_ps
+    to_return[param] = problems
     return to_return
     
 
 # for i in range(240):
-#     time.sleep(60)
 #     print('starting in {} minutes ... ...'.format(239-i))
-
+#     time.sleep(60)
+    
 
 # log_problems(get_params_for_BPR_over_costs(), get_problems_for_BPR_over_costs(),\
 #     open("results/SmartEstimateII_BPR_over_cost_per_simulation_raw.txt", 'a'), \
@@ -325,10 +338,92 @@ def get_problems_for_BPR_over_costs():
 #     open("results/SmartEstimateII_BPR_over_cost_per_simulation_avg.txt", 'a'))
 
 
-log_problems(get_params_for_BPR_over_costs(), get_problems_for_BPR_over_costs(),\
-    open("results/SmartBPRII_over_cost_per_simulation_raw.txt", 'a'), \
-    open("results/SmartBPRII_over_cost_avg_per_problem.txt", 'a'), \
-    open("results/SmartBPRII_over_cost_per_simulation_avg.txt", 'a'))
+# log_problems(get_params_for_BPR_over_costs(), get_problems_for_BPR_over_costs(),\
+#     open("results/SmartBPR_BPRII_0p3_over_cost_per_simulation_raw.txt", 'a'), \
+#     open("results/SmartBPR_BPRII_0p3_over_cost_avg_per_problem.txt", 'a'), \
+#     open("results/SmartBPR_BPRII_0p3_over_cost_per_simulation_avg.txt", 'a'))
+
+"""
+RandPlanner for all models
+"""
+def get_params_for_randPlanner():
+    NUM_REPEAT = 10 # This is for random planners
+    COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
+
+    # PLANNERS = [Planner.get_HPlanner_v15()] # Quick sampling using A* NOT Random
+    # MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
+    # PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
+
+    PLANNERS = [Planner.get_HPlanner_bb_prob()] # Quick sampling using A* NOT Random
+    MODELS = [models.AgentSmartBPRII, models.AgentSmartBPR]
+    
+    PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
+
+    return PARAMETERS
+
+def get_problems_for_randPlanner():
+    NUM_PROBLEMS = 25
+    n_r = 3
+    n_s = 3
+    a_prob = 0.3
+    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=n_r, NUM_SOILS=n_s, RAND_RANGE=10,\
+            A_PROB=a_prob)
+
+    to_return = {}
+    to_return[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
+            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
+    return to_return
+
+log_problems(get_params_for_randPlanner(), get_problems_for_randPlanner(),\
+    open("results/RandPlanner_0p3_3r3s_over_cost_per_simulation_raw.txt", 'a'), \
+    open("results/RandPlanner_0p3_3r3s_over_cost_avg_per_problem.txt", 'a'), \
+    open("results/RandPlanner_0p3_3r3s_over_cost_per_simulation_avg.txt", 'a'))
+
+
+
+"""
+RandPlanner over BoardSizes
+"""
+def get_params_for_rand_board_sizes():
+    CoC = 0.7
+    NUM_REPEAT = 20
+
+    PLANNERS = [Planner.get_HPlanner_v15()] # Quick sampling using A* NOT Random
+    MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
+    PARAMETERS = [SimulationParameters(p, m, CoC, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS]
+
+    PLANNERS = [Planner.get_HPlanner_bb_prob()] # Quick sampling using A* NOT Random
+    MODELS = [models.AgentSmartBPRII, models.AgentSmartBPR]
+    PARAMETERS += [SimulationParameters(p, m, CoC, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS]
+
+    # Last parameter is for show "optimal"
+    PARAMETERS += [SimulationParameters(p, models.AgentFullComm, 0) for p in PLANNERS]
+    return PARAMETERS
+
+
+def get_problems_for_rand_board_sizes():
+    NUM_PROBLEMS = 10
+    BOARD_SIDES = range(5, 14)
+    problems = {}
+    for SIDE in BOARD_SIDES:
+        param = ProblemParameters(BOARD_X=int(math.floor(SIDE)), BOARD_Y=int(math.ceil(SIDE)),\
+            NUM_ROCKS=3, NUM_SOILS=3, RAND_RANGE=10, A_PROB=0.3)
+        problems[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
+            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
+    return problems
+
+for i in range(240):
+    print('starting in {} minutes ... ...'.format(239-i))
+    time.sleep(60)
+
+
+# log_problems(get_params_for_rand_board_sizes(), get_problems_for_rand_board_sizes(), \
+#     open("results/RandPlanner_0p3_board_per_simulation_raw.txt", 'a'), \
+#     open("results/RandPlanner_0p3_board_avg_per_problem.txt", 'a'), \
+#     open("results/RandPlanner_0p3_board_per_simulation_avg.txt", 'a'))
+
+
 
 
 

@@ -62,12 +62,12 @@ Pick which Models to compare
 """
 MODELS = []
 # MODELS += [models.AgentSmartPlanRec]
-# MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentSmartEstimate]
 # MODELS += [models.AgentSmartEstimateII]
 # MODELS += [models.AgentSmartBPR]
 MODELS += [models.AgentNoComm]
-MODELS += [models.AgentSmartComm]
+# MODELS += [models.AgentSmartComm]
+# MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentRandComm]
 MODELS += [models.AgentFullComm]
 
@@ -76,9 +76,9 @@ MODELS += [models.AgentFullComm]
 Pick which Planners to use
 """
 PLANNERS = []
+PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
-# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
-PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
+# PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
 # PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
@@ -97,21 +97,25 @@ COC = 0.1
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 30
+NUM_PROBLEMS = 15
 
 
 def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
-    global COSTS
+    global COSTS, MODELS
     PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, rand_range=RAND_RANGE, max_cost=MAX_COST,\
                 name=str(time.time()) + '.' + str(i)) \
                 for i in range(NUM_PROBLEMS)]
     
     lines = []
+    simulations = {}
+    plot_lines = {}
+        
     for PLANNER in PLANNERS:
         # Each planner result in a different plot
-
-        simulations = {}
-        plot_lines = {}
+        
+        if PLANNER.name == Planner.get_HPlanner_bb_prob().name:
+            MODELS = [models.AgentSmartBPRII]
+        
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
             line_name = AGENT_TYPE.__name__ + '_' + PLANNER.name
@@ -142,30 +146,31 @@ def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    # Run
-                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
-                    simulation.run()
-                    
-                    # Do not include simulation if there is no solution
-                    if simulation.get_total_cost() > sys.maxint/2: 
-                        print "asdfasdf!!!"
-                        continue
+                    num_iter = 10
+                    for j in range(num_iter):
+                        # Run
+                        simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
+                        simulation.run()
+                        
+                        # Do not include simulation if there is no solution
+                        if simulation.get_total_cost() > sys.maxint/2: 
+                            continue
 
-                    # Add
-                    simulations[line_name][COC].append(simulation)
-                    costs += simulation.get_total_cost()
-                    # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
+                        # Add
+                        simulations[line_name][COC].append(simulation)
+                        costs += simulation.get_total_cost()
+                        # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
 
-                    if AGENT_TYPE.__name__ == 'AgentNoComm':
-                        baseline_costs[PROBLEM.name] = simulation.get_total_cost()
-                        sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
-                    else:
-                        diff = int(simulation.get_total_cost() - baseline_costs[PROBLEM.name])
-                        sys.stdout.write('{}, '.format(diff))
-                        # if diff > 1 and ('Smart' in AGENT_TYPE.__name__):
-                        #     Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
+                        if AGENT_TYPE.__name__ == 'AgentNoComm':
+                            baseline_costs[PROBLEM.name] = simulation.get_total_cost()
+                            sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
+                        else:
+                            diff = int(simulation.get_total_cost() - baseline_costs[PROBLEM.name])
+                            sys.stdout.write('{}, '.format(diff))
+                            # if diff > 1 and ('Smart' in AGENT_TYPE.__name__):
+                            #     Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
 
-                    sys.stdout.flush()
+                        sys.stdout.flush()
 
                 
                 avg_cost = costs * 1.0 / len(simulations[line_name][COC])
@@ -185,19 +190,23 @@ def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
     ax = plt.subplot(111)
 
     for (name, line) in plot_lines.items():
-        if 'NoComm' in name:
-            c = 'green'
-        elif 'SmartCommII' in name:
-            c = 'cyan'
-        elif 'SmartComm' in name:
-            c = 'blue'
-        elif 'FullComm' in name:
-            c = 'red'
-        elif 'RandComm' in name:
-            c = 'purple'
-        else:
-            c = None
-        lines.append(ax.plot(line[0], line[1], label=name, color=c))
+        # if 'NoComm' in name:
+        #     c = 'green'
+        # elif 'SmartCommII' in name:
+        #     c = 'cyan'
+        # elif 'SmartComm' in name:
+        #     c = 'blue'
+        # elif 'FullComm' in name:
+        #     c = 'red'
+        # elif 'RandComm' in name:
+        #     c = 'purple'
+        # else:
+        #     c = None
+        # if c == None:
+        #     lines.append(ax.plot(line[0], line[1], label=name))
+        # else:
+        #     lines.append(ax.plot(line[0], line[1], label=name, color=c))
+        lines.append(ax.plot(line[0], line[1], label=name))
 
     # Locate Legend
     box = ax.get_position()
@@ -241,8 +250,8 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
     plot_lines = {}
     for PLANNER in PLANNERS:
 
-        # if PLANNER.name == Planner.get_HPlanner_bb_prob().name:
-        #     MODELS = [models.AgentSmartEstimate, models.AgentSmartEstimateII]
+        if PLANNER.name == Planner.get_HPlanner_bb_prob().name:
+            MODELS = [models.AgentSmartBPRII]
         # if PLANNER.name == Planner.get_HPlanner_v15().name:
         #     MODELS = [models.AgentSmartComm, models.AgentFullComm]
         # if PLANNER.name == Planner.get_HPlanner_v14().name:
@@ -269,21 +278,23 @@ def SimulateVaryingCosts(BOARD_X, BOARD_Y):
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    # Run
-                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
-                    simulation.run()
-                    
-                    # Do not include simulation if there is no solution
-                    if simulation.get_total_cost() > sys.maxint/2: 
-                        continue
+                    num_iter = 10
+                    for j in range(num_iter):
+                        # Run
+                        simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
+                        simulation.run()
+                        
+                        # Do not include simulation if there is no solution
+                        if simulation.get_total_cost() > sys.maxint/2: 
+                            continue
 
-                    # Add
-                    simulations[line_name][COC].append(simulation)
-                    costs += simulation.get_total_cost()
-                    # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
+                        # Add
+                        simulations[line_name][COC].append(simulation)
+                        costs += simulation.get_total_cost()
+                        # logger.info(simulation.get_summary(cost=True, cost_bd=False, obs=False, comm=True, void=True))
 
-                    sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
-                    sys.stdout.flush()
+                        sys.stdout.write('{}, '.format(int(simulation.get_total_cost())))
+                        sys.stdout.flush()
 
                 
                 avg_cost = costs * 1.0 / len(simulations[line_name][COC])

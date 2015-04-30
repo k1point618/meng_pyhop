@@ -22,7 +22,7 @@ import numpy
 """
 Make a Random World AND Random Uncertainties
 """
-def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.7):
+def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.3):
     PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
