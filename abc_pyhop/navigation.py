@@ -76,7 +76,7 @@ def a_star(state, agent, sink, SAMPLE=False):
 			if neighbor in closed_set:
 				continue
 			task = ('navigate_op', agent, current, neighbor)
-			tentative_g_score = g_score[current] + state.cost_func(state, task)
+			tentative_g_score = g_score[current] + state.cost_func(state, task) + 1
 
 			if (not (neighbor in openset)) or tentative_g_score < g_score[neighbor]:
 				came_from[neighbor] = current
@@ -131,9 +131,6 @@ def heuristic(state, source, sink):
 	(sink_x, sink_y) = state.loc[sink]
 
 	return abs((source_x - sink_x)) + abs((source_y - sink_y)) + state.cost[source] + state.cost[sink]
-
-# def heuristic(state, source, sink):
-# 	return 0
 
 def reconstruct_path(came_from, current):
 	to_return = [current]

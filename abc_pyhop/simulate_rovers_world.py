@@ -478,7 +478,7 @@ class Simulation():
     def total_steps(self):
         return sum([len(agent.get_histories()) for agent in self.agents.values()])
 
-    def get_summary(self, cost=True, cost_bd=False, obs=True, comm=True, void=True, planner=True):
+    def get_summary(self, cost=True, cost_bd=False, obs=False, comm=False, void=False, planner=False):
         to_return = "\nSimulation Summary for Problem:{} with AgentType:{}\n".format(
             self.real_world.name, self.AgentType)
         if planner:

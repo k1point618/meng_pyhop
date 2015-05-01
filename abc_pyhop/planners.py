@@ -123,11 +123,14 @@ class Planner():
 			elif problem.verbose == 1:
 				print("Problem State: ")
 				pyhop.print_state(problem)
-			solutions = pyhop.seek_plan_v13(problem,problem.goals[agent],[],[],0, verbose=problem.verbose)
-			# If there is no solution
+			root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose, all_plans=True)
+			
+			# Even though we get the root, this planner imitates the result of a linear planner.
+			solutions = [root.get_plan(rand=True)]
 			if solutions[0] == False:
 				return solutions
 			return Planner.make_sol_obj(solutions, problem, agent)
+
 		v17.planner = v17_plan
 		v17.name = "Rand_Astar_OnePlan2"
 		return v17

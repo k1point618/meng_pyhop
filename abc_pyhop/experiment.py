@@ -64,8 +64,8 @@ MODELS = []
 # MODELS += [models.AgentSmartPlanRec]
 # MODELS += [models.AgentSmartEstimate]
 # MODELS += [models.AgentSmartEstimateII]
-# MODELS += [models.AgentSmartBPR]
-MODELS += [models.AgentNoComm]
+# MODELS += [models.AgentSmartBPRII]
+# MODELS += [models.AgentNoComm]
 # MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentRandComm]
@@ -76,10 +76,10 @@ MODELS += [models.AgentFullComm]
 Pick which Planners to use
 """
 PLANNERS = []
-PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
+# PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
 # PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 # PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-# PLANNERS += [Planner.get_HPlanner_v17()] # copy of v15
+PLANNERS += [Planner.get_HPlanner_v17()] 
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
 
@@ -97,7 +97,7 @@ COC = 0.1
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 15
+NUM_PROBLEMS = 20
 
 
 def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
@@ -448,7 +448,7 @@ def TestOneRandomProb():
     # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
     #     name=str(time.time()) + '.' + str(i)) for i in range(10)]
 
-    PROBLEMS = ProblemLib.find_problems(BOARD_X, BOARD_Y, RAND_PROB=0.7, limit=1)
+    PROBLEMS = ProblemLib.find_problems(BOARD_X, BOARD_Y, RAND_PROB=0.3, limit=5)[4:]
     for PROBLEM in PROBLEMS:
 
 
@@ -727,7 +727,7 @@ This reproduces the baseline with parameters:
     COC: range(50)
     Input: Fix Board-Size
 """
-SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y)
+# SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y)
 
 """
 Varying costs for non-deterministic planner
@@ -750,15 +750,19 @@ Input: Fix COC
 
 
 # TestOnProblemBank()
-# TestOneRandomProb()
+TestOneRandomProb()
 
 
 
 
 
 
+# NoComm + v15 --> 78.7
+# FullComm + v15 --> 60.5
 
-
+# BPRII --> 74.94
+# NoComm + V17 --> 80.73
+# FullComm + v17 --> 61.8
 
 """
 Graveyard

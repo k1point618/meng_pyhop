@@ -343,29 +343,30 @@ def get_problems_for_BPR_over_costs():
 #     open("results/SmartBPR_BPRII_0p3_over_cost_avg_per_problem.txt", 'a'), \
 #     open("results/SmartBPR_BPRII_0p3_over_cost_per_simulation_avg.txt", 'a'))
 
+
+
 """
 RandPlanner for all models
 """
 def get_params_for_randPlanner():
-    NUM_REPEAT = 10 # This is for random planners
+    NUM_REPEAT = 5 # This is for random planners
     COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
 
-    # PLANNERS = [Planner.get_HPlanner_v15()] # Quick sampling using A* NOT Random
-    # MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
-    # PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
+    PLANNERS = [Planner.get_HPlanner_v17()] # Quick sampling using A* NOT Random
+    MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
+    PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
 
     PLANNERS = [Planner.get_HPlanner_bb_prob()] # Quick sampling using A* NOT Random
     MODELS = [models.AgentSmartBPRII, models.AgentSmartBPR]
-    
-    PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
+    PARAMETERS += [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
 
     return PARAMETERS
 
 def get_problems_for_randPlanner():
-    NUM_PROBLEMS = 25
-    n_r = 3
-    n_s = 3
+    NUM_PROBLEMS = 50
+    n_r = 1
+    n_s = 1
     a_prob = 0.3
     param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=n_r, NUM_SOILS=n_s, RAND_RANGE=10,\
             A_PROB=a_prob)
@@ -376,9 +377,9 @@ def get_problems_for_randPlanner():
     return to_return
 
 log_problems(get_params_for_randPlanner(), get_problems_for_randPlanner(),\
-    open("results/RandPlanner_0p3_3r3s_over_cost_per_simulation_raw.txt", 'a'), \
-    open("results/RandPlanner_0p3_3r3s_over_cost_avg_per_problem.txt", 'a'), \
-    open("results/RandPlanner_0p3_3r3s_over_cost_per_simulation_avg.txt", 'a'))
+    open("results_opt/RandPlanner_0p3_1r1s_over_cost_per_simulation_raw.txt", 'a'), \
+    open("results_opt/RandPlanner_0p3_1r1s_over_cost_avg_per_problem.txt", 'a'), \
+    open("results_opt/RandPlanner_0p3_1r1s_over_cost_per_simulation_avg.txt", 'a'))
 
 
 
@@ -386,10 +387,10 @@ log_problems(get_params_for_randPlanner(), get_problems_for_randPlanner(),\
 RandPlanner over BoardSizes
 """
 def get_params_for_rand_board_sizes():
-    CoC = 0.7
-    NUM_REPEAT = 20
+    CoC = 1.2
+    NUM_REPEAT = 10
 
-    PLANNERS = [Planner.get_HPlanner_v15()] # Quick sampling using A* NOT Random
+    PLANNERS = [Planner.get_HPlanner_v17()] # Quick sampling using A* NOT Random
     MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
     PARAMETERS = [SimulationParameters(p, m, CoC, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS]
 
@@ -403,7 +404,7 @@ def get_params_for_rand_board_sizes():
 
 
 def get_problems_for_rand_board_sizes():
-    NUM_PROBLEMS = 10
+    NUM_PROBLEMS = 20
     BOARD_SIDES = range(5, 14)
     problems = {}
     for SIDE in BOARD_SIDES:
@@ -413,15 +414,15 @@ def get_problems_for_rand_board_sizes():
             RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
     return problems
 
-for i in range(240):
-    print('starting in {} minutes ... ...'.format(239-i))
-    time.sleep(60)
+# for i in range(240):
+#     print('starting in {} minutes ... ...'.format(239-i))
+#     time.sleep(60)
 
 
 # log_problems(get_params_for_rand_board_sizes(), get_problems_for_rand_board_sizes(), \
-#     open("results/RandPlanner_0p3_board_per_simulation_raw.txt", 'a'), \
-#     open("results/RandPlanner_0p3_board_avg_per_problem.txt", 'a'), \
-#     open("results/RandPlanner_0p3_board_per_simulation_avg.txt", 'a'))
+#     open("results_board/RandPlanner_0p3_COC1p2_board_per_simulation_raw.txt", 'a'), \
+#     open("results_board/RandPlanner_0p3_COC1p2_board_avg_per_problem.txt", 'a'), \
+#     open("results_board/RandPlanner_0p3_COC1p2_board_per_simulation_avg.txt", 'a'))
 
 
 
