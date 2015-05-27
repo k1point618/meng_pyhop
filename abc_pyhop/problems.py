@@ -104,13 +104,17 @@ def parse_problem(problem_array):
 	return rrw.make_world(p_name, board_x, board_y, num_soils, num_rocks, max_cost, rand_range, rand_prob, AT, GOALS, SEQ, RANDs)
 
 
-def find_problems(BOARD_X, BOARD_Y, problem_name=None, MAX_COST=None, \
+def find_problems(BOARD_X, BOARD_Y, problem_name=None, num_agent=2, MAX_COST=None, \
 	RAND_RANGE=None, RAND_PROB=None, NUM_ROCKS=None, NUM_SOILS=None, limit=sys.maxint):
 
 	to_return = []
 	num_p_found = 0
 
-	problem_file = open("problems/problem_X{}_Y{}.txt".format(BOARD_X, BOARD_Y), 'r')
+	if num_agent==2:
+		problem_file = open("problems/problem_X{}_Y{}.txt".format(BOARD_X, BOARD_Y), 'r')
+	else:
+		problem_file = open("problems/problem_A{}_X{}_Y{}.txt".format(num_agent, BOARD_X, BOARD_Y), 'r')
+
 	for line in problem_file:
 		problem_array = line.split('\t')
 		filter_vars = [problem_name, BOARD_X, BOARD_Y, NUM_SOILS, NUM_ROCKS, MAX_COST, RAND_RANGE, RAND_PROB]
@@ -150,7 +154,7 @@ def bulk_write():
 	for SIDE in BOARD_SIDES:
 		x = int(math.floor(SIDE))
 		y = int(math.ceil(SIDE))
-		file_obj = open("problems/problem_X{}_Y{}.txt".format(x, y), 'a')
+		file_obj = open("problems/problem_A3_X{}_Y{}.txt".format(x, y), 'a')
 		for rand_range in RAND_RANGE:
 			for a_prob in A_PROBS:
 				write_problems(x, y, rand_range, rand_range*3, a_prob, num_repeat, file_obj=file_obj)

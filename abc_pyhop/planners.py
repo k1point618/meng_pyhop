@@ -206,3 +206,21 @@ class Planner():
 		v20.planner = v20_plan
 		v20.name = "Rand_HTN_BB"
 		return v20
+
+
+	@staticmethod
+	def get_HPlanner_bb_all():		
+		# Returns ALL possible plans
+		# - No Explanation
+		v20 = Planner()
+		def v20_plan(problem, agent):
+			problem.a_star = True
+			problem.rand = True
+			if not hasattr(problem, 'verbose'):
+				problem.verbose = 0
+			root = pyhop.seek_bb(problem, problem.goals[agent], verbose=problem.verbose, all_plans=True)
+			return [SolutionTree(root, agent, rand=False)]
+
+		v20.planner = v20_plan
+		v20.name = "RAND_HTN_BB"
+		return v20

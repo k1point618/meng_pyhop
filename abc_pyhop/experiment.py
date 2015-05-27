@@ -62,14 +62,14 @@ Pick which Models to compare
 """
 MODELS = []
 # MODELS += [models.AgentSmartPlanRec]
-# MODELS += [models.AgentSmartEstimate]
+MODELS += [models.AgentSmartEstimate]
 # MODELS += [models.AgentSmartEstimateII]
-# MODELS += [models.AgentSmartBPRII]
+MODELS += [models.AgentSmartBPR]
 # MODELS += [models.AgentNoComm]
 # MODELS += [models.AgentSmartComm]
 # MODELS += [models.AgentSmartCommII]
 # MODELS += [models.AgentRandComm]
-MODELS += [models.AgentFullComm]
+# MODELS += [models.AgentFullComm]
 
 
 """
@@ -77,11 +77,11 @@ Pick which Planners to use
 """
 PLANNERS = []
 # PLANNERS += [Planner.get_HPlanner_v15()] # Quick sampling using A* Random
-# PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 # PLANNERS += [Planner.get_HPlanner_v14()] # Quick sampling using A* NOT Random
-PLANNERS += [Planner.get_HPlanner_v17()] 
+# PLANNERS += [Planner.get_HPlanner_v17()]
 # PLANNERS += [Planner.get_HPlanner_v13()] # Quick Sampling no A*
 # PLANNERS += [Planner.get_HPlanner_bb()]
+PLANNERS += [Planner.get_HPlanner_bb_prob()] # Reason with expected cost of communication
 
 """
 Cost of Communication
@@ -90,6 +90,7 @@ RAND_RANGE = 10
 MAX_COST = 20
 # COSTS = [i * 0.05 for i in range(30)]
 # COSTS = [0.5, 2.5, 4.5]
+# COSTS = [0.1, 0.5, 1]
 COSTS = [0, 0.4, 0.8, 1.2, 1.5, 1.8]
 COC = 0.1
 
@@ -97,7 +98,7 @@ COC = 0.1
 Choose any problem from problem bank
 """
 PROBLEMS = []
-NUM_PROBLEMS = 20
+NUM_PROBLEMS = 5
 
 
 def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
@@ -114,7 +115,7 @@ def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
         # Each planner result in a different plot
         
         if PLANNER.name == Planner.get_HPlanner_bb_prob().name:
-            MODELS = [models.AgentSmartBPRII]
+            MODELS = [models.AgentSmartBPRII, models.AgentSmartEstimate]
         
         for AGENT_TYPE in MODELS:
             # Each agent is a line in the plot
@@ -146,7 +147,7 @@ def SimulateVaryingCosts_Det_Planner(BOARD_X, BOARD_Y):
                     PROBLEM.COST_OF_COMM = COC
                     PROBLEM.COST_REPLAN = 0
 
-                    num_iter = 10
+                    num_iter = 3
                     for j in range(num_iter):
                         # Run
                         simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=GUI)
@@ -448,25 +449,25 @@ def TestOneRandomProb():
     # PROBLEMS = [rrw.make_random_problem(BOARD_X, BOARD_Y, \
     #     name=str(time.time()) + '.' + str(i)) for i in range(10)]
 
-    PROBLEMS = ProblemLib.find_problems(BOARD_X, BOARD_Y, RAND_PROB=0.3, limit=5)[4:]
+    # PROBLEMS = ProblemLib.find_problems(BOARD_X, BOARD_Y, RAND_PROB=0.3, limit=20)[14:]
+    PROBLEMS = ProblemLib.find_problems(BOARD_X, BOARD_Y, problem_name="5_5_21_10_0.5_603")
+
     for PROBLEM in PROBLEMS:
-
-
         for AGENT_TYPE in MODELS:
             for PLANNER in PLANNERS:
                 # Each point is the average over all problems
-                PROBLEM.COST_OF_COMM = COC
+                PROBLEM.COST_OF_COMM = 0.1
                 PROBLEM.COST_REPLAN = 0
 
-                num_iter = 30
+                num_iter = 1
                 costs = 0
                 for i in range(num_iter):
                     # Run
-                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=False)
+                    simulation = Simulation(PROBLEM, AGENT_TYPE, PLANNER, gui=True)
                     simulation.run()
                     costs += simulation.get_total_cost()
-                    logger.info(simulation.get_summary(cost=True, cost_bd=True))
-                print("avg: {}".format(costs*1.0/num_iter))    
+                    # logger.info(simulation.get_summary(cost=True, cost_bd=True,obs=True, comm=True, void=True, planner=False))
+                print("problem: {} avg: {}".format(PROBLEM, costs*1.0/num_iter))    
 
 """
 Assume there are two planners, one det and one rand
@@ -750,7 +751,7 @@ Input: Fix COC
 
 
 # TestOnProblemBank()
-TestOneRandomProb()
+# TestOneRandomProb()
 
 
 

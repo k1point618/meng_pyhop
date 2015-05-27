@@ -9,6 +9,7 @@ import random_rovers_world as rrw
 import models
 from planners import * 
 import problems as ProblemLib
+import statistics
 
 class SimulationParameters(object):
     def __init__(self, planner, model, coc, num_repeat=1):
@@ -60,9 +61,11 @@ def log_problems(SIM_PARAMS, PROBLEMS_DICT, file_obj_sim, file_obj_problem, file
                     # Write result to file
                     write_result_by_simulation(PROBLEM, params, simulation, file_obj_sim)
 
+                file_obj_sim.flush()
+                
                 if file_obj_avg != None and params.num_repeat > 1:
                     write_result_avg_rand_planner(PROBLEM, params, repeated_sims, file_obj_avg)
-
+                
             write_result_by_sim_params(params, problem_params, simulations, file_obj_problem)
 
 
@@ -102,9 +105,23 @@ def write_result_avg_rand_planner(problem, params, simulations, file_obj_avg):
     avg_steps = 1.0 * sum([s.total_steps() for s in simulations])/len(simulations)
     to_write += '\t' + str(avg_steps)
 
+
+    # Median Results
+    avg_cost = 1.0 * statistics.median([s.get_total_cost() for s in simulations])
+    to_write += '\t' + str(avg_cost)
+    avg_obs = 1.0 * statistics.median([s.total_observations() for s in simulations])
+    to_write += '\t' + str(avg_obs)
+    avg_msg_sent = 1.0 * statistics.median([s.total_messages_sent() for s in simulations])
+    to_write += '\t' + str(avg_msg_sent)
+    avg_msg_void = 1.0 * statistics.median([s.total_messages_voided() for s in simulations])
+    to_write += '\t' + str(avg_msg_void)
+    avg_steps = 1.0 * statistics.median([s.total_steps() for s in simulations])
+    to_write += '\t' + str(avg_steps)
+
     to_write += '\t' + str(len(simulations))
 
     file_obj_avg.write(to_write + '\n')
+    file_obj_avg.flush()
 
 # Write AVERAGED simulation results over n-problems with problem_param
 def write_result_by_sim_params(sim_params, problem_params, simulations, file_obj):
@@ -119,6 +136,11 @@ def write_result_by_sim_params(sim_params, problem_params, simulations, file_obj
     # Avg Cost
     avg_cost = sum([sim.get_total_cost() for sim in simulations])/len(simulations)
     to_write += '\t' + str(avg_cost)
+
+
+    # Median Cost
+    md_cost = statistics.median([sim.get_total_cost() for sim in simulations])
+    to_write += '\t' + str(md_cost)
 
     # Num Problems Avged
     to_write += '\t' + str(len(simulations))
@@ -135,8 +157,25 @@ def write_result_by_sim_params(sim_params, problem_params, simulations, file_obj
     
     avg_steps = 1.0 * sum([s.total_steps() for s in simulations])/len(simulations)
     to_write += '\t' + str(avg_steps)
+
+
+    # Other misc: medians
+     # Other misc: average observations made; avg messages sent; avg steps take; useful for comparing board-sizes
+    avg_obs = 1.0 * statistics.median([s.total_observations() for s in simulations])
+    to_write += '\t' + str(avg_obs)
+    
+    avg_msg_sent = 1.0 * statistics.median([s.total_messages_sent() for s in simulations])
+    to_write += '\t' + str(avg_msg_sent)
+    
+    avg_msg_void = 1.0 * statistics.median([s.total_messages_voided() for s in simulations])
+    to_write += '\t' + str(avg_msg_void)
+    
+    avg_steps = 1.0 * statistics.median([s.total_steps() for s in simulations])
+    to_write += '\t' + str(avg_steps)
     
     file_obj.write(to_write + '\n')
+    file_obj.flush()
+
 
 
 
@@ -153,22 +192,26 @@ def get_params_for_costs():
 
     MODELS = [models.AgentSmartComm, models.AgentSmartCommII, models.AgentRandComm, models.AgentFullComm]
     COCs = [i * 0.1 for i in range(30)]
-    COCs += [i * 0.5 + 3 for i in range(5)]
+    # COCs = [0, 1, 2, 3, 4]
     PARAMETERS += [SimulationParameters(p, m, c) for p in PLANNERS for m in MODELS for c in COCs]
     return PARAMETERS
 
 def get_problems_for_costs(num_repeat=1):
-    NUM_PROBLEMS = 100
-    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=1, NUM_SOILS=1, RAND_RANGE=10, A_PROB=0.5, num_repeat=num_repeat)
+    NUM_PROBLEMS = 2
+    n_r = 2
+    n_s = 2
+    a_prob = 0.5
+    num_agents = 3
+    param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=n_r, NUM_SOILS=n_s, RAND_RANGE=10, A_PROB=a_prob)
 
     to_return = {}
     to_return[param] = ProblemLib.find_problems(param.BOARD_X, param.BOARD_Y, NUM_ROCKS=param.NUM_ROCKS, NUM_SOILS=param.NUM_SOILS,\
-            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
+            RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, num_agent=num_agents, limit=NUM_PROBLEMS)
     return to_return
 
-# log_problems(get_params_for_costs(), get_problems_for_costs(), \
-#     open("results/test_DetPlanner_over_cost_per_simulation.txt", 'a'), \
-#     open("results/test_DetPlanner_over_cost_averaged.txt", 'a'))
+log_problems(get_params_for_costs(), get_problems_for_costs(), \
+    open("results_opt/DetPlanner3agent_over_cost_per_simulation.txt", 'a'), \
+    open("results_opt/DetPlanner3agent_over_cost_averaged.txt", 'a'))
 
 
 
@@ -349,25 +392,28 @@ def get_problems_for_BPR_over_costs():
 RandPlanner for all models
 """
 def get_params_for_randPlanner():
-    NUM_REPEAT = 5 # This is for random planners
-    COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
 
-    PLANNERS = [Planner.get_HPlanner_v17()] # Quick sampling using A* NOT Random
-    MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
-    PARAMETERS = [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
+    PARAMETERS = []
+    # PARAMETERS += [SimulationParameters(Planner.get_HPlanner_v17(), models.AgentNoComm, 0, num_repeat=20)]
+    # PARAMETERS += [SimulationParameters(Planner.get_HPlanner_v17(), models.AgentFullComm, 0, num_repeat=20)]
+    PARAMETERS += [SimulationParameters(Planner.get_HPlanner_v17(), models.AgentFullComm, 5, num_repeat=20)]
 
+    NUM_REPEAT = 10 # This is for random planners
+    # COCs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    # COCs += [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
+    # COCs = [0.3, 0.5, 0.8, 1.1, 1.5, 1.8]
+    COCs = [i * 0.2 for i in range(10, 26)]
     PLANNERS = [Planner.get_HPlanner_bb_prob()] # Quick sampling using A* NOT Random
-    MODELS = [models.AgentSmartBPRII, models.AgentSmartBPR]
+    MODELS = [models.AgentSmartBPRII, models.AgentSmartBPR, models.AgentSmartEstimate]
     PARAMETERS += [SimulationParameters(p, m, c, num_repeat=NUM_REPEAT) for p in PLANNERS for m in MODELS for c in COCs]
 
     return PARAMETERS
 
 def get_problems_for_randPlanner():
     NUM_PROBLEMS = 50
-    n_r = 1
-    n_s = 1
-    a_prob = 0.3
+    n_r = 2
+    n_s = 2
+    a_prob = 0.5
     param = ProblemParameters(BOARD_X=5, BOARD_Y=5, NUM_ROCKS=n_r, NUM_SOILS=n_s, RAND_RANGE=10,\
             A_PROB=a_prob)
 
@@ -376,10 +422,14 @@ def get_problems_for_randPlanner():
             RAND_RANGE=param.RAND_RANGE, RAND_PROB=param.A_PROB, limit=NUM_PROBLEMS)
     return to_return
 
-log_problems(get_params_for_randPlanner(), get_problems_for_randPlanner(),\
-    open("results_opt/RandPlanner_0p3_1r1s_over_cost_per_simulation_raw.txt", 'a'), \
-    open("results_opt/RandPlanner_0p3_1r1s_over_cost_avg_per_problem.txt", 'a'), \
-    open("results_opt/RandPlanner_0p3_1r1s_over_cost_per_simulation_avg.txt", 'a'))
+# for i in range(240):
+#     print('starting in {} minutes ... ...'.format(239-i))
+#     time.sleep(60)
+
+# log_problems(get_params_for_randPlanner(), get_problems_for_randPlanner(),\
+#     open("results_opt/RandPlanner_0p5_2r2s_b8_over_cost_per_simulation_raw.txt", 'a'), \
+#     open("results_opt/RandPlanner_0p5_2r2s_b8_over_cost_avg_per_problem.txt", 'a'), \
+#     open("results_opt/RandPlanner_0p5_2r2s_b8_over_cost_per_simulation_avg.txt", 'a'))
 
 
 
@@ -388,7 +438,7 @@ RandPlanner over BoardSizes
 """
 def get_params_for_rand_board_sizes():
     CoC = 1.2
-    NUM_REPEAT = 10
+    NUM_REPEAT = 5
 
     PLANNERS = [Planner.get_HPlanner_v17()] # Quick sampling using A* NOT Random
     MODELS = [models.AgentNoComm, models.AgentSmartComm, models.AgentFullComm]
@@ -405,7 +455,7 @@ def get_params_for_rand_board_sizes():
 
 def get_problems_for_rand_board_sizes():
     NUM_PROBLEMS = 20
-    BOARD_SIDES = range(5, 14)
+    BOARD_SIDES = range(5, 12)
     problems = {}
     for SIDE in BOARD_SIDES:
         param = ProblemParameters(BOARD_X=int(math.floor(SIDE)), BOARD_Y=int(math.ceil(SIDE)),\
@@ -420,9 +470,9 @@ def get_problems_for_rand_board_sizes():
 
 
 # log_problems(get_params_for_rand_board_sizes(), get_problems_for_rand_board_sizes(), \
-#     open("results_board/RandPlanner_0p3_COC1p2_board_per_simulation_raw.txt", 'a'), \
-#     open("results_board/RandPlanner_0p3_COC1p2_board_avg_per_problem.txt", 'a'), \
-#     open("results_board/RandPlanner_0p3_COC1p2_board_per_simulation_avg.txt", 'a'))
+#     open("results_board/RandPlanner_0p3_COC0p7_board_per_simulation_raw.txt", 'a'), \
+#     open("results_board/RandPlanner_0p3_COC0p7_board_avg_per_problem.txt", 'a'), \
+#     open("results_board/RandPlanner_0p3_COC0p7_board_per_simulation_avg.txt", 'a'))
 
 
 

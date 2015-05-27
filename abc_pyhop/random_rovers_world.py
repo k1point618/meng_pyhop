@@ -22,8 +22,8 @@ import numpy
 """
 Make a Random World AND Random Uncertainties
 """
-def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.3):
-    PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=2, a_star=True, name=name) # with default width and height (10 x 10)
+def make_random_problem(BOARD_X, BOARD_Y, rand_range=None, max_cost=None, name=None, a_prob=0.5):
+    PROBLEM = get_random_world(BOARD_X=BOARD_X, BOARD_Y=BOARD_Y, num_agent=3, a_star=True, name=name) # with default width and height (10 x 10)
     if rand_range != None:
         PROBLEM.RAND_RANGE = rand_range
         if max_cost == None:
@@ -381,10 +381,18 @@ def get_random_world(BOARD_X=10, BOARD_Y=10, num_agent=1, a_star=True, name=None
         world.visited[agent].add(loc)
 
         # Agent's capabilities
-        world.equipped_for_imaging[agent] = True
-        world.equipped_for_rock_analysis[agent] = True
-        world.equipped_for_soil_analysis[agent] = True
-
+        if agent == 'A1':
+            world.equipped_for_imaging[agent] = True
+            world.equipped_for_rock_analysis[agent] = True
+            world.equipped_for_soil_analysis[agent] = False
+        elif agent == 'A2':
+            world.equipped_for_imaging[agent] = True
+            world.equipped_for_rock_analysis[agent] = False
+            world.equipped_for_soil_analysis[agent] = True
+        else:
+            world.equipped_for_imaging[agent] = True
+            world.equipped_for_rock_analysis[agent] = True
+            world.equipped_for_soil_analysis[agent] = True
         world.available[agent] = True
 
         # Agent's Storage
@@ -539,9 +547,18 @@ def make_world(name, BOARD_X, BOARD_Y, NUM_S, NUM_R, \
             world.visited[obj].add(loc)
 
             # Agent's capabilities
-            world.equipped_for_imaging[obj] = True
-            world.equipped_for_rock_analysis[obj] = True
-            world.equipped_for_soil_analysis[obj] = True
+            if obj == 'A1':
+                world.equipped_for_imaging[obj] = True
+                world.equipped_for_rock_analysis[obj] = True
+                world.equipped_for_soil_analysis[obj] = False
+            elif obj == 'A2':
+                world.equipped_for_imaging[obj] = True
+                world.equipped_for_rock_analysis[obj] = False
+                world.equipped_for_soil_analysis[obj] = True
+            else:
+                world.equipped_for_imaging[obj] = True
+                world.equipped_for_rock_analysis[obj] = True
+                world.equipped_for_soil_analysis[obj] = True
 
             world.available[obj] = True
 
@@ -600,11 +617,11 @@ def make_world(name, BOARD_X, BOARD_Y, NUM_S, NUM_R, \
 
 # Here, we set the parameters necesary for generating a world. 
 CAPABILITIES = ["equipped_for_imaging", "equipped_for_rock_analysis", "equipped_for_soil_analysis"]
-AGENTS = ['A1', 'A2']
+AGENTS = ['A1', 'A2', 'A3']
 LANDER = "G"
 LAB = "L"
-NUM_ROCKS = 1
-NUM_SOILS = 1
+NUM_ROCKS = 2
+NUM_SOILS = 2
 NUM_OBJECTIVES = 0
 
 
